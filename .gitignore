@@ -1,3 +1,5 @@
 /deps/
 /neogit
 /telescope-docker.nvim
+/.direnv
+/.envrc
