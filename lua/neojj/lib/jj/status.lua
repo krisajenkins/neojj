@@ -69,8 +69,13 @@ function M.refresh(repo)
 
 	repo.state.working_copy = parse_working_copy_info(result)
 
-	local show_result, show_err =
-		cli.log():arg("-r"):arg("@"):option("template", 'change_id ++ "\\n" ++ commit_id ++ "\\n" ++ description'):flag("no-graph"):cwd(repo.dir):call()
+	local show_result, show_err = cli.log()
+		:arg("-r")
+		:arg("@")
+		:option("template", 'change_id ++ "\\n" ++ commit_id ++ "\\n" ++ description')
+		:flag("no-graph")
+		:cwd(repo.dir)
+		:call()
 
 	if show_result and #show_result >= 3 then
 		repo.state.working_copy.change_id = show_result[1]

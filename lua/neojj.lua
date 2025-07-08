@@ -1,5 +1,7 @@
 local jj = require("neojj.lib.jj")
 local logger = require("neojj.logger")
+local StatusBuffer = require("neojj.buffers.status")
+local Highlights = require("neojj.highlights")
 
 ---@class NeoJJSetupOptions
 ---@field log_level? number Log level for the logger
@@ -32,6 +34,9 @@ function M.setup(opts)
 	if opts.log_level then
 		logger.set_level(opts.log_level)
 	end
+
+	-- Setup highlight groups
+	Highlights.setup()
 end
 
 ---Get a JJ repository instance for the given directory
@@ -41,7 +46,7 @@ function M.get_repo(dir)
 	return jj.instance(dir)
 end
 
----Display the status of a JJ repository
+---Display the status of a JJ repository (legacy text-based)
 ---@param dir? string Directory path (defaults to current working directory)
 function M.status(dir)
 	local repo = M.get_repo(dir)
@@ -81,6 +86,29 @@ function M.status(dir)
 			print("\nNo changes in working copy\n")
 		end
 	end)
+end
+
+---Open the JJ status buffer UI
+---@param dir? string Directory path (defaults to current working directory)
+---@param split? string Split type ("horizontal", "vertical", "tab")
+function M.jj_status(dir, split)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local status_buffer = StatusBuffer.new(repo)
+
+	if split == "horizontal" then
+		status_buffer:show_split("horizontal")
+	elseif split == "vertical" then
+		status_buffer:show_split("vertical")
+	elseif split == "tab" then
+		status_buffer:show_tab()
+	else
+		status_buffer:show()
+	end
 end
 
 return M

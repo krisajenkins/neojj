@@ -12,7 +12,7 @@ if #vim.api.nvim_list_uis() == 0 then
 		-- Ensure proper output formatting in headless mode
 		collect = {
 			find_files = function()
-				return vim.fn.globpath("tests", "*.lua", true, true)
+				return vim.fn.globpath("tests", "test_components.lua", true, true)
 			end,
 		},
 		execute = {

@@ -3,13 +3,11 @@ all: typecheck test
 
 # Run all test files
 test: deps/mini.nvim deps/plenary.nvim
-	@echo "Running tests..."
-	@nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run()" -c "qa!" 2>&1 | cat
+	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run()" -c "qa!"
 
 # Run test from file at `$FILE` environment variable
 test_file: deps/mini.nvim
-	@echo "Running test file: $(FILE)"
-	@nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')" -c "qa!" 2>&1 | cat
+	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')" -c "qa!"
 
 # Format Lua code with stylua
 format:
