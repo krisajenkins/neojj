@@ -7,7 +7,6 @@ local T = MiniTest.new_set()
 T.test_full_status_ui = function()
 	local StatusUI = require("neojj.buffers.status.ui")
 	local Buffer = require("neojj.lib.buffer")
-	local Renderer = require("neojj.lib.ui.renderer")
 
 	-- Create test status buffer
 	local buffer = Buffer.create_status("JJ Status Test")
@@ -137,7 +136,6 @@ end
 ---@return nil
 T.test_folding = function()
 	local Ui = require("neojj.lib.ui")
-	local Component = require("neojj.lib.ui.component")
 
 	-- Create foldable section
 	local section = Ui.section("Foldable Section", {
@@ -172,9 +170,9 @@ T.test_file_status_highlighting = function()
 	Highlights.setup()
 
 	-- Create file items with different statuses
-	local modified = Ui.file_item("M", "modified.lua")
-	local added = Ui.file_item("A", "added.lua")
-	local deleted = Ui.file_item("D", "deleted.lua")
+	Ui.file_item("M", "modified.lua")
+	Ui.file_item("A", "added.lua")
+	Ui.file_item("D", "deleted.lua")
 
 	-- Test highlight mapping
 	local hl_m = Highlights.get_file_status_highlight("M")

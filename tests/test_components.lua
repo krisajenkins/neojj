@@ -19,11 +19,11 @@ T.test_component_creation = function()
 
 	local component = TestComponent({ value = "test" })
 
-	expect(Component.is_component(component)).to_be(true)
-	expect(component:get_tag()).to_be("TestComponent")
-	expect(component:get_value()).to_be("test")
-	expect(type(component:get_children())).to_be("table")
-	expect(type(component:get_options())).to_be("table")
+	expect.equality(Component.is_component(component), true)
+	expect.equality(component:get_tag(), "TestComponent")
+	expect.equality(component:get_value(), "test")
+	expect.equality(type(component:get_children()), "table")
+	expect.equality(type(component:get_options()), "table")
 end
 
 ---Test component options
@@ -48,11 +48,11 @@ T.test_component_options = function()
 
 	local component = TestComponent({ value = "test" })
 
-	expect(component:is_foldable()).to_be(true)
-	expect(component:is_folded()).to_be(false)
-	expect(component:is_interactive()).to_be(true)
-	expect(component:get_section()).to_be("test_section")
-	expect(component:get_highlight()).to_be("TestHighlight")
+	expect.equality(component:is_foldable(), true)
+	expect.equality(component:is_folded(), false)
+	expect.equality(component:is_interactive(), true)
+	expect.equality(component:get_section(), "test_section")
+	expect.equality(component:get_highlight(), "TestHighlight")
 end
 
 ---Test UI primitive creation
@@ -63,30 +63,30 @@ T.test_ui_primitives = function()
 
 	-- Test text component
 	local text = Ui.text("Hello World", { highlight = "String" })
-	expect(Component.is_component(text)).to_be(true)
-	expect(text:get_tag()).to_be("Text")
-	expect(text:get_value()).to_be("Hello World")
-	expect(text:get_highlight()).to_be("String")
+	expect.equality(Component.is_component(text), true)
+	expect.equality(text:get_tag(), "Text")
+	expect.equality(text:get_value(), "Hello World")
+	expect.equality(text:get_highlight(), "String")
 
 	-- Test column component
 	local col = Ui.col({ text }, { foldable = true })
-	expect(Component.is_component(col)).to_be(true)
-	expect(col:get_tag()).to_be("Col")
-	expect(#col:get_children()).to_be(1)
-	expect(col:is_foldable()).to_be(true)
+	expect.equality(Component.is_component(col), true)
+	expect.equality(col:get_tag(), "Col")
+	expect.equality(#col:get_children(), 1)
+	expect.equality(col:is_foldable(), true)
 
 	-- Test row component
 	local row = Ui.row({ text }, { interactive = true })
-	expect(Component.is_component(row)).to_be(true)
-	expect(row:get_tag()).to_be("Row")
-	expect(#row:get_children()).to_be(1)
-	expect(row:is_interactive()).to_be(true)
+	expect.equality(Component.is_component(row), true)
+	expect.equality(row:get_tag(), "Row")
+	expect.equality(#row:get_children(), 1)
+	expect.equality(row:is_interactive(), true)
 
 	-- Test empty line
 	local empty = Ui.empty_line()
-	expect(Component.is_component(empty)).to_be(true)
-	expect(empty:get_tag()).to_be("Text")
-	expect(empty:get_value()).to_be("")
+	expect.equality(Component.is_component(empty), true)
+	expect.equality(empty:get_tag(), "Text")
+	expect.equality(empty:get_value(), "")
 end
 
 ---Test UI helper functions
@@ -97,31 +97,31 @@ T.test_ui_helpers = function()
 
 	-- Test section header
 	local header = Ui.section_header("Test Section", 5)
-	expect(Component.is_component(header)).to_be(true)
-	expect(header:get_value()).to_be("Test Section (5)")
-	expect(header:get_highlight()).to_be("NeoJJSectionHeader")
+	expect.equality(Component.is_component(header), true)
+	expect.equality(header:get_value(), "Test Section (5)")
+	expect.equality(header:get_highlight(), "NeoJJSectionHeader")
 
 	-- Test file item
 	local file_item = Ui.file_item("M", "src/test.lua")
-	expect(Component.is_component(file_item)).to_be(true)
-	expect(file_item:get_tag()).to_be("Row")
-	expect(#file_item:get_children()).to_be(3) -- status, space, path
+	expect.equality(Component.is_component(file_item), true)
+	expect.equality(file_item:get_tag(), "Row")
+	expect.equality(#file_item:get_children(), 3) -- status, space, path
 
 	-- Test commit info
 	local commit = Ui.commit_info("abc123", "def456", "Test commit", { name = "Test User", email = "test@example.com" })
-	expect(Component.is_component(commit)).to_be(true)
-	expect(commit:get_tag()).to_be("Col")
-	expect(#commit:get_children()).to_be(4) -- change_id, commit_id, description, author
+	expect.equality(Component.is_component(commit), true)
+	expect.equality(commit:get_tag(), "Col")
+	expect.equality(#commit:get_children(), 4) -- change_id, commit_id, description, author
 
 	-- Test section
 	local section = Ui.section("Test Section", {
 		Ui.text("Item 1"),
 		Ui.text("Item 2"),
 	})
-	expect(Component.is_component(section)).to_be(true)
-	expect(section:get_tag()).to_be("Col")
-	expect(section:is_foldable()).to_be(true)
-	expect(section:get_section()).to_be("test_section")
+	expect.equality(Component.is_component(section), true)
+	expect.equality(section:get_tag(), "Col")
+	expect.equality(section:is_foldable(), true)
+	expect.equality(section:get_section(), "test_section")
 end
 
 ---Test component with tagged constructors
@@ -133,24 +133,24 @@ T.test_tagged_constructors = function()
 	-- Test tagged column
 	local TaggedCol = Ui.tagged_col("CustomCol")
 	local tagged_col = TaggedCol({ Ui.text("test") }, { custom = true })
-	expect(Component.is_component(tagged_col)).to_be(true)
-	expect(tagged_col:get_tag()).to_be("Col")
-	expect(tagged_col:get_options().tag).to_be("CustomCol")
-	expect(tagged_col:get_options().custom).to_be(true)
+	expect.equality(Component.is_component(tagged_col), true)
+	expect.equality(tagged_col:get_tag(), "Col")
+	expect.equality(tagged_col:get_options().tag, "CustomCol")
+	expect.equality(tagged_col:get_options().custom, true)
 
 	-- Test tagged row
 	local TaggedRow = Ui.tagged_row("CustomRow")
 	local tagged_row = TaggedRow({ Ui.text("test") }, { custom = true })
-	expect(Component.is_component(tagged_row)).to_be(true)
-	expect(tagged_row:get_tag()).to_be("Row")
-	expect(tagged_row:get_options().tag).to_be("CustomRow")
+	expect.equality(Component.is_component(tagged_row), true)
+	expect.equality(tagged_row:get_tag(), "Row")
+	expect.equality(tagged_row:get_options().tag, "CustomRow")
 
 	-- Test tagged text
 	local TaggedText = Ui.tagged_text("CustomText")
 	local tagged_text = TaggedText("test", { custom = true })
-	expect(Component.is_component(tagged_text)).to_be(true)
-	expect(tagged_text:get_tag()).to_be("Text")
-	expect(tagged_text:get_options().tag).to_be("CustomText")
+	expect.equality(Component.is_component(tagged_text), true)
+	expect.equality(tagged_text:get_tag(), "Text")
+	expect.equality(tagged_text:get_options().tag, "CustomText")
 end
 
 ---Test nested component structures
@@ -172,20 +172,20 @@ T.test_nested_components = function()
 		}),
 	})
 
-	expect(Component.is_component(nested)).to_be(true)
-	expect(nested:get_tag()).to_be("Col")
-	expect(#nested:get_children()).to_be(3)
+	expect.equality(Component.is_component(nested), true)
+	expect.equality(nested:get_tag(), "Col")
+	expect.equality(#nested:get_children(), 3)
 
 	-- Test nested children
 	local row_child = nested:get_children()[2]
-	expect(Component.is_component(row_child)).to_be(true)
-	expect(row_child:get_tag()).to_be("Row")
-	expect(#row_child:get_children()).to_be(2)
+	expect.equality(Component.is_component(row_child), true)
+	expect.equality(row_child:get_tag(), "Row")
+	expect.equality(#row_child:get_children(), 2)
 
 	local col_child = nested:get_children()[3]
-	expect(Component.is_component(col_child)).to_be(true)
-	expect(col_child:get_tag()).to_be("Col")
-	expect(#col_child:get_children()).to_be(2)
+	expect.equality(Component.is_component(col_child), true)
+	expect.equality(col_child:get_tag(), "Col")
+	expect.equality(#col_child:get_children(), 2)
 end
 
 ---Test component with_tag constructor
@@ -198,9 +198,9 @@ T.test_with_tag_constructor = function()
 	local CustomComponent = Component.with_tag("CustomTag")
 	local component = CustomComponent({ Ui.text("test") }, { foldable = true })
 
-	expect(Component.is_component(component)).to_be(true)
-	expect(component:get_tag()).to_be("CustomTag")
-	expect(component:is_foldable()).to_be(true)
+	expect.equality(Component.is_component(component), true)
+	expect.equality(component:get_tag(), "CustomTag")
+	expect.equality(component:is_foldable(), true)
 end
 
 ---Test component validation
@@ -209,16 +209,16 @@ T.test_component_validation = function()
 	local Component = require("neojj.lib.ui.component")
 
 	-- Test non-component objects
-	expect(Component.is_component(nil)).to_be(false)
-	expect(Component.is_component("string")).to_be(false)
-	expect(Component.is_component(123)).to_be(false)
-	expect(Component.is_component({})).to_be(false)
-	expect(Component.is_component({ tag = nil })).to_be(false)
+	expect.equality(Component.is_component(nil), false)
+	expect.equality(Component.is_component("string"), false)
+	expect.equality(Component.is_component(123), false)
+	expect.equality(Component.is_component({}), false)
+	expect.equality(Component.is_component({ tag = nil }), false)
 
 	-- Test valid component
 	local valid_component = { tag = "Test", children = {}, options = {} }
 	setmetatable(valid_component, Component)
-	expect(Component.is_component(valid_component)).to_be(true)
+	expect.equality(Component.is_component(valid_component), true)
 end
 
 return T

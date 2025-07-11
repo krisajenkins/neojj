@@ -206,7 +206,7 @@ end
 function Buffer:get_component_at_cursor()
 	-- This is a simplified implementation
 	-- In a full implementation, you'd track component positions during rendering
-	local line, _ = unpack(self:get_cursor())
+	local _, _ = unpack(self:get_cursor())
 
 	-- For now, return nil - this would need proper implementation
 	-- based on component position tracking during rendering

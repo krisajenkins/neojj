@@ -79,7 +79,6 @@ function Renderer.render_component(component, context)
 
 	local tag = component:get_tag()
 	local children = component:get_children()
-	local options = component:get_options()
 	local value = component:get_value()
 
 	-- Handle folded components
