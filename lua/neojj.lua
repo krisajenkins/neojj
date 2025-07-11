@@ -37,6 +37,18 @@ function M.setup(opts)
 
 	-- Setup highlight groups
 	Highlights.setup()
+
+	-- Create user commands
+	vim.api.nvim_create_user_command("JJStatus", function(args)
+		local split = args.args ~= "" and args.args or nil
+		M.jj_status(nil, split)
+	end, {
+		nargs = "?",
+		complete = function()
+			return { "horizontal", "vertical", "tab" }
+		end,
+		desc = "Open JJ status buffer",
+	})
 end
 
 ---Get a JJ repository instance for the given directory

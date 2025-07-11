@@ -125,6 +125,12 @@ function StatusBuffer:show_split(split_type)
 	self:refresh()
 end
 
+---Show the status buffer in a new tab
+function StatusBuffer:show_tab()
+	self.buffer:show_tab()
+	self:refresh()
+end
+
 ---Close the status buffer
 function StatusBuffer:close()
 	self.buffer:close()
