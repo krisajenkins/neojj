@@ -82,29 +82,42 @@ function Cli:call()
 
 	if not ok then
 		logger.error("Command failed: " .. tostring(result))
-		return nil, result
+		return {
+			success = false,
+			exit_code = -1,
+			stdout = nil,
+			stderr = tostring(result),
+		}
 	end
 
 	local exit_code = job.code
 	local stdout = result or {}
 	local stderr = job:stderr_result() or {}
 
-	if exit_code ~= 0 then
+	local success = exit_code == 0
+	local stdout_str = type(stdout) == "table" and table.concat(stdout, "\n") or stdout
+	local stderr_str = type(stderr) == "table" and table.concat(stderr, "\n") or stderr
+
+	if not success then
 		local error_msg = "Command failed with exit code " .. exit_code
-		if #stderr > 0 then
-			error_msg = error_msg .. ": " .. table.concat(stderr, "\n")
+		if stderr_str and stderr_str ~= "" then
+			error_msg = error_msg .. ": " .. stderr_str
 		end
 		logger.error(error_msg)
-		return nil, error_msg
 	end
 
-	return stdout
+	return {
+		success = success,
+		exit_code = exit_code,
+		stdout = stdout_str,
+		stderr = stderr_str,
+	}
 end
 
 function Cli:call_async()
 	return async.wrap(function(callback)
-		local result, err = self:call()
-		callback(result, err)
+		local result = self:call()
+		callback(result)
 	end, 1)()
 end
 

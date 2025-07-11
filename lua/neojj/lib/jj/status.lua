@@ -60,16 +60,17 @@ end
 function M.refresh(repo)
 	logger.debug("Refreshing status for repository: " .. repo.dir)
 
-	local result, err = cli.status():cwd(repo.dir):call()
+	local result = cli.status():cwd(repo.dir):call()
 
-	if not result then
-		logger.error("Failed to get status: " .. tostring(err))
+	if not result.success then
+		logger.error("Failed to get status: " .. tostring(result.stderr))
 		return
 	end
 
-	repo.state.working_copy = parse_working_copy_info(result)
+	local lines = vim.split(result.stdout, "\n")
+	repo.state.working_copy = parse_working_copy_info(lines)
 
-	local show_result, show_err = cli.log()
+	local show_result = cli.log()
 		:arg("-r")
 		:arg("@")
 		:option("template", 'change_id ++ "\\n" ++ commit_id ++ "\\n" ++ description')
@@ -77,12 +78,15 @@ function M.refresh(repo)
 		:cwd(repo.dir)
 		:call()
 
-	if show_result and #show_result >= 3 then
-		repo.state.working_copy.change_id = show_result[1]
-		repo.state.working_copy.commit_id = show_result[2]
-		repo.state.working_copy.description = table.concat(vim.list_slice(show_result, 3), "\n")
-	elseif show_err then
-		logger.warn("Failed to get working copy details: " .. tostring(show_err))
+	if show_result.success and show_result.stdout then
+		local show_lines = vim.split(show_result.stdout, "\n")
+		if #show_lines >= 3 then
+			repo.state.working_copy.change_id = show_lines[1]
+			repo.state.working_copy.commit_id = show_lines[2]
+			repo.state.working_copy.description = table.concat(vim.list_slice(show_lines, 3), "\n")
+		end
+	else
+		logger.warn("Failed to get working copy details: " .. tostring(show_result.stderr))
 	end
 
 	logger.debug("Status refresh completed")

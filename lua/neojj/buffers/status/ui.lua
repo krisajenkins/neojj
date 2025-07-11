@@ -196,6 +196,8 @@ function StatusUI.create_help()
 		Ui.empty_line(),
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
 		Ui.text("  r       - Refresh status", { highlight = "NeoJJHelpText" }),
+		Ui.text("  d       - Describe current commit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  D       - Show diff for file at cursor", { highlight = "NeoJJHelpText" }),
 		Ui.text("  q       - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <Esc>   - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  ?       - Show/hide this help", { highlight = "NeoJJHelpText" }),

@@ -1,6 +1,7 @@
 local jj = require("neojj.lib.jj")
 local logger = require("neojj.logger")
 local StatusBuffer = require("neojj.buffers.status")
+local DescribeBuffer = require("neojj.buffers.describe")
 local Highlights = require("neojj.highlights")
 
 ---@class NeoJJSetupOptions
@@ -48,6 +49,15 @@ function M.setup(opts)
 			return { "horizontal", "vertical", "tab" }
 		end,
 		desc = "Open JJ status buffer",
+	})
+
+	vim.api.nvim_create_user_command("JJDescribe", function(args)
+		local revision = args.args ~= "" and args.args or "@"
+		local split = nil -- TODO: Add split support for describe if needed
+		M.jj_describe(nil, revision, split)
+	end, {
+		nargs = "?",
+		desc = "Open JJ describe buffer for editing commit description",
 	})
 end
 
@@ -120,6 +130,78 @@ function M.jj_status(dir, split)
 		status_buffer:show_tab()
 	else
 		status_buffer:show()
+	end
+end
+
+---Open the JJ describe buffer UI for editing commit description
+---@param dir? string Directory path (defaults to current working directory)
+---@param revision? string Revision to describe (defaults to @)
+---@param split? string Split type ("horizontal", "vertical", "tab")
+function M.jj_describe(dir, revision, split)
+	revision = revision or "@"
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	-- Callback to refresh status buffer if it exists
+	local function on_submit()
+		vim.notify("Description updated for " .. revision, vim.log.levels.INFO)
+
+		-- Look for any open status buffers and refresh/focus them
+		local status_buffers = vim.tbl_filter(function(buf)
+			if not vim.api.nvim_buf_is_valid(buf) then
+				return false
+			end
+			local name = vim.api.nvim_buf_get_name(buf)
+			return name:match("JJ Status") ~= nil
+		end, vim.api.nvim_list_bufs())
+
+		if #status_buffers > 0 then
+			-- Focus the first status buffer found
+			local status_buf = status_buffers[1]
+			local windows = vim.fn.win_findbuf(status_buf)
+			if #windows > 0 then
+				vim.defer_fn(function()
+					vim.api.nvim_set_current_win(windows[1])
+				end, 100)
+			end
+		end
+	end
+
+	local function on_abort()
+		-- Look for any open status buffers and focus them on abort too
+		local status_buffers = vim.tbl_filter(function(buf)
+			if not vim.api.nvim_buf_is_valid(buf) then
+				return false
+			end
+			local name = vim.api.nvim_buf_get_name(buf)
+			return name:match("JJ Status") ~= nil
+		end, vim.api.nvim_list_bufs())
+
+		if #status_buffers > 0 then
+			-- Focus the first status buffer found
+			local status_buf = status_buffers[1]
+			local windows = vim.fn.win_findbuf(status_buf)
+			if #windows > 0 then
+				vim.defer_fn(function()
+					vim.api.nvim_set_current_win(windows[1])
+				end, 100)
+			end
+		end
+	end
+
+	local describe_buffer = DescribeBuffer.new(repo, revision, on_submit, on_abort)
+
+	if split == "horizontal" then
+		describe_buffer:show_split("horizontal")
+	elseif split == "vertical" then
+		describe_buffer:show_split("vertical")
+	elseif split == "tab" then
+		describe_buffer:show_tab()
+	else
+		describe_buffer:show()
 	end
 end
 

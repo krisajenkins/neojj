@@ -54,6 +54,10 @@ function StatusBuffer:_setup_mappings()
 	end, { desc = "Open file" })
 
 	self.buffer:map("n", "d", function()
+		self:describe_current_commit()
+	end, { desc = "Describe current commit" })
+
+	self.buffer:map("n", "D", function()
 		self:diff_file_at_cursor()
 	end, { desc = "Show diff" })
 
@@ -89,13 +93,24 @@ function StatusBuffer:refresh()
 			working_copy = working_copy,
 		}
 
-		-- Render the UI
-		self:render()
+		-- Render the UI only if buffer is still valid
+		vim.schedule(function()
+			if self.buffer and self.buffer:is_valid() then
+				self:render()
+			else
+				logger.debug("Status buffer is no longer valid, skipping render")
+			end
+		end)
 	end)
 end
 
 ---Render the status UI
 function StatusBuffer:render()
+	if not self.buffer or not self.buffer:is_valid() then
+		logger.debug("Cannot render: status buffer is invalid")
+		return
+	end
+
 	local components = StatusUI.create(self.state)
 	self.buffer:render(components)
 end
@@ -164,6 +179,42 @@ end
 function StatusBuffer:diff_file_at_cursor()
 	-- TODO: Implement diff display
 	print("Diff display not yet implemented")
+end
+
+---Open describe buffer for current commit
+function StatusBuffer:describe_current_commit()
+	local DescribeBuffer = require("neojj.buffers.describe")
+
+	-- Callback to refresh status buffer when description is updated
+	local function on_submit()
+		vim.notify("Description updated", vim.log.levels.INFO)
+		-- Only refresh if the status buffer is still valid
+		if self.buffer and self.buffer:is_valid() then
+			self:refresh()
+			-- Return focus to the status buffer after a short delay to ensure describe buffer closes first
+			vim.defer_fn(function()
+				if self.buffer and self.buffer:is_valid() then
+					self.buffer:show()
+				end
+			end, 100)
+		else
+			logger.debug("Status buffer no longer valid, skipping refresh after describe")
+		end
+	end
+
+	local function on_abort()
+		-- Return focus to status buffer on abort as well
+		if self.buffer and self.buffer:is_valid() then
+			vim.defer_fn(function()
+				if self.buffer and self.buffer:is_valid() then
+					self.buffer:show()
+				end
+			end, 100)
+		end
+	end
+
+	local describe_buffer = DescribeBuffer.new(self.repo, "@", on_submit, on_abort)
+	describe_buffer:show()
 end
 
 ---Move cursor down
