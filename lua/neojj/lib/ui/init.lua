@@ -129,10 +129,9 @@ function Ui.section(title, items, options)
 		Ui.section_header(title, #items),
 	}
 
-	if not section_options.folded then
-		for _, item in ipairs(items) do
-			table.insert(children, item)
-		end
+	-- Always include the items as children, let the renderer handle folding
+	for _, item in ipairs(items) do
+		table.insert(children, item)
 	end
 
 	table.insert(children, Ui.empty_line())

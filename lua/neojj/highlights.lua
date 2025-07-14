@@ -50,6 +50,23 @@ local default_highlights = {
 	NeoJJDescribeKeybinding = { link = "Special" },
 	NeoJJDescribeCommand = { link = "Statement" },
 	NeoJJDescribeSection = { link = "Function" },
+
+	-- Diff display
+	NeoJJDiffAdd = { link = "DiffAdd" },
+	NeoJJDiffDelete = { link = "DiffDelete" },
+	NeoJJDiffContext = { link = "Normal" },
+	NeoJJDiffHunk = { link = "DiffText" },
+	NeoJJDiffFile = { link = "DiffFile" },
+	NeoJJDiffIndex = { link = "Comment" },
+	NeoJJDiffOldFile = { link = "DiffDelete" },
+	NeoJJDiffNewFile = { link = "DiffAdd" },
+	NeoJJDiffNoNewline = { link = "WarningMsg" },
+	NeoJJDiffBinary = { link = "Comment" },
+	NeoJJDiffRename = { link = "DiffText" },
+	NeoJJDiffMode = { link = "DiffText" },
+	NeoJJDiffSimilarity = { link = "Comment" },
+	NeoJJDiffGitHeader = { link = "PreProc" },
+	NeoJJDiffRange = { link = "DiffText" },
 }
 
 ---Apply default highlights

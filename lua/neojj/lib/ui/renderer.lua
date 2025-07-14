@@ -91,7 +91,7 @@ function Renderer.render_component(component, context)
 	-- Handle folded components
 	if component:is_foldable() and component:is_folded() then
 		-- Only render the header for folded components
-		if tag == "Col" or tag == "Section" then
+		if tag == "Col" then
 			local header_child = children[1]
 			if header_child then
 				Renderer.render_component(header_child, context)

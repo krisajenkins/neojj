@@ -328,4 +328,77 @@ T.test_component_folding = function()
 	]])
 end
 
+---Test diff highlighting with screenshot
+---@return nil
+T.test_diff_highlighting_screenshot = function()
+	child.lua([[
+		local Highlights = require('neojj.highlights')
+		local StatusUI = require('neojj.buffers.status.ui')
+		local Ui = require('neojj.lib.ui')
+		local Buffer = require('neojj.lib.buffer')
+
+		-- Setup highlights
+		Highlights.setup()
+
+		-- Create a test buffer
+		local buffer = Buffer.create({
+			name = "Test Diff",
+			filetype = "neojj-test",
+			kind = "split",
+			modifiable = false,
+			readonly = true,
+		})
+
+		-- Test diff content with various line types
+		local test_diff_lines = {
+			"diff --git a/example.lua b/example.lua",
+			"index 1234567..abcdefg 100644",
+			"--- a/example.lua",
+			"+++ b/example.lua",
+			"@@ -1,8 +1,10 @@",
+			" local function example()",
+			"-    print('old implementation')",
+			"-    return false",
+			"+    print('new implementation')",
+			"+    print('additional feature')",
+			"+    return true",
+			" end",
+			" ",
+			"+-- New function added",
+			"+local function helper()",
+			"+    return 'helper'",
+			"+end"
+		}
+
+		-- Create status UI components with expanded file
+		local expanded_files = { ["example.lua"] = true }
+		local mock_status_buffer = {
+			get_file_diff = function(file_path)
+				return test_diff_lines
+			end
+		}
+
+		-- Create a file item with diff expansion
+		local file_info = { status = "M", path = "example.lua" }
+		local file_component = StatusUI.create_file_item(file_info, expanded_files, mock_status_buffer)
+
+		-- Create the full UI with header
+		local components = {
+			Ui.text("JJ Status - Diff Highlighting Test", { highlight = "NeoJJTitle" }),
+			Ui.empty_line(),
+			Ui.text("Modified Files:", { highlight = "NeoJJSectionHeader" }),
+			file_component
+		}
+
+		buffer:open()
+		buffer:render(components)
+
+		-- Ensure buffer is visible
+		vim.cmd('redraw')
+	]])
+
+	-- Take screenshot
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

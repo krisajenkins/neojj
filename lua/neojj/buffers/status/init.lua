@@ -16,6 +16,8 @@ function StatusBuffer.new(repo)
 	local instance = setmetatable({
 		repo = repo,
 		state = {},
+		expanded_files = {},
+		show_help = false,
 	}, StatusBuffer)
 
 	-- Create buffer with unified factory method
@@ -85,18 +87,18 @@ function StatusBuffer:_setup_mappings()
 	end, { desc = "Refresh status" })
 
 	-- Help mapping
-	self.buffer:map("n", "g?", function()
+	self.buffer:map("n", "?", function()
 		self:toggle_help()
 	end, { desc = "Toggle help" })
 
-	-- Fold toggling
+	-- Diff expansion
 	self.buffer:map("n", "<tab>", function()
-		self:toggle_fold()
-	end, { desc = "Toggle fold" })
+		self:toggle_file_diff()
+	end, { desc = "Toggle file diff" })
 
 	self.buffer:map("n", "<s-tab>", function()
-		self:toggle_fold_reverse()
-	end, { desc = "Toggle fold (reverse)" })
+		self:toggle_all_file_diffs()
+	end, { desc = "Toggle all file diffs" })
 
 	-- File actions (for future implementation)
 	self.buffer:map("n", "<cr>", function()
@@ -119,6 +121,12 @@ function StatusBuffer:_setup_mappings()
 	self.buffer:map("n", "k", function()
 		self:move_cursor_up()
 	end, { desc = "Move cursor up" })
+
+	-- Debug helper (can be removed later)
+	self.buffer:map("n", "<leader>hi", function()
+		local inspector = require("neojj.debug.highlight_inspector")
+		inspector.inspect_at_cursor()
+	end, { desc = "Inspect highlight at cursor" })
 end
 
 ---Refresh the status buffer
@@ -161,7 +169,13 @@ function StatusBuffer:render()
 		return
 	end
 
-	local components = StatusUI.create(self.state)
+	local components
+	if self.show_help then
+		components = { StatusUI.create_help() }
+	else
+		components = StatusUI.create(self.state, self.expanded_files, self)
+	end
+
 	self.buffer:render(components)
 end
 
@@ -205,20 +219,85 @@ end
 
 ---Toggle help display
 function StatusBuffer:toggle_help()
-	-- TODO: Implement help toggle
-	print("Help toggle not yet implemented")
+	self.show_help = not self.show_help
+	self:render()
 end
 
----Toggle fold at cursor
-function StatusBuffer:toggle_fold()
-	-- TODO: Implement fold toggling
-	print("Fold toggle not yet implemented")
+---Toggle file diff at cursor
+function StatusBuffer:toggle_file_diff()
+	local component = self.buffer:get_component_at_cursor()
+	if not component or not component:is_interactive() then
+		return
+	end
+
+	local item = component:get_item()
+	if not item or not item.path then
+		return
+	end
+
+	local file_path = item.path
+	self.expanded_files[file_path] = not (self.expanded_files[file_path] or false)
+	self:render()
 end
 
----Toggle fold in reverse direction
-function StatusBuffer:toggle_fold_reverse()
-	-- TODO: Implement reverse fold toggling
-	print("Reverse fold toggle not yet implemented")
+---Toggle all file diffs
+function StatusBuffer:toggle_all_file_diffs()
+	local any_expanded = false
+	for _, expanded in pairs(self.expanded_files) do
+		if expanded then
+			any_expanded = true
+			break
+		end
+	end
+
+	-- If any are expanded, collapse all. Otherwise, expand all.
+	local new_state = not any_expanded
+
+	-- Get all file paths from the current state
+	if self.state.working_copy and self.state.working_copy.modified_files then
+		for _, file in ipairs(self.state.working_copy.modified_files) do
+			self.expanded_files[file.path] = new_state
+		end
+	end
+
+	if self.state.working_copy and self.state.working_copy.conflicts then
+		for _, file in ipairs(self.state.working_copy.conflicts) do
+			self.expanded_files[file.path] = new_state
+		end
+	end
+
+	self:render()
+end
+
+---Get diff for a file
+---@param file_path string Path to the file
+---@return string[] diff_lines Diff lines
+function StatusBuffer:get_file_diff(file_path)
+	local cli = require("neojj.lib.jj.cli")
+
+	-- Create a diff command builder
+	local builder = cli.raw()
+		:arg("diff")
+		:option("color", "never")
+		:flag("git")
+		:arg(file_path)
+		:cwd(self.repo.dir)
+
+	local result = builder:call()
+
+	if not result.success then
+		logger.warn("Failed to get diff for file: " .. file_path .. " - " .. tostring(result.stderr))
+		return { "Failed to get diff: " .. tostring(result.stderr) }
+	end
+
+	-- Split output into lines
+	local lines = vim.split(result.stdout, "\n")
+	-- Remove empty last line if present
+	if #lines > 0 and lines[#lines] == "" then
+		table.remove(lines, #lines)
+	end
+
+	return lines
 end
 
 ---Open file at cursor
