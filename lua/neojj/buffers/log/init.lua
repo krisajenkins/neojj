@@ -199,15 +199,20 @@ function LogBuffer:get_log_data()
 
 	-- Parse the log output
 	local parsed = self:parse_log_output(result.stdout)
-	
+
 	-- Sanitize raw_lines to ensure no embedded newlines
 	if parsed.raw_lines then
 		for i, line in ipairs(parsed.raw_lines) do
 			parsed.raw_lines[i] = line:gsub("\n", " "):gsub("\r", "")
 		end
 	end
-	
-	logger.info("Parsed log data - revisions: " .. #parsed.revisions .. ", graph_data entries: " .. vim.tbl_count(parsed.graph_data))
+
+	logger.info(
+		"Parsed log data - revisions: "
+			.. #parsed.revisions
+			.. ", graph_data entries: "
+			.. vim.tbl_count(parsed.graph_data)
+	)
 	return parsed
 end
 
@@ -309,7 +314,13 @@ function LogBuffer:render()
 		logger.info("Rendering help with " .. #components .. " components")
 	else
 		components = LogUI.create(self.state, self)
-		logger.info("Rendering log UI with " .. #components .. " components from state with " .. #self.state.revisions .. " revisions")
+		logger.info(
+			"Rendering log UI with "
+				.. #components
+				.. " components from state with "
+				.. #self.state.revisions
+				.. " revisions"
+		)
 	end
 
 	self.buffer:render(components)

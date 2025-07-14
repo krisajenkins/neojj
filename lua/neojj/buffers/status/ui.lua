@@ -65,7 +65,7 @@ function StatusUI.create_working_copy_section(working_copy)
 	-- Only show the first line of description in status view
 	local description = working_copy.description or ""
 	local first_line = description:match("^([^\n\r]*)")
-	
+
 	return Ui.section("Working Copy", {
 		Ui.commit_info(
 			working_copy.change_id or "unknown",
