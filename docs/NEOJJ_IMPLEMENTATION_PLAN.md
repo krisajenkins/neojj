@@ -1,10 +1,13 @@
 # NeoJJ Implementation Plan
 
-This document outlines the plan to create NeoJJ, a Neovim plugin for managing Jujutsu (jj) repositories, based on the structure and design of Neogit.
+This document outlines the plan to create NeoJJ, a Neovim plugin for managing
+Jujutsu (jj) repositories, based on the structure and design of Neogit.
 
 ## Project Overview
 
-**Goal**: Create `neojj.lib.jj.repo` module that mirrors the functionality of `neogit.lib.git.repo`, adapting it for Jujutsu's unique data model and command structure.
+**Goal**: Create `neojj.lib.jj.repo` module that mirrors the functionality of
+`neogit.lib.git.repo`, adapting it for Jujutsu's unique data model and command
+structure.
 
 ## Analysis Summary
 

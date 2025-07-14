@@ -69,6 +69,34 @@ make format
 - **Immutable Data**: Components and state are immutable for predictable rendering
 - **Async Operations**: JJ commands run asynchronously to avoid blocking the editor
 - **Caching**: Repository state is cached to minimize jj command executions
+- **Interactive Components**: Components can be marked as `interactive = true` to support cursor-based interaction
+
+### Component Position Tracking System
+
+The renderer tracks the position of interactive components to enable cursor-based interactions:
+
+1. **Renderer** (`lua/neojj/lib/ui/renderer.lua`):
+   - Tracks interactive components by line number during rendering
+   - Returns `component_positions` table mapping line numbers to components
+   - Uses 0-indexed line numbers internally
+
+2. **Buffer** (`lua/neojj/lib/buffer.lua`):
+   - Stores component positions from renderer
+   - `get_component_at_cursor()` finds the component at cursor position
+   - Searches backwards from cursor line to find the nearest interactive component
+
+3. **Interactive Components**:
+   - Created with `interactive = true` option
+   - Store associated data in `item` field (e.g., file paths, commit data)
+   - Accessed via `component:get_item()` method
+
+### Status Buffer Keybindings
+
+- `r` / `<c-r>`: Refresh status buffer
+- `<cr>`: Open file at cursor (if on a file entry)
+- `q` / `<c-c>` / `<esc>`: Close buffer
+- `d`: Describe current commit
+- `j` / `k`: Navigate up/down (standard vim navigation also works)
 
 ## Testing with MiniTest
 
@@ -110,3 +138,38 @@ Note: When using `expect` inside `child.lua()` blocks, you must make it availabl
 - Use LuaJIT standard library
 - Follow existing patterns for component creation and buffer management
 - All new code must pass luacheck static analysis
+
+## Adding New Interactive Features
+
+To add new interactive features to buffers:
+
+1. **Create Interactive Components**:
+   ```lua
+   local component = Ui.file_item(status, path, {
+       item = { path = "file.txt", status = "M" },
+       interactive = true,
+   })
+   ```
+
+2. **Add Keybindings** in buffer `_setup_mappings()`:
+   ```lua
+   self.buffer:map("n", "<key>", function()
+       self:action_method()
+   end, { desc = "Action description" })
+   ```
+
+3. **Implement Action Methods**:
+   ```lua
+   function BufferClass:action_method()
+       local component = self.buffer:get_component_at_cursor()
+       if component and component:is_interactive() then
+           local item = component:get_item()
+           -- Process the item data
+       end
+   end
+   ```
+
+## Reference Docs
+
+Design Plans: docs/NEOJJ_IMPLEMENTATION_PLAN.md
+NeoGit Buffer Creation Architecture: docs/neogit-buffer-analysis.md
