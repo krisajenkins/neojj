@@ -128,7 +128,7 @@ function DescribeBuffer:_setup_autocmds()
 		callback = function()
 			-- Check if this is a forced quit (:q!) vs normal quit (:q)
 			-- For now, we'll treat all quits as potential submits unless modified
-			if vim.api.nvim_buf_get_option(self.buffer.handle, "modified") then
+			if vim.api.nvim_get_option_value("modified", { buf = self.buffer.handle }) then
 				self:submit()
 			else
 				self:abort()
@@ -230,7 +230,7 @@ end
 
 ---Close with confirmation if buffer is modified
 function DescribeBuffer:close_with_confirmation()
-	if vim.api.nvim_buf_get_option(self.buffer.handle, "modified") then
+	if vim.api.nvim_get_option_value("modified", { buf = self.buffer.handle }) then
 		local choice = vim.fn.confirm("Save changes?", "&Yes\n&No\n&Cancel", 1)
 		if choice == 1 then
 			self:submit()
@@ -293,7 +293,7 @@ function DescribeBuffer:_add_help_text()
 	vim.api.nvim_buf_set_lines(self.buffer.handle, 0, -1, false, lines)
 
 	-- Reset modified flag so the help text doesn't count as changes
-	vim.api.nvim_buf_set_option(self.buffer.handle, "modified", false)
+	vim.api.nvim_set_option_value("modified", false, { buf = self.buffer.handle })
 end
 
 ---Show the describe buffer

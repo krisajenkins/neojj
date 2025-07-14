@@ -49,14 +49,22 @@ function Buffer:_setup_buffer()
 		vim.api.nvim_buf_set_name(self.handle, self.name)
 	end
 
-	-- Set buffer options
-	local opts = {
+	-- Set buffer-local options
+	local buffer_opts = {
 		filetype = self.filetype,
 		modifiable = self.config.modifiable ~= false,
 		readonly = self.config.readonly == true,
 		bufhidden = "wipe",
 		buftype = "nofile",
 		swapfile = false,
+	}
+
+	for option, value in pairs(buffer_opts) do
+		vim.api.nvim_set_option_value(option, value, { buf = self.handle })
+	end
+
+	-- Set window-local options (these need to be set per window)
+	local window_opts = {
 		wrap = false,
 		number = false,
 		relativenumber = false,
@@ -73,8 +81,15 @@ function Buffer:_setup_buffer()
 		sidescrolloff = 5,
 	}
 
-	for option, value in pairs(opts) do
-		vim.api.nvim_buf_set_option(self.handle, option, value)
+	-- Store window options for later use
+	self.window_opts = window_opts
+
+	-- Apply window options to any windows displaying this buffer
+	local windows = vim.fn.win_findbuf(self.handle)
+	for _, win in ipairs(windows) do
+		for option, value in pairs(window_opts) do
+			vim.api.nvim_set_option_value(option, value, { win = win })
+		end
 	end
 
 	-- Set up key mappings
@@ -108,6 +123,20 @@ end
 function Buffer:_setup_autocmds()
 	local augroup = vim.api.nvim_create_augroup("neojj_buffer_" .. self.handle, { clear = true })
 
+	-- Add autocmd to set window options when buffer is displayed
+	if self.window_opts then
+		vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
+			group = augroup,
+			buffer = self.handle,
+			callback = function()
+				local win = vim.api.nvim_get_current_win()
+				for option, value in pairs(self.window_opts) do
+					vim.api.nvim_set_option_value(option, value, { win = win })
+				end
+			end,
+		})
+	end
+
 	for _, autocmd in ipairs(self.autocmds) do
 		vim.api.nvim_create_autocmd(autocmd.event, {
 			group = augroup,
@@ -125,13 +154,13 @@ function Buffer:render(components)
 	self.components = components
 
 	-- Make buffer modifiable temporarily
-	vim.api.nvim_buf_set_option(self.handle, "modifiable", true)
+	vim.api.nvim_set_option_value("modifiable", true, { buf = self.handle })
 
 	-- Render components
 	Renderer.render_to_buffer(self.handle, components)
 
 	-- Restore modifiable state
-	vim.api.nvim_buf_set_option(self.handle, "modifiable", self.config.modifiable ~= false)
+	vim.api.nvim_set_option_value("modifiable", self.config.modifiable ~= false, { buf = self.handle })
 end
 
 ---Show the buffer in the current window
