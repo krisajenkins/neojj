@@ -39,11 +39,13 @@ end
 ---@return table component Text component
 function Ui.text(value, options)
 	return Component.new(function(props)
+		-- Sanitize value to remove any newlines that could cause rendering issues
+		local sanitized_value = (value or ""):gsub("\n", " "):gsub("\r", "")
 		return {
 			tag = "Text",
 			children = {},
 			options = options or {},
-			value = value or "",
+			value = sanitized_value,
 		}
 	end)()
 end

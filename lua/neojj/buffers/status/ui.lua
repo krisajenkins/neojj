@@ -62,11 +62,15 @@ end
 ---@param working_copy table Working copy information
 ---@return table component Working copy section
 function StatusUI.create_working_copy_section(working_copy)
+	-- Only show the first line of description in status view
+	local description = working_copy.description or ""
+	local first_line = description:match("^([^\n\r]*)")
+	
 	return Ui.section("Working Copy", {
 		Ui.commit_info(
 			working_copy.change_id or "unknown",
 			working_copy.commit_id or "unknown",
-			working_copy.description or "",
+			first_line or "",
 			working_copy.author or { name = "unknown", email = "unknown" }
 		),
 	}, {
@@ -387,6 +391,7 @@ function StatusUI.create_help()
 		Ui.text("  r       - Refresh status", { highlight = "NeoJJHelpText" }),
 		Ui.text("  d       - Describe current commit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  D       - Show diff for file at cursor", { highlight = "NeoJJHelpText" }),
+		Ui.text("  l       - Open log view", { highlight = "NeoJJHelpText" }),
 		Ui.text("  q       - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <Esc>   - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  ?       - Show/hide this help", { highlight = "NeoJJHelpText" }),

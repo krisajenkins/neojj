@@ -2,6 +2,7 @@ local jj = require("neojj.lib.jj")
 local logger = require("neojj.logger")
 local StatusBuffer = require("neojj.buffers.status")
 local DescribeBuffer = require("neojj.buffers.describe")
+local LogBuffer = require("neojj.buffers.log")
 local Highlights = require("neojj.highlights")
 
 ---@class NeoJJSetupOptions
@@ -58,6 +59,17 @@ function M.setup(opts)
 	end, {
 		nargs = "?",
 		desc = "Open JJ describe buffer for editing commit description",
+	})
+
+	vim.api.nvim_create_user_command("JJLog", function(args)
+		local split = args.args ~= "" and args.args or nil
+		M.jj_log(nil, split)
+	end, {
+		nargs = "?",
+		complete = function()
+			return { "horizontal", "vertical", "tab" }
+		end,
+		desc = "Open JJ log buffer",
 	})
 end
 
@@ -202,6 +214,29 @@ function M.jj_describe(dir, revision, split)
 		describe_buffer:show_tab()
 	else
 		describe_buffer:show()
+	end
+end
+
+---Open the JJ log buffer UI
+---@param dir? string Directory path (defaults to current working directory)
+---@param split? string Split type ("horizontal", "vertical", "tab")
+function M.jj_log(dir, split)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local log_buffer = LogBuffer.new(repo)
+
+	if split == "horizontal" then
+		log_buffer:show_split("horizontal")
+	elseif split == "vertical" then
+		log_buffer:show_split("vertical")
+	elseif split == "tab" then
+		log_buffer:show_tab()
+	else
+		log_buffer:show()
 	end
 end
 

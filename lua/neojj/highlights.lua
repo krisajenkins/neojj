@@ -67,6 +67,14 @@ local default_highlights = {
 	NeoJJDiffSimilarity = { link = "Comment" },
 	NeoJJDiffGitHeader = { link = "PreProc" },
 	NeoJJDiffRange = { link = "DiffText" },
+
+	-- Log display
+	NeoJJLogGraph = { link = "Special" },
+	NeoJJLogGraphLine = { link = "Comment" },
+	NeoJJLogWorkingCopy = { link = "DiffAdd" },
+	NeoJJLogCommit = { link = "Normal" },
+	NeoJJLogImmutable = { link = "Constant" },
+	NeoJJLogDescription = { link = "String" },
 }
 
 ---Apply default highlights

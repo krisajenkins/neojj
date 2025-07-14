@@ -21,11 +21,23 @@ Buffer.__index = Buffer
 ---@field unlisted? boolean Whether buffer is unlisted
 ---@field scratch? boolean Whether buffer is scratch
 
+---Get existing buffer by name or create new one
+---@param name string Buffer name
+---@return number buffer_handle Buffer handle
+function Buffer.from_name(name)
+	local buffer_handle = vim.fn.bufnr(name)
+	if buffer_handle == -1 then
+		buffer_handle = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_name(buffer_handle, name)
+	end
+	return buffer_handle
+end
+
 ---Create a new buffer
 ---@param config BufferConfig Buffer configuration
 ---@return Buffer buffer Buffer instance
 function Buffer.new(config)
-	local buffer = vim.api.nvim_create_buf(false, true)
+	local buffer = Buffer.from_name(config.name)
 
 	local instance = setmetatable({
 		handle = buffer,
@@ -377,32 +389,34 @@ end
 function Buffer:open(kind)
 	kind = kind or self.kind or "split"
 
-	-- Run initialize callback if provided
-	if self.initialize then
-		self.initialize()
-	end
-
-	-- Display buffer based on kind
-	if kind == "tab" then
-		self:show_tab()
-	elseif kind == "vsplit" or kind == "vsplit_left" then
-		self:show_split("vertical")
-	elseif kind == "split" or kind == "split_above" or kind == "split_below" then
-		self:show_split("horizontal")
-	elseif kind == "replace" then
-		self:show()
-	elseif kind == "floating" then
-		-- TODO: Implement floating window support
-		self:show_split("horizontal")
-	elseif kind == "auto" then
-		-- Choose based on terminal width
-		if vim.o.columns > 120 then
-			self:show_split("vertical")
-		else
-			self:show_split("horizontal")
-		end
+	-- Check if buffer is already visible in a window
+	local windows = vim.fn.win_findbuf(self.handle)
+	if #windows > 0 then
+		-- Buffer is already visible, just switch to that window
+		vim.api.nvim_set_current_win(windows[1])
 	else
-		self:show()
+		-- Buffer not visible, display based on kind
+		if kind == "tab" then
+			self:show_tab()
+		elseif kind == "vsplit" or kind == "vsplit_left" then
+			self:show_split("vertical")
+		elseif kind == "split" or kind == "split_above" or kind == "split_below" then
+			self:show_split("horizontal")
+		elseif kind == "replace" then
+			self:show()
+		elseif kind == "floating" then
+			-- TODO: Implement floating window support
+			self:show_split("horizontal")
+		elseif kind == "auto" then
+			-- Choose based on terminal width
+			if vim.o.columns > 120 then
+				self:show_split("vertical")
+			else
+				self:show_split("horizontal")
+			end
+		else
+			self:show()
+		end
 	end
 
 	-- Run render callback if provided

@@ -9,10 +9,20 @@ local logger = require("neojj.logger")
 local StatusBuffer = {}
 StatusBuffer.__index = StatusBuffer
 
----Create a new status buffer
+-- Singleton instance tracking
+local instances = {}
+
+---Create or get existing status buffer for a repository
 ---@param repo table Repository instance
 ---@return StatusBuffer status_buffer Status buffer instance
 function StatusBuffer.new(repo)
+	local repo_key = vim.fs.normalize(repo.dir)
+
+	-- Return existing instance if available
+	if instances[repo_key] and instances[repo_key]:is_valid() then
+		return instances[repo_key]
+	end
+
 	local instance = setmetatable({
 		repo = repo,
 		state = {},
@@ -20,11 +30,11 @@ function StatusBuffer.new(repo)
 		show_help = false,
 	}, StatusBuffer)
 
-	-- Create buffer with unified factory method
+	-- Create buffer with fixed name (reuse if exists)
 	local buffer = Buffer.create({
-		name = "JJ Status",
+		name = "NeoJJ Status",
 		filetype = "neojj-status",
-		kind = "tab", -- Default to tab view
+		kind = "replace", -- Default to replace current view
 		modifiable = false,
 		readonly = true,
 		cwd = repo.dir,
@@ -71,6 +81,9 @@ function StatusBuffer.new(repo)
 	-- Add status-specific key mappings
 	instance:_setup_mappings()
 
+	-- Store instance for reuse
+	instances[repo_key] = instance
+
 	return instance
 end
 
@@ -113,6 +126,11 @@ function StatusBuffer:_setup_mappings()
 		self:diff_file_at_cursor()
 	end, { desc = "Show diff" })
 
+	-- Navigation to other views
+	self.buffer:map("n", "l", function()
+		self:open_log_buffer()
+	end, { desc = "Open log view" })
+
 	-- Navigation
 	self.buffer:map("n", "j", function()
 		self:move_cursor_down()
@@ -121,12 +139,6 @@ function StatusBuffer:_setup_mappings()
 	self.buffer:map("n", "k", function()
 		self:move_cursor_up()
 	end, { desc = "Move cursor up" })
-
-	-- Debug helper (can be removed later)
-	self.buffer:map("n", "<leader>hi", function()
-		local inspector = require("neojj.debug.highlight_inspector")
-		inspector.inspect_at_cursor()
-	end, { desc = "Inspect highlight at cursor" })
 end
 
 ---Refresh the status buffer
@@ -276,12 +288,7 @@ function StatusBuffer:get_file_diff(file_path)
 	local cli = require("neojj.lib.jj.cli")
 
 	-- Create a diff command builder
-	local builder = cli.raw()
-		:arg("diff")
-		:option("color", "never")
-		:flag("git")
-		:arg(file_path)
-		:cwd(self.repo.dir)
+	local builder = cli.raw():arg("diff"):option("color", "never"):flag("git"):arg(file_path):cwd(self.repo.dir)
 
 	local result = builder:call()
 
@@ -387,6 +394,17 @@ end
 ---@return number handle Buffer handle
 function StatusBuffer:get_handle()
 	return self.buffer:get_handle()
+end
+
+---Open log buffer while keeping status buffer context
+function StatusBuffer:open_log_buffer()
+	local LogBuffer = require("neojj.buffers.log")
+
+	-- Get or create log buffer (singleton pattern)
+	local log_buffer = LogBuffer.new(self.repo)
+
+	-- Show and refresh the log buffer
+	log_buffer:show()
 end
 
 return StatusBuffer
