@@ -1,4 +1,5 @@
 local Buffer = require("neojj.lib.buffer")
+local DescribeUI = require("neojj.buffers.describe.ui")
 local logger = require("neojj.logger")
 
 ---@class DescribeBuffer
@@ -38,11 +39,19 @@ function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 		disable_line_numbers = false,
 		disable_relative_line_numbers = true,
 		spell_check = true,
-		mappings = {},  -- Will be added via _setup_mappings
-		autocmds = {},  -- Will be added via _setup_autocmds
+		mappings = {}, -- Will be added via _setup_mappings
+		autocmds = {}, -- Will be added via _setup_autocmds
 		initialize = function()
 			-- Load content when buffer is initialized
 			instance:load_current_description()
+		end,
+		render = function()
+			-- Return UI components if description is loaded
+			if instance.description_loaded then
+				return instance:create_ui_components()
+			else
+				return nil
+			end
 		end,
 		after = function()
 			-- Additional setup after buffer is displayed
@@ -54,6 +63,8 @@ function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 	})
 
 	instance.buffer = buffer
+	instance.description_loaded = false
+	instance.current_description = ""
 
 	-- Add describe-specific key mappings
 	instance:_setup_mappings()
@@ -171,22 +182,7 @@ function DescribeBuffer:submit()
 	logger.info("Submitting description for revision: " .. self.revision)
 
 	-- Get the description text, filtering out help comments
-	local lines = vim.api.nvim_buf_get_lines(self.buffer.handle, 0, -1, false)
-	local description_lines = {}
-
-	for _, line in ipairs(lines) do
-		-- Skip help comments and empty lines at the end
-		if not line:match("^#") then
-			table.insert(description_lines, line)
-		end
-	end
-
-	-- Remove trailing empty lines
-	while #description_lines > 0 and description_lines[#description_lines] == "" do
-		table.remove(description_lines)
-	end
-
-	local description = table.concat(description_lines, "\n")
+	local description = self:get_description_from_buffer()
 
 	-- Execute jj describe command
 	local async = require("plenary.async")
@@ -276,44 +272,59 @@ function DescribeBuffer:load_current_description()
 		if result.success and result.stdout then
 			local description = vim.trim(result.stdout)
 			vim.schedule(function()
-				if description ~= "" then
-					local lines = vim.split(description, "\n")
-					vim.api.nvim_buf_set_lines(self.buffer.handle, 0, -1, false, lines)
-				end
-				self:_add_help_text()
+				self.current_description = description
+				self.description_loaded = true
+				self:render_components()
 			end)
 		else
 			logger.warn("Could not load current description: " .. (result.stderr or ""))
 			vim.schedule(function()
-				self:_add_help_text()
+				self.current_description = ""
+				self.description_loaded = true
+				self:render_components()
 			end)
 		end
 	end)
 end
 
----Add help text to the buffer explaining keybindings
-function DescribeBuffer:_add_help_text()
-	-- Get current content
-	local lines = vim.api.nvim_buf_get_lines(self.buffer.handle, 0, -1, false)
+---Create UI components for the describe buffer
+---@return table[] components UI components
+function DescribeBuffer:create_ui_components()
+	return DescribeUI.create(self.current_description)
+end
 
-	-- Add help text as comments
-	local help_lines = {
-		"",
-		"# Commands:",
-		"#   :w or :wq    - Submit description",
-		"#   <C-c><C-c>   - Submit description",
-		"#   <C-c><C-q>   - Abort",
-		"#   ZZ           - Submit description",
-		"#   ZQ           - Abort",
-		"#   q            - Close with confirmation",
-	}
+---Render components to the buffer
+function DescribeBuffer:render_components()
+	if not self.buffer or not self.buffer:is_valid() then
+		return
+	end
 
-	-- Append help text
-	vim.list_extend(lines, help_lines)
-	vim.api.nvim_buf_set_lines(self.buffer.handle, 0, -1, false, lines)
+	local components = self:create_ui_components()
+	self.buffer:render(components)
 
 	-- Reset modified flag so the help text doesn't count as changes
 	vim.api.nvim_set_option_value("modified", false, { buf = self.buffer.handle })
+end
+
+---Get the description text from buffer (excluding help text)
+---@return string description The current description text
+function DescribeBuffer:get_description_from_buffer()
+	local lines = vim.api.nvim_buf_get_lines(self.buffer.handle, 0, -1, false)
+	local description_lines = {}
+
+	for _, line in ipairs(lines) do
+		-- Skip help comments
+		if not line:match("^#") then
+			table.insert(description_lines, line)
+		end
+	end
+
+	-- Remove trailing empty lines
+	while #description_lines > 0 and description_lines[#description_lines] == "" do
+		table.remove(description_lines)
+	end
+
+	return table.concat(description_lines, "\n")
 end
 
 ---Show the describe buffer

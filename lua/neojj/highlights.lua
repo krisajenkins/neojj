@@ -44,6 +44,12 @@ local default_highlights = {
 	-- Folds
 	NeoJJFolded = { link = "Folded" },
 	NeoJJFoldMarker = { link = "FoldColumn" },
+
+	-- Describe buffer specific
+	NeoJJDescribeComment = { link = "Comment" },
+	NeoJJDescribeKeybinding = { link = "Special" },
+	NeoJJDescribeCommand = { link = "Statement" },
+	NeoJJDescribeSection = { link = "Function" },
 }
 
 ---Apply default highlights
