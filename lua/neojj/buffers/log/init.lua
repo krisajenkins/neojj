@@ -180,13 +180,13 @@ function LogBuffer:get_log_data()
 
 	local result = builder:call()
 
-	logger.info("Log command result - success: " .. tostring(result.success))
-	logger.info("Log command stdout length: " .. (result.stdout and #result.stdout or 0))
+	logger.debug("Log command result - success: " .. tostring(result.success))
+	logger.debug("Log command stdout length: " .. (result.stdout and #result.stdout or 0))
 	if result.stdout then
-		logger.info("Log command stdout preview: " .. result.stdout:sub(1, 200))
+		logger.debug("Log command stdout preview: " .. result.stdout:sub(1, 200))
 	end
 	if result.stderr then
-		logger.info("Log command stderr: " .. result.stderr)
+		logger.debug("Log command stderr: " .. result.stderr)
 	end
 
 	if not result.success then
@@ -207,7 +207,7 @@ function LogBuffer:get_log_data()
 		end
 	end
 
-	logger.info(
+	logger.debug(
 		"Parsed log data - revisions: "
 			.. #parsed.revisions
 			.. ", graph_data entries: "
@@ -311,10 +311,10 @@ function LogBuffer:render()
 	local components
 	if self.show_help then
 		components = { LogUI.create_help() }
-		logger.info("Rendering help with " .. #components .. " components")
+		logger.debug("Rendering help with " .. #components .. " components")
 	else
 		components = LogUI.create(self.state, self)
-		logger.info(
+		logger.debug(
 			"Rendering log UI with "
 				.. #components
 				.. " components from state with "
