@@ -21,7 +21,7 @@ function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 
 	local buffer = Buffer.new({
 		name = "JJ Describe: " .. revision,
-		filetype = "jjdescribe",
+		filetype = "neojj-describe",
 		modifiable = true,
 		readonly = false,
 		scratch = false,

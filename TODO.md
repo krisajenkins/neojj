@@ -36,14 +36,14 @@ vim.api.nvim_get_option_value("option_name", { buf = bufnr })
   - [ ] **We should use consistent naming for new filetypes. I think `neojj-${command}` makes more sense.**
   
   **Recommended Changes:**
-  - `jjdescribe` → `neojj-describe`
+  - `jjdescribe` → `neojj-describe` ✅ **COMPLETED**
   - `neojj-status` (already correct)
   - Future commands should follow `neojj-${command}` pattern
 
-  **Files to Update:**
-  - `lua/neojj/buffers/describe/init.lua` - Change filetype from "jjdescribe" to "neojj-describe"
-  - `syntax/jjdescribe.vim` → `syntax/neojj-describe.vim`
-  - `ftdetect/neojj.vim` - Update filetype detection patterns
+  **Files Updated:**
+  - ✅ `lua/neojj/buffers/describe/init.lua` - Changed filetype from "jjdescribe" to "neojj-describe"
+  - ✅ `syntax/jjdescribe.vim` → `syntax/neojj-describe.vim` - Renamed and updated syntax file
+  - ✅ `ftdetect/neojj.vim` - Updated filetype detection patterns
 
   - [ ] **We need to be consistent about creating buffers. We seem to have code in `lua/neojj/buffers/${command}/init.lua`, but also `lua/neojj/lib/buffer.lua` has `Buffer.create_status`. What's redundant? How does NeoGit handle this? Follow their structure.**
 
