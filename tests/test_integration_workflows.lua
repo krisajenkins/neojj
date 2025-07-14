@@ -104,4 +104,113 @@ T.test_workflow_basic_log = function()
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+---Test basic commit view workflow
+---@return nil
+T.test_workflow_basic_commit = function()
+	-- Switch to initial (empty) state
+	child.lua([[
+		switch_to_state("initial")
+	]])
+
+	-- Open commit buffer directly with the working copy commit
+	child.lua([[
+        vim.cmd("JJCommit @")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	-- Take a screenshot of the commit view
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+---Test navigation from log to commit view
+---@return nil
+T.test_workflow_log_to_commit_navigation = function()
+	-- Switch to initial (empty) state
+	child.lua([[
+		switch_to_state("initial")
+	]])
+
+	-- Open log buffer
+	child.lua([[
+        vim.cmd("JJLog")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	-- Press Enter on the first commit line to navigate to commit view
+	child.lua([[
+		-- Move to the first commit line (usually line 4 after header)
+		vim.cmd("normal! 4G")
+		-- Press Enter to open commit view
+		vim.cmd("normal! \\<CR>")
+	]])
+
+	-- Wait for commit view to load
+	child.lua([[ vim.wait(500) ]])
+
+	-- Take a screenshot of the commit view opened from log
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+---Test commit view with file interactions
+---@return nil
+T.test_workflow_commit_file_interactions = function()
+	-- Switch to state with some file changes
+	child.lua([[
+		switch_to_state("initial")
+	]])
+
+	-- Open commit buffer for the working copy
+	child.lua([[
+        vim.cmd("JJCommit @")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	-- Navigate to a file line (if files are present)
+	child.lua([[
+		-- Try to find a file line in the commit view
+		local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+		for i, line in ipairs(lines) do
+			if line:match("^%s*[AMDRC]%s+") then
+				-- Found a file line, navigate to it
+				vim.cmd("normal! " .. i .. "G")
+				break
+			end
+		end
+	]])
+
+	-- Take a screenshot showing file selection
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+---Test commit view help display
+---@return nil
+T.test_workflow_commit_help = function()
+	-- Switch to initial (empty) state
+	child.lua([[
+		switch_to_state("initial")
+	]])
+
+	-- Open commit buffer
+	child.lua([[
+        vim.cmd("JJCommit @")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	-- Press ? to show help
+	child.lua([[
+		vim.cmd("normal! ?")
+	]])
+
+	-- Take a screenshot of the help display
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

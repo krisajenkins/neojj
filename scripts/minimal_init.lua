@@ -7,20 +7,9 @@ if #vim.api.nvim_list_uis() == 0 then
 	-- Assumed that 'mini.nvim' is stored in 'deps/mini.nvim'
 	vim.cmd("set rtp+=deps/mini.nvim")
 
-	-- Set up 'mini.test' with proper output configuration
-	require("mini.test").setup({
-		-- Ensure proper output formatting in headless mode
-		collect = {
-			find_files = function()
-				return vim.fn.globpath("tests", "*.lua", true, true)
-			end,
-		},
-		execute = {
-			reporter = require("mini.test").gen_reporter.stdout({ group_depth = 2 }),
-		},
-	})
+    -- Add runtime dependencies
+	vim.cmd("set rtp+=deps/plenary.nvim")
 
-	-- Ensure output is flushed properly
-	vim.o.more = false
-	vim.o.shortmess = "aoOtTWAIcqF"
+	-- Set up 'mini.test' with proper output configuration
+	require("mini.test").setup()
 end

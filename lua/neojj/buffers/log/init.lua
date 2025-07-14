@@ -382,8 +382,10 @@ function LogBuffer:show_commit_at_cursor()
 		return
 	end
 
-	-- TODO: Implement commit details view
-	print("Show details for commit: " .. item.change_id)
+	-- Open commit view for this commit
+	local CommitBuffer = require("neojj.buffers.commit")
+	local commit_buffer = CommitBuffer.new(self.repo, item.change_id)
+	commit_buffer:show()
 end
 
 ---Show diff for commit at cursor

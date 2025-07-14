@@ -3,6 +3,7 @@ local logger = require("neojj.logger")
 local StatusBuffer = require("neojj.buffers.status")
 local DescribeBuffer = require("neojj.buffers.describe")
 local LogBuffer = require("neojj.buffers.log")
+local CommitBuffer = require("neojj.buffers.commit")
 local Highlights = require("neojj.highlights")
 
 ---@class NeoJJSetupOptions
@@ -70,6 +71,25 @@ function M.setup(opts)
 			return { "horizontal", "vertical", "tab" }
 		end,
 		desc = "Open JJ log buffer",
+	})
+
+	vim.api.nvim_create_user_command("JJCommit", function(args)
+		local parts = vim.split(args.args, " ")
+		local commit_id = parts[1]
+		local split = parts[2]
+
+		if not commit_id or commit_id == "" then
+			vim.notify("Usage: JJCommit <commit_id> [split_type]", vim.log.levels.ERROR)
+			return
+		end
+
+		M.jj_commit(nil, commit_id, split)
+	end, {
+		nargs = "+",
+		complete = function()
+			return { "horizontal", "vertical", "tab" }
+		end,
+		desc = "Open JJ commit buffer for specific commit",
 	})
 end
 
@@ -237,6 +257,30 @@ function M.jj_log(dir, split)
 		log_buffer:show_tab()
 	else
 		log_buffer:show()
+	end
+end
+
+---Open the JJ commit buffer UI for a specific commit
+---@param dir? string Directory path (defaults to current working directory)
+---@param commit_id string Commit identifier (change_id or commit_id)
+---@param split? string Split type ("horizontal", "vertical", "tab")
+function M.jj_commit(dir, commit_id, split)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local commit_buffer = CommitBuffer.new(repo, commit_id)
+
+	if split == "horizontal" then
+		commit_buffer:show_split("horizontal")
+	elseif split == "vertical" then
+		commit_buffer:show_split("vertical")
+	elseif split == "tab" then
+		commit_buffer:show_tab()
+	else
+		commit_buffer:show()
 	end
 end
 
