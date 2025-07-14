@@ -34,6 +34,7 @@ function Buffer.new(config)
 		mappings = config.mappings or {},
 		autocmds = config.autocmds or {},
 		components = {},
+		component_positions = {},
 		config = config,
 	}, Buffer)
 
@@ -153,14 +154,16 @@ end
 function Buffer:render(components)
 	self.components = components
 
-	-- Make buffer modifiable temporarily
+	-- Temporarily disable readonly and make buffer modifiable
+	vim.api.nvim_set_option_value("readonly", false, { buf = self.handle })
 	vim.api.nvim_set_option_value("modifiable", true, { buf = self.handle })
 
-	-- Render components
-	Renderer.render_to_buffer(self.handle, components)
+	-- Render components and capture positions
+	self.component_positions = Renderer.render_to_buffer(self.handle, components)
 
-	-- Restore modifiable state
+	-- Restore original buffer state
 	vim.api.nvim_set_option_value("modifiable", self.config.modifiable ~= false, { buf = self.handle })
+	vim.api.nvim_set_option_value("readonly", self.config.readonly == true, { buf = self.handle })
 end
 
 ---Show the buffer in the current window
@@ -233,12 +236,18 @@ end
 ---Get the component at the current cursor position
 ---@return table|nil component Component at cursor or nil
 function Buffer:get_component_at_cursor()
-	-- This is a simplified implementation
-	-- In a full implementation, you'd track component positions during rendering
-	local _, _ = unpack(self:get_cursor())
+	local line, _ = unpack(self:get_cursor())
+	-- Convert to 0-indexed line number (renderer uses 0-indexed)
+	local line_idx = line - 1
 
-	-- For now, return nil - this would need proper implementation
-	-- based on component position tracking during rendering
+	-- Find the component at the current line or the closest preceding line
+	for i = line_idx, 0, -1 do
+		local component = self.component_positions[i]
+		if component then
+			return component
+		end
+	end
+
 	return nil
 end
 

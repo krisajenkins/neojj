@@ -10,6 +10,7 @@ local Renderer = {}
 ---@field extmarks table[] Extmark specifications
 ---@field line_number number Current line number (0-indexed)
 ---@field col_offset number Current column offset
+---@field component_positions table[] Component position mappings {line -> component}
 
 ---Create a new render context
 ---@param buffer number Buffer handle
@@ -22,6 +23,7 @@ function Renderer.new_context(buffer)
 		extmarks = {},
 		line_number = 0,
 		col_offset = 0,
+		component_positions = {},
 	}
 end
 
@@ -81,6 +83,11 @@ function Renderer.render_component(component, context)
 	local children = component:get_children()
 	local value = component:get_value()
 
+	-- Track interactive components at their starting line
+	if component:is_interactive() then
+		context.component_positions[context.line_number] = component
+	end
+
 	-- Handle folded components
 	if component:is_foldable() and component:is_folded() then
 		-- Only render the header for folded components
@@ -124,6 +131,7 @@ end
 ---Render components to buffer
 ---@param buffer number Buffer handle
 ---@param components table[] Components to render
+---@return table component_positions Component position mappings {line -> component}
 function Renderer.render_to_buffer(buffer, components)
 	local context = Renderer.new_context(buffer)
 
@@ -155,6 +163,9 @@ function Renderer.render_to_buffer(buffer, components)
 	for _, extmark in ipairs(context.extmarks) do
 		vim.api.nvim_buf_set_extmark(buffer, namespace, extmark.line, extmark.col, extmark.opts)
 	end
+
+	-- Return component positions for cursor interaction
+	return context.component_positions
 end
 
 return Renderer

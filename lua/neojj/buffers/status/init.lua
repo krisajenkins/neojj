@@ -79,6 +79,11 @@ function StatusBuffer:_setup_mappings()
 		self:refresh()
 	end, { desc = "Refresh status" })
 
+	-- Ctrl-R also refreshes (like NeoGit)
+	self.buffer:map("n", "<c-r>", function()
+		self:refresh()
+	end, { desc = "Refresh status" })
+
 	-- Help mapping
 	self.buffer:map("n", "g?", function()
 		self:toggle_help()
@@ -218,8 +223,18 @@ end
 
 ---Open file at cursor
 function StatusBuffer:open_file_at_cursor()
-	-- TODO: Implement file opening
-	print("File opening not yet implemented")
+	local component = self.buffer:get_component_at_cursor()
+	if not component or not component:is_interactive() then
+		return
+	end
+
+	local item = component:get_item()
+	if not item or not item.path then
+		return
+	end
+
+	-- Open the file in the current window
+	vim.cmd("edit " .. vim.fn.fnameescape(item.path))
 end
 
 ---Show diff for file at cursor
