@@ -13,13 +13,58 @@ StatusBuffer.__index = StatusBuffer
 ---@param repo table Repository instance
 ---@return StatusBuffer status_buffer Status buffer instance
 function StatusBuffer.new(repo)
-	local buffer = Buffer.create_status("JJ Status")
-
 	local instance = setmetatable({
-		buffer = buffer,
 		repo = repo,
 		state = {},
 	}, StatusBuffer)
+
+	-- Create buffer with unified factory method
+	local buffer = Buffer.create({
+		name = "JJ Status",
+		filetype = "neojj-status",
+		kind = "tab", -- Default to tab view
+		modifiable = false,
+		readonly = true,
+		cwd = repo.dir,
+		context_highlight = true,
+		active_item_highlight = true,
+		foldmarkers = true,
+		disable_line_numbers = true,
+		disable_relative_line_numbers = true,
+		disable_signs = false,
+		spell_check = false,
+		mappings = {
+			n = {
+				["q"] = "<cmd>close<cr>",
+				["<c-c>"] = "<cmd>close<cr>",
+				["<esc>"] = "<cmd>close<cr>",
+			},
+		},
+		autocmds = {
+			{
+				event = "BufWinEnter",
+				callback = function()
+					vim.cmd("setlocal cursorline")
+				end,
+			},
+			{
+				event = "BufWinLeave",
+				callback = function()
+					-- Save cursor position or state if needed
+				end,
+			},
+		},
+		render = function()
+			-- This will be called during buffer:open()
+			-- Return nil here since we'll call refresh separately
+			return nil
+		end,
+		after = function()
+			-- Additional setup after buffer is displayed
+		end,
+	})
+
+	instance.buffer = buffer
 
 	-- Add status-specific key mappings
 	instance:_setup_mappings()
@@ -128,21 +173,23 @@ function StatusBuffer:render_error(message)
 end
 
 ---Show the status buffer
-function StatusBuffer:show()
-	self.buffer:show()
+---@param kind? string Display mode override
+function StatusBuffer:show(kind)
+	self.buffer:open(kind)
 	self:refresh()
 end
 
 ---Show the status buffer in a split
 ---@param split_type? string Split type ("horizontal" or "vertical")
 function StatusBuffer:show_split(split_type)
-	self.buffer:show_split(split_type)
+	local kind = split_type == "vertical" and "vsplit" or "split"
+	self.buffer:open(kind)
 	self:refresh()
 end
 
 ---Show the status buffer in a new tab
 function StatusBuffer:show_tab()
-	self.buffer:show_tab()
+	self.buffer:open("tab")
 	self:refresh()
 end
 
@@ -194,7 +241,7 @@ function StatusBuffer:describe_current_commit()
 			-- Return focus to the status buffer after a short delay to ensure describe buffer closes first
 			vim.defer_fn(function()
 				if self.buffer and self.buffer:is_valid() then
-					self.buffer:show()
+					self.buffer:open()
 				end
 			end, 100)
 		else
@@ -207,7 +254,7 @@ function StatusBuffer:describe_current_commit()
 		if self.buffer and self.buffer:is_valid() then
 			vim.defer_fn(function()
 				if self.buffer and self.buffer:is_valid() then
-					self.buffer:show()
+					self.buffer:open()
 				end
 			end, 100)
 		end

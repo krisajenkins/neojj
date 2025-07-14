@@ -263,53 +263,152 @@ function Buffer:map(mode, key, callback, opts)
 	vim.keymap.set(mode, key, callback, opts)
 end
 
----Create a status buffer with common JJ status mappings
----@param name string Buffer name
----@return Buffer buffer Status buffer instance
-function Buffer.create_status(name)
-	return Buffer.new({
-		name = name,
-		filetype = "neojj-status",
-		mappings = {
-			n = {
-				["q"] = "<cmd>close<cr>",
-				["<c-c>"] = "<cmd>close<cr>",
-				["<esc>"] = "<cmd>close<cr>",
-				["r"] = function()
-					-- Refresh status - will be implemented later
-					print("Refreshing status...")
-				end,
-				["g?"] = function()
-					-- Show help - will be implemented later
-					print("Help not yet implemented")
-				end,
-				["<tab>"] = function()
-					-- Toggle fold - will be implemented later
-					print("Folding not yet implemented")
-				end,
-				["<s-tab>"] = function()
-					-- Toggle fold (reverse) - will be implemented later
-					print("Folding not yet implemented")
-				end,
-			},
-		},
-		autocmds = {
-			{
-				event = "BufWinEnter",
-				callback = function()
-					vim.cmd("setlocal cursorline")
-				end,
-			},
-			{
-				event = "BufWinLeave",
-				callback = function()
-					-- Save cursor position or state if needed
-				end,
-			},
-		},
-		modifiable = false,
-		readonly = true,
+---Create a buffer using a unified configuration approach
+---@class BufferCreateConfig : BufferConfig
+---@field kind? string Display mode: "split", "vsplit", "tab", "floating", "replace", "auto"
+---@field initialize? function Pre-display setup callback
+---@field render? function Function that returns UI components to render
+---@field after? function Post-display callback (buffer, window)
+---@field on_detach? function Cleanup callback when buffer is closed
+---@field context_highlight? boolean Enable context-based highlighting
+---@field active_item_highlight? boolean Enable active item highlighting
+---@field foldmarkers? boolean Show fold markers in sign column
+---@field header? string Optional header text
+---@field scroll_header? boolean Whether header scrolls with content
+---@field status_column? string Status column configuration
+---@field disable_line_numbers? boolean Disable line numbers
+---@field disable_relative_line_numbers? boolean Disable relative line numbers
+---@field disable_signs? boolean Disable sign column
+---@field spell_check? boolean Enable spell checking
+---@field cwd? string Working directory for the buffer
+---@field user_mappings? table User-configurable mappings
+---@field user_autocmds? table User-defined autocmds
+
+---Create a buffer with comprehensive configuration
+---@param config BufferCreateConfig
+---@return Buffer
+function Buffer.create(config)
+	-- Create base buffer with core config
+	local buffer = Buffer.new({
+		name = config.name,
+		filetype = config.filetype,
+		mappings = config.mappings,
+		autocmds = config.autocmds or {},
+		modifiable = config.modifiable,
+		readonly = config.readonly,
+		unlisted = config.unlisted,
+		scratch = config.scratch,
 	})
+
+	-- Store extended configuration
+	buffer.kind = config.kind or "split"
+	buffer.initialize = config.initialize
+	buffer.render_fn = config.render
+	buffer.after = config.after
+	buffer.on_detach = config.on_detach
+	buffer.context_highlight = config.context_highlight
+	buffer.active_item_highlight = config.active_item_highlight
+	buffer.foldmarkers = config.foldmarkers
+	buffer.header = config.header
+	buffer.scroll_header = config.scroll_header
+	buffer.status_column = config.status_column
+	buffer.cwd = config.cwd
+
+	-- Apply window-specific options
+	if config.disable_line_numbers then
+		buffer.window_opts.number = false
+		buffer.window_opts.relativenumber = false
+	end
+	if config.disable_relative_line_numbers then
+		buffer.window_opts.relativenumber = false
+	end
+	if config.disable_signs then
+		buffer.window_opts.signcolumn = "no"
+	end
+	if config.spell_check ~= nil then
+		buffer.window_opts.spell = config.spell_check
+	end
+
+	-- Add user mappings if provided
+	if config.user_mappings then
+		for mode, mappings in pairs(config.user_mappings) do
+			for key, mapping in pairs(mappings) do
+				buffer:map(mode, key, mapping)
+			end
+		end
+	end
+
+	-- Add user autocmds if provided
+	if config.user_autocmds then
+		local augroup = vim.api.nvim_create_augroup("neojj_buffer_user_" .. buffer.handle, { clear = true })
+		for event, callback in pairs(config.user_autocmds) do
+			vim.api.nvim_create_autocmd("User", {
+				pattern = event,
+				group = augroup,
+				callback = callback,
+			})
+		end
+	end
+
+	-- Add detach handler if provided
+	if config.on_detach then
+		local augroup = vim.api.nvim_create_augroup("neojj_buffer_detach_" .. buffer.handle, { clear = true })
+		vim.api.nvim_create_autocmd("BufUnload", {
+			buffer = buffer.handle,
+			group = augroup,
+			callback = config.on_detach,
+		})
+	end
+
+	return buffer
+end
+
+---Open the buffer with the configured display mode
+---@param kind? string Override the configured display mode
+function Buffer:open(kind)
+	kind = kind or self.kind or "split"
+
+	-- Run initialize callback if provided
+	if self.initialize then
+		self.initialize()
+	end
+
+	-- Display buffer based on kind
+	if kind == "tab" then
+		self:show_tab()
+	elseif kind == "vsplit" or kind == "vsplit_left" then
+		self:show_split("vertical")
+	elseif kind == "split" or kind == "split_above" or kind == "split_below" then
+		self:show_split("horizontal")
+	elseif kind == "replace" then
+		self:show()
+	elseif kind == "floating" then
+		-- TODO: Implement floating window support
+		self:show_split("horizontal")
+	elseif kind == "auto" then
+		-- Choose based on terminal width
+		if vim.o.columns > 120 then
+			self:show_split("vertical")
+		else
+			self:show_split("horizontal")
+		end
+	else
+		self:show()
+	end
+
+	-- Run render callback if provided
+	if self.render_fn then
+		local components = self.render_fn()
+		if components then
+			self:render(components)
+		end
+	end
+
+	-- Run after callback if provided
+	if self.after then
+		local win = vim.fn.win_findbuf(self.handle)[1]
+		self.after(self, win)
+	end
 end
 
 return Buffer

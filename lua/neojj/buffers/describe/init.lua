@@ -19,21 +19,41 @@ DescribeBuffer.__index = DescribeBuffer
 function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 	revision = revision or "@"
 
-	local buffer = Buffer.new({
-		name = "JJ Describe: " .. revision,
-		filetype = "neojj-describe",
-		modifiable = true,
-		readonly = false,
-		scratch = false,
-	})
-
 	local instance = setmetatable({
-		buffer = buffer,
 		repo = repo,
 		revision = revision,
 		on_submit = on_submit,
 		on_abort = on_abort,
 	}, DescribeBuffer)
+
+	-- Create buffer with unified factory method
+	local buffer = Buffer.create({
+		name = "JJ Describe: " .. revision,
+		filetype = "neojj-describe",
+		kind = "split", -- Default to split view
+		modifiable = true,
+		readonly = false,
+		scratch = false,
+		cwd = repo.dir,
+		disable_line_numbers = false,
+		disable_relative_line_numbers = true,
+		spell_check = true,
+		mappings = {},  -- Will be added via _setup_mappings
+		autocmds = {},  -- Will be added via _setup_autocmds
+		initialize = function()
+			-- Load content when buffer is initialized
+			instance:load_current_description()
+		end,
+		after = function()
+			-- Additional setup after buffer is displayed
+		end,
+		on_detach = function()
+			-- Cleanup when buffer is closed
+			instance:_cleanup()
+		end,
+	})
+
+	instance.buffer = buffer
 
 	-- Add describe-specific key mappings
 	instance:_setup_mappings()
@@ -297,22 +317,21 @@ function DescribeBuffer:_add_help_text()
 end
 
 ---Show the describe buffer
-function DescribeBuffer:show()
-	self.buffer:show()
-	self:load_current_description()
+---@param kind? string Display mode override
+function DescribeBuffer:show(kind)
+	self.buffer:open(kind)
 end
 
 ---Show the describe buffer in a split
 ---@param split_type? string Split type ("horizontal" or "vertical")
 function DescribeBuffer:show_split(split_type)
-	self.buffer:show_split(split_type)
-	self:load_current_description()
+	local kind = split_type == "vertical" and "vsplit" or "split"
+	self.buffer:open(kind)
 end
 
 ---Show the describe buffer in a new tab
 function DescribeBuffer:show_tab()
-	self.buffer:show_tab()
-	self:load_current_description()
+	self.buffer:open("tab")
 end
 
 ---Close the describe buffer

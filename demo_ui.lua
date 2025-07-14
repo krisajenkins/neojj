@@ -13,7 +13,12 @@ local Highlights = require("neojj.highlights")
 Highlights.setup()
 
 -- Create test buffer
-local buffer = Buffer.create_status("JJ Status Demo")
+local buffer = Buffer.create({
+	name = "JJ Status Demo",
+	filetype = "neojj-status",
+	modifiable = false,
+	readonly = true,
+})
 
 -- Create demo UI with rich content
 local demo_repo_state = {

@@ -189,7 +189,12 @@ T.test_jj_status_ui_display = function()
 		local Buffer = require('neojj.lib.buffer')
 
 		-- Create test status buffer
-		local buffer = Buffer.create_status("Test JJ Status")
+		local buffer = Buffer.create({
+			name = "Test JJ Status",
+			filetype = "neojj-status",
+			modifiable = false,
+			readonly = true,
+		})
 
 		-- Create test UI components
 		local components = StatusUI.create_test_ui()
@@ -221,7 +226,12 @@ T.test_status_ui_screenshot = function()
 		local Buffer = require('neojj.lib.buffer')
 
 		-- Create test status buffer
-		local buffer = Buffer.create_status("JJ Status")
+		local buffer = Buffer.create({
+			name = "JJ Status",
+			filetype = "neojj-status",
+			modifiable = false,
+			readonly = true,
+		})
 
 		-- Create test UI with known data
 		local components = StatusUI.create_test_ui()
@@ -265,7 +275,12 @@ T.test_empty_status_display = function()
 		}
 
 		-- Create test status buffer
-		local buffer = Buffer.create_status("JJ Status - Empty")
+		local buffer = Buffer.create({
+			name = "JJ Status - Empty",
+			filetype = "neojj-status",
+			modifiable = false,
+			readonly = true,
+		})
 
 		-- Create UI with empty state
 		local components = StatusUI.create(empty_repo_state)

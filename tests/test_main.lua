@@ -41,7 +41,12 @@ T.jj_status_ui = function()
 		local Buffer = require('neojj.lib.buffer')
 
 		-- Create test buffer
-		local buffer = Buffer.create_status("JJ Status Test")
+		local buffer = Buffer.create({
+			name = "JJ Status Test",
+			filetype = "neojj-status",
+			modifiable = false,
+			readonly = true,
+		})
 
 		-- Create test UI
 		local components = StatusUI.create_test_ui()
