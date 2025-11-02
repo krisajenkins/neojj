@@ -187,12 +187,66 @@ local mock_status_buffer = {
       "diff --git a/" .. file_path .. " b/" .. file_path,
       "@@ -1,3 +1,4 @@",
       " unchanged line",
-      "-deleted line", 
+      "-deleted line",
       "+added line"
     }
   end
 }
 ```
+
+### Mocking Dependencies with package.loaded
+
+NeoJJ uses lazy `require()` calls (requiring modules inside functions rather than at the top level). This pattern enables easy mocking by injecting mocks into `package.loaded` before the module is used.
+
+**Why this works**: When code calls `require('module')`, Lua first checks `package.loaded['module']`. If found, it returns that cached value without loading the file.
+
+**Pattern from test_describe.lua:99-116**:
+```lua
+-- Mock the JJ CLI to avoid actual command execution
+package.loaded['neojj.lib.jj.cli'] = {
+  describe = function()
+    return {
+      arg = function(self, ...) return self end,
+      call = function()
+        return { success = true, stdout = '', stderr = '' }
+      end,
+    }
+  end,
+  log = function()
+    return {
+      arg = function(self, ...) return self end,
+      call = function()
+        return { success = true, stdout = 'Test description', stderr = '' }
+      end,
+    }
+  end,
+}
+
+-- Now when DescribeBuffer internally calls require('neojj.lib.jj.cli'),
+-- it gets our mock instead of the real module
+local DescribeBuffer = require('neojj.buffers.describe')
+local buffer = DescribeBuffer.new(mock_repo, '@')
+```
+
+**Module reload pattern** (test_unit.lua:21):
+```lua
+-- Force fresh module load for each test
+package.loaded["neojj"] = nil
+M = require("neojj")
+```
+
+**Alternative: Direct function replacement** when module is already loaded:
+```lua
+M.jj_describe = function(dir, revision, split)
+  table.insert(calls, { dir = dir, revision = revision, split = split })
+end
+```
+
+Use `package.loaded` mocking when:
+- The code uses lazy requires (require inside functions)
+- You need to mock dependencies without modifying source code
+- You want to avoid executing external commands (like `jj`)
+- Testing error conditions from dependencies
 
 ## Test Environment
 
