@@ -1,6 +1,7 @@
 local Buffer = require("neojj.lib.buffer")
 local LogUI = require("neojj.buffers.log.ui")
 local logger = require("neojj.logger")
+local log_parser = require("neojj.lib.jj.parsers.log_parser")
 
 ---@class LogBuffer
 ---@field buffer Buffer Buffer instance
@@ -198,7 +199,7 @@ function LogBuffer:get_log_data()
 	end
 
 	-- Parse the log output
-	local parsed = self:parse_log_output(result.stdout)
+	local parsed = log_parser.parse_log_output(result.stdout)
 
 	-- Sanitize raw_lines to ensure no embedded newlines
 	if parsed.raw_lines then
@@ -214,91 +215,6 @@ function LogBuffer:get_log_data()
 			.. vim.tbl_count(parsed.graph_data)
 	)
 	return parsed
-end
-
----Parse jj log output into structured data
----@param output string Raw jj log output
----@return table parsed_data Parsed log data
-function LogBuffer:parse_log_output(output)
-	local lines = vim.split(output, "\n")
-	local revisions = {}
-	local graph_data = {}
-
-	local current_revision = nil
-
-	for i, line in ipairs(lines) do
-		if line == "" then
-			-- Skip empty lines
-			goto continue
-		end
-
-		-- Check if this is a commit line (starts with @ or ○ and contains commit info)
-		local graph_part, commit_info = line:match("^([│@○◆%s├└┤┬┴─┌┐┘]*)(.*)")
-
-		-- Check if this line has commit data (change_id, author, timestamp, commit_id)
-		local change_id, author, timestamp, commit_id = nil, nil, nil, nil
-		if commit_info and commit_info ~= "" then
-			change_id, author, timestamp, commit_id = commit_info:match("^%s*(%S+)%s+(%S+@%S+)%s+([%d%-:T%s]+)%s+(%S+)")
-		end
-
-		if change_id and author and timestamp and commit_id then
-			-- This is a commit header line with actual commit data
-			if current_revision then
-				-- Save previous revision
-				table.insert(revisions, current_revision)
-			end
-
-			current_revision = {
-				change_id = change_id,
-				author = author,
-				timestamp = timestamp,
-				commit_id = commit_id,
-				description = "",
-				graph = graph_part,
-				line_number = i,
-			}
-
-			-- Store graph information
-			graph_data[i] = {
-				graph = graph_part,
-				revision = current_revision,
-			}
-		else
-			-- This is a description line or graph continuation
-			if current_revision then
-				local desc_part = line:match("^[│%s]*(.+)")
-				if desc_part and desc_part ~= "" then
-					-- Only capture the first line of description for metadata
-					-- The UI will render all lines from raw_lines anyway
-					if current_revision.description == "" then
-						current_revision.description = desc_part
-					end
-					-- Don't concatenate with \n - let UI handle multiline from raw_lines
-				end
-			end
-
-			-- Store graph line even if no commit info
-			if graph_part then
-				graph_data[i] = {
-					graph = graph_part,
-					revision = nil,
-				}
-			end
-		end
-
-		::continue::
-	end
-
-	-- Don't forget the last revision
-	if current_revision then
-		table.insert(revisions, current_revision)
-	end
-
-	return {
-		revisions = revisions,
-		graph_data = graph_data,
-		raw_lines = lines,
-	}
 end
 
 ---Render the log UI

@@ -1,0 +1,7 @@
+Working copy : qpvuntsm 230dd059 Merge feature branch
+Parent: rlvkpnrz 2443ea76 Add initial implementation
+Parent: tknwxqrs 5621ab34 Add feature X
+Author: Jane Doe <jane@example.com>
+M README.md
+M lib/feature.lua
+C config/settings.lua

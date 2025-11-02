@@ -1,0 +1,6 @@
+Working copy : qpvuntsm 230dd059 Update README and add examples
+Parent: rlvkpnrz 2443ea76 Add initial implementation
+Author: Jane Doe <jane@example.com>
+M README.md
+A examples/demo.lua
+D old_config.lua

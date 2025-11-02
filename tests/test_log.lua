@@ -104,13 +104,7 @@ end
 ---@return nil
 T.test_log_parsing = function()
 	child.lua([[
-		local LogBuffer = require('neojj.buffers.log')
-		local mock_repo = {
-			dir = vim.fn.getcwd(),
-			is_jj_repo = function() return true end
-		}
-
-		local log_buffer = LogBuffer.new(mock_repo)
+		local log_parser = require('neojj.lib.jj.parsers.log_parser')
 
 		-- Test parsing sample log output
 		local sample_output = "@  sqmvkywl user@example.com 2025-07-14 21:06:06 f35b8f36\n" ..
@@ -118,7 +112,7 @@ T.test_log_parsing = function()
 			"○  knsrwpnn user@example.com 2025-07-14 20:58:50 1e062938\n" ..
 			"│  Implementing status functions.\n"
 
-		local parsed = log_buffer:parse_log_output(sample_output)
+		local parsed = log_parser.parse_log_output(sample_output)
 		expect.equality(type(parsed), "table")
 		expect.equality(type(parsed.revisions), "table")
 		expect.equality(type(parsed.graph_data), "table")

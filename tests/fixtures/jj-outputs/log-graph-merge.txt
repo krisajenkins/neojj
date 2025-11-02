@@ -1,0 +1,10 @@
+@    qpvuntsm jane@example.com 2024-03-15 10:30:42 230dd059
+├─╮  Merge feature and bugfix branches
+│ ○  rlvkpnrz john@example.com 2024-03-14 15:20:10 2443ea76
+│ │  Add new feature X
+○ │  tknwxqrs jane@example.com 2024-03-14 11:10:05 5621ab34
+├─╯  Fix critical bug in parser
+○  mplxqrst bob@example.com 2024-03-13 09:45:33 9876def0
+│  Update dependencies
+○  zzzzzzzz root@example.com 1970-01-01 00:00:00 00000000
+   Initial commit

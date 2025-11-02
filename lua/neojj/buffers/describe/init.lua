@@ -265,17 +265,28 @@ function DescribeBuffer:load_current_description()
 
 	async.run(function()
 		local jj_cli = require("neojj.lib.jj.cli")
-		local cmd = jj_cli.log():option("revisions", self.revision):option("template", "description"):flag("no-graph")
+		local json_parser = require("neojj.lib.jj.parsers.json_parser")
+
+		local cmd = jj_cli.log():option("revisions", self.revision):option("template", "json(self)"):flag("no-graph")
 
 		local result = cmd:call()
 
 		if result.success and result.stdout then
-			local description = vim.trim(result.stdout)
-			vim.schedule(function()
-				self.current_description = description
-				self.description_loaded = true
-				self:render_components()
-			end)
+			local log_json, err = json_parser.parse_log_json(result.stdout)
+			if log_json then
+				vim.schedule(function()
+					self.current_description = log_json.description or ""
+					self.description_loaded = true
+					self:render_components()
+				end)
+			else
+				logger.warn("Failed to parse description JSON: " .. tostring(err))
+				vim.schedule(function()
+					self.current_description = ""
+					self.description_loaded = true
+					self:render_components()
+				end)
+			end
 		else
 			logger.warn("Could not load current description: " .. (result.stderr or ""))
 			vim.schedule(function()
