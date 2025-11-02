@@ -198,10 +198,7 @@ function CommitBuffer:get_commit_data()
 	local cli = require("neojj.lib.jj.cli")
 
 	-- Get commit details with jj show
-	local result = cli.show()
-		:arg(self.commit_id)
-		:cwd(self.repo.dir)
-		:call()
+	local result = cli.show():arg(self.commit_id):cwd(self.repo.dir):call()
 
 	logger.debug("Commit show command result - success: " .. tostring(result.success))
 	logger.debug("Commit show stdout length: " .. (result.stdout and #result.stdout or 0))
@@ -224,12 +221,7 @@ function CommitBuffer:get_commit_data()
 	-- Parse the show output
 	local parsed = self:parse_show_output(result.stdout)
 
-	logger.debug(
-		"Parsed commit data - files: "
-			.. #parsed.files
-			.. ", diff lines: "
-			.. #parsed.diff_data
-	)
+	logger.debug("Parsed commit data - files: " .. #parsed.files .. ", diff lines: " .. #parsed.diff_data)
 	return parsed
 end
 

@@ -23,8 +23,10 @@ function CommitUI.create(commit_state, expanded_files, commit_buffer)
 	end
 
 	-- Add empty state if no data
-	if (not commit_state.files or #commit_state.files == 0) and
-	   (not commit_state.diff_data or #commit_state.diff_data == 0) then
+	if
+		(not commit_state.files or #commit_state.files == 0)
+		and (not commit_state.diff_data or #commit_state.diff_data == 0)
+	then
 		table.insert(components, CommitUI.create_empty_state())
 	end
 
@@ -320,9 +322,9 @@ function CommitUI.create_test_ui()
 			"--- /dev/null",
 			"+++ b/lua/neojj/buffers/log/init.lua",
 			"@@ -0,0 +1,10 @@",
-			"+local Buffer = require(\"neojj.lib.buffer\")",
-			"+local LogUI = require(\"neojj.buffers.log.ui\")",
-			"+local logger = require(\"neojj.logger\")",
+			'+local Buffer = require("neojj.lib.buffer")',
+			'+local LogUI = require("neojj.buffers.log.ui")',
+			'+local logger = require("neojj.logger")',
 			"+",
 			"+local LogBuffer = {}",
 			"+LogBuffer.__index = LogBuffer",
@@ -337,13 +339,13 @@ function CommitUI.create_test_ui()
 			"+++ b/lua/neojj/commands.lua",
 			"@@ -15,6 +15,12 @@",
 			" function M.setup()",
-			"     vim.api.nvim_create_user_command(\"JJStatus\", M.status, {})",
-			"     vim.api.nvim_create_user_command(\"JJDescribe\", M.describe, {})",
-			"+    vim.api.nvim_create_user_command(\"JJLog\", M.log, {})",
+			'     vim.api.nvim_create_user_command("JJStatus", M.status, {})',
+			'     vim.api.nvim_create_user_command("JJDescribe", M.describe, {})',
+			'+    vim.api.nvim_create_user_command("JJLog", M.log, {})',
 			"+end",
 			"+",
 			"+function M.log()",
-			"+    local LogBuffer = require(\"neojj.buffers.log\")",
+			'+    local LogBuffer = require("neojj.buffers.log")',
 			"+    local log_buffer = LogBuffer.new(Repository.current())",
 			"+    log_buffer:show()",
 			" end",

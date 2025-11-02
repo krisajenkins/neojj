@@ -22,13 +22,8 @@ function M.refresh(repo)
 	repo.state.working_copy = status_parser.parse_working_copy_info(lines)
 
 	-- Get working copy details via JSON template
-	local show_result = cli.log()
-		:arg("-r")
-		:arg("@")
-		:option("template", "json(self)")
-		:flag("no-graph")
-		:cwd(repo.dir)
-		:call()
+	local show_result =
+		cli.log():arg("-r"):arg("@"):option("template", "json(self)"):flag("no-graph"):cwd(repo.dir):call()
 
 	if show_result.success and show_result.stdout then
 		local log_json, err = json_parser.parse_log_json(show_result.stdout)

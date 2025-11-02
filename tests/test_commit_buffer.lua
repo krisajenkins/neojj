@@ -14,7 +14,9 @@ T.test_commit_buffer_creation = function()
 	-- Mock repository
 	local mock_repo = {
 		dir = "/tmp/test-repo",
-		is_jj_repo = function() return true end,
+		is_jj_repo = function()
+			return true
+		end,
 	}
 
 	-- Create commit buffer
@@ -33,7 +35,9 @@ T.test_commit_buffer_singleton = function()
 	-- Mock repository
 	local mock_repo = {
 		dir = "/tmp/test-repo",
-		is_jj_repo = function() return true end,
+		is_jj_repo = function()
+			return true
+		end,
 	}
 
 	-- Create first instance
@@ -58,7 +62,9 @@ T.test_commit_buffer_parsing = function()
 	-- Mock repository
 	local mock_repo = {
 		dir = "/tmp/test-repo",
-		is_jj_repo = function() return true end,
+		is_jj_repo = function()
+			return true
+		end,
 	}
 
 	local commit_buffer = CommitBuffer.new(mock_repo, "test123")
@@ -153,7 +159,7 @@ T.test_commit_ui_creation = function()
 		diff_data = {
 			"diff --git a/lua/neojj/buffers/log/init.lua b/lua/neojj/buffers/log/init.lua",
 			"new file mode 100644",
-			"+local Buffer = require(\"neojj.lib.buffer\")",
+			'+local Buffer = require("neojj.lib.buffer")',
 		},
 	}
 

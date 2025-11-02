@@ -7,7 +7,7 @@ if #vim.api.nvim_list_uis() == 0 then
 	-- Assumed that 'mini.nvim' is stored in 'deps/mini.nvim'
 	vim.cmd("set rtp+=deps/mini.nvim")
 
-    -- Add runtime dependencies
+	-- Add runtime dependencies
 	vim.cmd("set rtp+=deps/plenary.nvim")
 
 	-- Set up 'mini.test' with proper output configuration
