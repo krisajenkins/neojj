@@ -173,3 +173,4 @@ To add new interactive features to buffers:
 
 Design Plans: docs/NEOJJ_IMPLEMENTATION_PLAN.md
 NeoGit Buffer Creation Architecture: docs/neogit-buffer-analysis.md
+NeoJJ Module Architecture: docs/MODULE_ARCHITECTURE.md
