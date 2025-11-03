@@ -1,0 +1,38 @@
+Working copy changes:
+A .python-version
+A README.md
+A VOTING_RULES.md
+A dashboard/.gitignore
+A dashboard/.python-version
+A dashboard/Eurovision.py
+A dashboard/README.md
+A dashboard/pages/Contestants.py
+A dashboard/pages/Votes.py
+A dashboard/pyproject.toml
+A dashboard/uv.lock
+A dbt/.gitignore
+A dbt/README.md
+A dbt/analyses/.gitkeep
+A dbt/dbt_project.yml
+A dbt/macros/.gitkeep
+A dbt/models/betting_accuracy.sql
+A dbt/models/country_performance.sql
+A dbt/models/schema.yml
+A dbt/models/stg_betting_offices.sql
+A dbt/models/stg_contestants.sql
+A dbt/models/stg_votes.sql
+A dbt/models/voting_patterns.sql
+A dbt/models/winners_by_year.sql
+A dbt/seeds/.gitkeep
+R {betting_offices.csv => dbt/seeds/betting_offices.csv}
+R {contestants.csv => dbt/seeds/contestants.csv}
+R {votes.csv => dbt/seeds/votes.csv}
+A dbt/snapshots/.gitkeep
+A dbt/tests/.gitkeep
+M flake.lock
+A logs/dbt.log
+A pyproject.toml
+A setup.sql
+A uv.lock
+Working copy  (@) : wwqvwtzo ef228e67 (no description set)
+Parent commit (@-): okpkknwl 9fed18e4 Adding a nix env.

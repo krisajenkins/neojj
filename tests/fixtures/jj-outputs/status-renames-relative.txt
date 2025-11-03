@@ -1,0 +1,31 @@
+Working copy changes:
+A ../.python-version
+A ../README.md
+A ../VOTING_RULES.md
+A ../dashboard/.gitignore
+A ../dashboard/.python-version
+A ../dashboard/Eurovision.py
+A ../dashboard/README.md
+A ../dashboard/pages/Contestants.py
+A ../dashboard/pages/Votes.py
+A ../dashboard/pyproject.toml
+A ../dashboard/uv.lock
+A .gitignore
+A README.md
+A analyses/.gitkeep
+A dbt_project.yml
+A macros/.gitkeep
+A seeds/.gitkeep
+R {.. => seeds}/betting_offices.csv
+R {.. => seeds}/contestants.csv
+A seeds/schema.yml
+R {.. => seeds}/votes.csv
+A snapshots/.gitkeep
+A tests/.gitkeep
+M ../flake.lock
+A ../logs/dbt.log
+A ../pyproject.toml
+A ../setup.sql
+A ../uv.lock
+Working copy  (@) : wwqvwtzo c040c33d (no description set)
+Parent commit (@-): okpkknwl 9fed18e4 Adding a nix env.
