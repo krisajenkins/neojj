@@ -20,18 +20,18 @@ local T = MiniTest.new_set({
 	},
 })
 
----Test that JJ describe command is created
+---Test that JJ describe command is created after setup
 ---@return nil
 T.test_jj_describe_command_creation = function()
 	child.lua([[
-		-- Command should exist (created by plugin/neojj.lua or setup)
-		local exists = vim.fn.exists(':JJ') == 2
-		expect.equality(exists, true)
+		-- Command should not exist before setup (test runs with --noplugin)
+		local exists_before = vim.fn.exists(':JJ') == 2
+		expect.equality(exists_before, false)
 
-		-- Run setup (should be idempotent)
+		-- Run setup
 		M.setup()
 
-		-- Command should still exist after setup
+		-- Command should exist after setup
 		local exists_after = vim.fn.exists(':JJ') == 2
 		expect.equality(exists_after, true)
 	]])
