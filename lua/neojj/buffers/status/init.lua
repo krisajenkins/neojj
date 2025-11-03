@@ -248,8 +248,30 @@ function StatusBuffer:toggle_file_diff()
 	end
 
 	local file_path = item.path
-	self.expanded_files[file_path] = not (self.expanded_files[file_path] or false)
+	local was_expanded = self.expanded_files[file_path] or false
+	self.expanded_files[file_path] = not was_expanded
+
+	-- If we're collapsing, we need to find the line where this file item starts
+	-- so we can restore the cursor there after re-rendering
+	local target_line = nil
+	if was_expanded then
+		-- Find the line number of the file item component
+		-- The component_positions map uses 0-indexed line numbers
+		for line_idx, comp in pairs(self.buffer.component_positions) do
+			if comp:is_interactive() and comp:get_item() and comp:get_item().path == file_path then
+				-- Convert to 1-indexed for cursor positioning
+				target_line = line_idx + 1
+				break
+			end
+		end
+	end
+
 	self:render()
+
+	-- Restore cursor to the file item line if we collapsed
+	if target_line then
+		self.buffer:set_cursor(target_line, 0)
+	end
 end
 
 ---Toggle all file diffs
