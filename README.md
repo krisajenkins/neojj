@@ -67,17 +67,18 @@ o  yostqsxw you@example.com 2024-01-14 16:45:00
 
 ```lua
 {
-  "yourusername/NeoJJ",
+  "krisajenkins/NeoJJ",
   dependencies = {
     "nvim-lua/plenary.nvim",  -- Required for async operations
   },
   config = function()
-    require("neojj").setup()
-    
+    local neojj = require("neojj")
+    neojj.setup()
+
     -- Optional: Add keybindings
-    vim.keymap.set("n", "<leader>js", "<cmd>JJ status<cr>", { desc = "JJ Status" })
-    vim.keymap.set("n", "<leader>jl", "<cmd>JJ log<cr>", { desc = "JJ Log" })
-    vim.keymap.set("n", "<leader>jd", "<cmd>JJ describe<cr>", { desc = "JJ Describe" })
+    vim.keymap.set("n", "<leader>js", neojj.jj_status, { desc = "JJ Status" })
+    vim.keymap.set("n", "<leader>jl", neojj.jj_log, { desc = "JJ Log" })
+    vim.keymap.set("n", "<leader>jd", neojj.jj_describe, { desc = "JJ Describe" })
   end,
 }
 ```
@@ -86,7 +87,7 @@ o  yostqsxw you@example.com 2024-01-14 16:45:00
 
 ```lua
 use {
-  "yourusername/NeoJJ",
+  "krisajenkins/NeoJJ",
   requires = { "nvim-lua/plenary.nvim" },
   config = function()
     require("neojj").setup()
@@ -98,7 +99,7 @@ use {
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/NeoJJ.git ~/.local/share/nvim/site/pack/plugins/start/NeoJJ
+   git clone https://github.com/krisajenkins/NeoJJ.git ~/.local/share/nvim/site/pack/plugins/start/NeoJJ
    ```
 
 2. Install dependencies:
