@@ -67,7 +67,7 @@ o  yostqsxw you@example.com 2024-01-14 16:45:00
 
 ```lua
 {
-  "krisajenkins/NeoJJ",
+  "krisajenkins/neojj",
   dependencies = {
     "nvim-lua/plenary.nvim",  -- Required for async operations
   },
@@ -87,7 +87,7 @@ o  yostqsxw you@example.com 2024-01-14 16:45:00
 
 ```lua
 use {
-  "krisajenkins/NeoJJ",
+  "krisajenkins/neojj",
   requires = { "nvim-lua/plenary.nvim" },
   config = function()
     require("neojj").setup()
@@ -99,7 +99,7 @@ use {
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/krisajenkins/NeoJJ.git ~/.local/share/nvim/site/pack/plugins/start/NeoJJ
+   git clone https://github.com/krisajenkins/neojj.git ~/.local/share/nvim/site/pack/plugins/start/neojj
    ```
 
 2. Install dependencies:
