@@ -15,26 +15,26 @@ local T = MiniTest.new_set({
 
 ---Test jj log command creation
 ---@return nil
-T.test_jjlog_command_creation = function()
+T.test_jj_log_command_creation = function()
 	child.lua([[
 		require('neojj').setup()
 
-		-- Check that JJLog command exists
+		-- Check that JJ command exists
 		local commands = vim.api.nvim_get_commands({})
-		expect.equality(commands.JJLog ~= nil, true)
-		expect.equality(commands.JJLog.nargs, "?")
+		expect.equality(commands.JJ ~= nil, true)
+		expect.equality(commands.JJ.nargs, "+")
 	]])
 end
 
 ---Test jj log command arguments
 ---@return nil
-T.test_jjlog_command_arguments = function()
+T.test_jj_log_command_arguments = function()
 	child.lua([[
 		require('neojj').setup()
 
 		-- Test command completion exists
 		local commands = vim.api.nvim_get_commands({})
-		expect.equality(commands.JJLog.complete ~= nil, true)
+		expect.equality(commands.JJ.complete ~= nil, true)
 	]])
 end
 

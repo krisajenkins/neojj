@@ -20,26 +20,26 @@ local T = MiniTest.new_set({
 	},
 })
 
----Test that JJDescribe command is created after setup
+---Test that JJ describe command is created
 ---@return nil
-T.test_jjdescribe_command_creation = function()
+T.test_jj_describe_command_creation = function()
 	child.lua([[
-		-- Command should not exist before setup
-		local exists_before = vim.fn.exists(':JJDescribe') == 2
-		expect.equality(exists_before, false)
+		-- Command should exist (created by plugin/neojj.lua or setup)
+		local exists = vim.fn.exists(':JJ') == 2
+		expect.equality(exists, true)
 
-		-- Run setup
+		-- Run setup (should be idempotent)
 		M.setup()
 
-		-- Command should exist after setup
-		local exists_after = vim.fn.exists(':JJDescribe') == 2
+		-- Command should still exist after setup
+		local exists_after = vim.fn.exists(':JJ') == 2
 		expect.equality(exists_after, true)
 	]])
 end
 
----Test JJDescribe command with different arguments
+---Test JJ describe command with different arguments
 ---@return nil
-T.test_jjdescribe_command_arguments = function()
+T.test_jj_describe_command_arguments = function()
 	child.lua([[
 		M.setup()
 
@@ -50,14 +50,14 @@ T.test_jjdescribe_command_arguments = function()
 		end
 
 		-- Test without arguments (should default to @ revision)
-		vim.cmd('JJDescribe')
+		vim.cmd('JJ describe')
 		expect.equality(#calls, 1)
 		expect.equality(calls[1].dir, nil)
 		expect.equality(calls[1].revision, '@')
 		expect.equality(calls[1].split, nil)
 
 		-- Test with specific revision
-		vim.cmd('JJDescribe abc123')
+		vim.cmd('JJ describe abc123')
 		expect.equality(#calls, 2)
 		expect.equality(calls[2].dir, nil)
 		expect.equality(calls[2].revision, 'abc123')

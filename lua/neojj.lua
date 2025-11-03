@@ -41,55 +41,79 @@ function M.setup(opts)
 	-- Setup highlight groups
 	Highlights.setup()
 
-	-- Create user commands
-	vim.api.nvim_create_user_command("JJStatus", function(args)
-		local split = args.args ~= "" and args.args or nil
-		M.jj_status(nil, split)
-	end, {
-		nargs = "?",
-		complete = function()
-			return { "horizontal", "vertical", "tab" }
-		end,
-		desc = "Open JJ status buffer",
-	})
+	-- Create unified :JJ command with subcommands
+	vim.api.nvim_create_user_command("JJ", function(args)
+		local subcommand = args.fargs[1]
+		local rest_args = vim.list_slice(args.fargs, 2)
 
-	vim.api.nvim_create_user_command("JJDescribe", function(args)
-		local revision = args.args ~= "" and args.args or "@"
-		local split = nil -- TODO: Add split support for describe if needed
-		M.jj_describe(nil, revision, split)
-	end, {
-		nargs = "?",
-		desc = "Open JJ describe buffer for editing commit description",
-	})
-
-	vim.api.nvim_create_user_command("JJLog", function(args)
-		local split = args.args ~= "" and args.args or nil
-		M.jj_log(nil, split)
-	end, {
-		nargs = "?",
-		complete = function()
-			return { "horizontal", "vertical", "tab" }
-		end,
-		desc = "Open JJ log buffer",
-	})
-
-	vim.api.nvim_create_user_command("JJCommit", function(args)
-		local parts = vim.split(args.args, " ")
-		local commit_id = parts[1]
-		local split = parts[2]
-
-		if not commit_id or commit_id == "" then
-			vim.notify("Usage: JJCommit <commit_id> [split_type]", vim.log.levels.ERROR)
-			return
+		if subcommand == "status" then
+			local split = rest_args[1]
+			M.jj_status(nil, split)
+		elseif subcommand == "describe" then
+			local revision = rest_args[1] or "@"
+			local split = rest_args[2]
+			M.jj_describe(nil, revision, split)
+		elseif subcommand == "log" then
+			local split = rest_args[1]
+			M.jj_log(nil, split)
+		elseif subcommand == "commit" then
+			local commit_id = rest_args[1]
+			local split = rest_args[2]
+			if not commit_id or commit_id == "" then
+				vim.notify("Usage: :JJ commit <commit_id> [split_type]", vim.log.levels.ERROR)
+				return
+			end
+			M.jj_commit(nil, commit_id, split)
+		else
+			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
+			vim.notify("Available: status, describe, log, commit", vim.log.levels.INFO)
 		end
-
-		M.jj_commit(nil, commit_id, split)
 	end, {
 		nargs = "+",
-		complete = function()
-			return { "horizontal", "vertical", "tab" }
+		complete = function(arglead, cmdline, _cursorpos)
+			local args = vim.split(cmdline, "%s+")
+			local num_args = #args
+
+			-- If we're completing the first argument (subcommand)
+			if num_args <= 2 then
+				local subcommands = { "status", "describe", "log", "commit" }
+				return vim.tbl_filter(function(cmd)
+					return vim.startswith(cmd, arglead)
+				end, subcommands)
+			end
+
+			-- If we're completing split type for status/log/describe
+			local subcommand = args[2]
+			if subcommand == "status" or subcommand == "log" then
+				if num_args == 3 then
+					local splits = { "horizontal", "vertical", "tab" }
+					return vim.tbl_filter(function(split)
+						return vim.startswith(split, arglead)
+					end, splits)
+				end
+			elseif subcommand == "describe" then
+				-- For describe, second arg could be revision or split
+				-- Third arg would be split
+				if num_args == 4 then
+					local splits = { "horizontal", "vertical", "tab" }
+					return vim.tbl_filter(function(split)
+						return vim.startswith(split, arglead)
+					end, splits)
+				end
+			elseif subcommand == "commit" then
+				-- For commit, second arg is commit_id (no completion)
+				-- Third arg would be split
+				if num_args == 4 then
+					local splits = { "horizontal", "vertical", "tab" }
+					return vim.tbl_filter(function(split)
+						return vim.startswith(split, arglead)
+					end, splits)
+				end
+			end
+
+			return {}
 		end,
-		desc = "Open JJ commit buffer for specific commit",
+		desc = "JJ commands (status, describe, log, commit)",
 	})
 end
 

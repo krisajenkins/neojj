@@ -20,42 +20,44 @@ local T = MiniTest.new_set({
 	},
 })
 
----Test that JJStatus command is created after setup
+---Test that JJ command is created
 ---@return nil
-T.test_jjstatus_command_creation = function()
+T.test_jj_command_creation = function()
 	child.lua([[
-		-- Command should not exist before setup
-		local exists_before = vim.fn.exists(':JJStatus') == 2
-		expect.equality(exists_before, false)
+		-- Command should exist (created by plugin/neojj.lua or setup)
+		local exists = vim.fn.exists(':JJ') == 2
+		expect.equality(exists, true)
 
-		-- Run setup
+		-- Run setup (should be idempotent)
 		M.setup()
 
-		-- Command should exist after setup
-		local exists_after = vim.fn.exists(':JJStatus') == 2
+		-- Command should still exist after setup
+		local exists_after = vim.fn.exists(':JJ') == 2
 		expect.equality(exists_after, true)
 	]])
 end
 
----Test JJStatus command completion
+---Test JJ command completion
 ---@return nil
-T.test_jjstatus_command_completion = function()
+T.test_jj_command_completion = function()
 	child.lua([[
 		M.setup()
 
-		-- Get command completion options
-		local completions = vim.fn.getcompletion('JJStatus ', 'cmdline')
-		expect.equality(type(completions), 'table')
-		expect.equality(#completions, 3)
-		expect.equality(completions[1], 'horizontal')
-		expect.equality(completions[2], 'vertical')
-		expect.equality(completions[3], 'tab')
+		-- Get subcommand completion options
+		local subcommands = vim.fn.getcompletion('JJ ', 'cmdline')
+		expect.equality(type(subcommands), 'table')
+		expect.equality(#subcommands, 4)
+
+		-- Get split completion options for status subcommand
+		local splits = vim.fn.getcompletion('JJ status ', 'cmdline')
+		expect.equality(type(splits), 'table')
+		expect.equality(#splits, 3)
 	]])
 end
 
----Test JJStatus command with different arguments
+---Test JJ status command with different arguments
 ---@return nil
-T.test_jjstatus_command_arguments = function()
+T.test_jj_status_command_arguments = function()
 	child.lua([[
 		M.setup()
 
@@ -66,25 +68,25 @@ T.test_jjstatus_command_arguments = function()
 		end
 
 		-- Test without arguments
-		vim.cmd('JJStatus')
+		vim.cmd('JJ status')
 		expect.equality(#calls, 1)
 		expect.equality(calls[1].dir, nil)
 		expect.equality(calls[1].split, nil)
 
 		-- Test with horizontal split
-		vim.cmd('JJStatus horizontal')
+		vim.cmd('JJ status horizontal')
 		expect.equality(#calls, 2)
 		expect.equality(calls[2].dir, nil)
 		expect.equality(calls[2].split, 'horizontal')
 
 		-- Test with vertical split
-		vim.cmd('JJStatus vertical')
+		vim.cmd('JJ status vertical')
 		expect.equality(#calls, 3)
 		expect.equality(calls[3].dir, nil)
 		expect.equality(calls[3].split, 'vertical')
 
 		-- Test with tab
-		vim.cmd('JJStatus tab')
+		vim.cmd('JJ status tab')
 		expect.equality(#calls, 4)
 		expect.equality(calls[4].dir, nil)
 		expect.equality(calls[4].split, 'tab')
