@@ -395,8 +395,8 @@ MIT License - see [LICENSE](LICENSE) for details
 
 <div align="center">
 
-**[? back to top](#neojj)**
+**[^ back to top](#neojj)**
 
-Made with ?? for Neovim and Jujutsu users
+Made with ❤️ for Neovim and Jujutsu users
 
 </div>
