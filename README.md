@@ -6,7 +6,7 @@ A Neovim plugin for [Jujutsu (jj)](https://github.com/martinvonz/jj) version con
 
 **Manage your Jujutsu repositories without leaving Neovim**
 
-[Features](#features) ? [Installation](#installation) ? [Usage](#usage) ? [Configuration](#configuration) ? [Development](#development)
+[Features](#features) - [Installation](#installation) - [Usage](#usage) - [Configuration](#configuration) - [Development](#development)
 
 </div>
 
@@ -14,14 +14,14 @@ A Neovim plugin for [Jujutsu (jj)](https://github.com/martinvonz/jj) version con
 
 ## Features
 
-- ?? **Beautiful UI** - Syntax-highlighted buffers with intuitive navigation
-- ?? **Status View** - See working copy changes, conflicts, and file diffs
-- ?? **Log View** - Browse commit history with graph visualization
-- ?? **Describe Commits** - Edit commit descriptions with a dedicated buffer
-- ?? **Commit Details** - View detailed commit information and diffs
-- ?? **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
-- ?? **Split Support** - Open buffers in horizontal/vertical splits or tabs
-- ?? **Auto-refresh** - Automatically updates when colorscheme changes
+- **Beautiful UI** - Syntax-highlighted buffers with intuitive navigation
+- **Status View** - See working copy changes, conflicts, and file diffs
+- **Log View** - Browse commit history with graph visualization
+- **Describe Commits** - Edit commit descriptions with a dedicated buffer
+- **Commit Details** - View detailed commit information and diffs
+- **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
+- **Split Support** - Open buffers in horizontal/vertical splits or tabs
+- **Auto-refresh** - Automatically updates when colorscheme changes
 
 ## Screenshots
 
@@ -49,10 +49,10 @@ JJ Log
 Press ? for help, q to quit
 
 @  qpvuntsm you@example.com 2024-01-15 10:30:00
-?  Add syntax highlighting support
-?  rlvkpnrz you@example.com 2024-01-15 09:15:00
-?  Implement describe buffer
-?  yostqsxw you@example.com 2024-01-14 16:45:00
+|  Add syntax highlighting support
+o  rlvkpnrz you@example.com 2024-01-15 09:15:00
+|  Implement describe buffer
+o  yostqsxw you@example.com 2024-01-14 16:45:00
    Initial commit
 ```
 
