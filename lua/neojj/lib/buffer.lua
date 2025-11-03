@@ -419,6 +419,11 @@ function Buffer:open(kind)
 		end
 	end
 
+	-- Run initialize callback if provided (before rendering)
+	if self.initialize then
+		self.initialize()
+	end
+
 	-- Run render callback if provided
 	if self.render_fn then
 		local components = self.render_fn()
