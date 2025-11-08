@@ -275,6 +275,17 @@ function CommitBuffer:parse_show_output(output)
 				-- Start of diff section
 				in_diff = true
 				table.insert(diff_data, line)
+
+				-- Extract file path from this first diff line
+				local file_path = line:match("^diff %-%-git a/.+ b/(.+)$")
+				if file_path then
+					current_file = {
+						path = file_path,
+						status = "M", -- Default to modified, will be refined
+					}
+					current_file_diff = { line }
+					table.insert(files, current_file)
+				end
 			else
 				-- This might be description text
 				if not commit_data.description then
