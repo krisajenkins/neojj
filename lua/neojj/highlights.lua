@@ -73,6 +73,7 @@ local default_highlights = {
 	NeoJJLogGraphLine = { link = "Comment" },
 	NeoJJLogWorkingCopy = { link = "DiffAdd" },
 	NeoJJLogCommit = { link = "Normal" },
+	NeoJJLogCurrentHead = { bold = true }, -- Current head (working copy) in bold
 	NeoJJLogImmutable = { link = "Constant" },
 	NeoJJLogDescription = { link = "String" },
 }

@@ -81,10 +81,14 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 		commit_part = line
 	end
 
+	-- Check if this is the working copy (current head) by looking for @ in the graph
+	local is_current_head = revision.graph and revision.graph:match("@") ~= nil
+	local commit_highlight = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogCommit"
+
 	-- Create interactive component with revision data
 	return Ui.row({
 		Ui.text(LogUI.highlight_graph(graph_part), { highlight = "NeoJJLogGraph" }),
-		Ui.text(LogUI.highlight_commit_info(commit_part, revision), { highlight = "NeoJJLogCommit" }),
+		Ui.text(LogUI.highlight_commit_info(commit_part, revision), { highlight = commit_highlight }),
 	}, {
 		item = revision,
 		interactive = true,
