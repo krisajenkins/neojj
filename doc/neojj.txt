@@ -85,18 +85,24 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 • new
 
                                                                    *:JJ-status*
-:JJ status [split]
-                Open the status buffer showing working copy changes.
+:JJ status [change_id] [split]
+                Open the status buffer showing working copy changes or a
+                specific change.
 
-                Optional split argument:
-                • `horizontal` - Open in horizontal split
-                • `vertical` - Open in vertical split
-                • `tab` - Open in new tab
+                Arguments:
+                • `change_id` - Show status for a specific change/revision
+                                (default: working copy)
+                • `split` - Split type (optional)
+                  - `horizontal` - Open in horizontal split
+                  - `vertical` - Open in vertical split
+                  - `tab` - Open in new tab
 
                 Examples: >
-                    :JJ status
-                    :JJ status horizontal
-                    :JJ status vertical
+                    :JJ status              " Working copy in current window
+                    :JJ status horizontal   " Working copy in horizontal split
+                    :JJ status abc123       " Specific change in current window
+                    :JJ status @-           " Parent commit
+                    :JJ status abc123 vertical  " Specific change in vertical split
 <
 
                                                                       *:JJ-log*
@@ -153,11 +159,16 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 ==============================================================================
 5. STATUS BUFFER                                                  *neojj-status*
 
-The status buffer displays the current state of your working copy, including:
+The status buffer displays the current state of your working copy or any
+specific change/revision, including:
 
-• Current working copy information (change ID, commit ID, description)
+• Change information (change ID, commit ID, description, author)
 • Modified files with inline diffs
 • Conflicts (if any)
+
+When showing a specific change (e.g., `:JJ status abc123`), the buffer title
+will include the change ID, and all operations will be relative to that
+change instead of the working copy.
 
 STATUS MAPPINGS                                          *neojj-status-mappings*
 
@@ -404,13 +415,15 @@ neojj.setup({opts})
 
 BUFFER FUNCTIONS                                           *neojj-api-buffers*
 
-neojj.jj_status({dir}, {split})                            *neojj.jj_status()*
-                Open the status buffer.
+neojj.jj_status({dir}, {revision}, {split})                *neojj.jj_status()*
+                Open the status buffer for the working copy or a specific
+                revision.
 
                 Parameters: ~
-                    {dir}   (string|nil) Directory path (default: cwd)
-                    {split} (string|nil) Split type: "horizontal", "vertical",
-                            "tab", or nil for replace
+                    {dir}      (string|nil) Directory path (default: cwd)
+                    {revision} (string|nil) Revision to show (default: working copy)
+                    {split}    (string|nil) Split type: "horizontal", "vertical",
+                               "tab", or nil for replace
 
 neojj.jj_log({dir}, {split})                                  *neojj.jj_log()*
                 Open the log buffer.

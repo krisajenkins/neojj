@@ -63,33 +63,51 @@ T.test_jj_status_command_arguments = function()
 
 		-- Mock the jj_status function to track calls
 		local calls = {}
-		M.jj_status = function(dir, split)
-			table.insert(calls, { dir = dir, split = split })
+		M.jj_status = function(dir, revision, split)
+			table.insert(calls, { dir = dir, revision = revision, split = split })
 		end
 
 		-- Test without arguments
 		vim.cmd('JJ status')
 		expect.equality(#calls, 1)
 		expect.equality(calls[1].dir, nil)
+		expect.equality(calls[1].revision, nil)
 		expect.equality(calls[1].split, nil)
 
 		-- Test with horizontal split
 		vim.cmd('JJ status horizontal')
 		expect.equality(#calls, 2)
 		expect.equality(calls[2].dir, nil)
+		expect.equality(calls[2].revision, nil)
 		expect.equality(calls[2].split, 'horizontal')
 
 		-- Test with vertical split
 		vim.cmd('JJ status vertical')
 		expect.equality(#calls, 3)
 		expect.equality(calls[3].dir, nil)
+		expect.equality(calls[3].revision, nil)
 		expect.equality(calls[3].split, 'vertical')
 
 		-- Test with tab
 		vim.cmd('JJ status tab')
 		expect.equality(#calls, 4)
 		expect.equality(calls[4].dir, nil)
+		expect.equality(calls[4].revision, nil)
 		expect.equality(calls[4].split, 'tab')
+
+		-- Test with change_id and split
+		vim.cmd('JJ status abc123 horizontal')
+		expect.equality(#calls, 5)
+		expect.equality(calls[5].dir, nil)
+		expect.equality(calls[5].revision, 'abc123')
+		expect.equality(calls[5].split, 'horizontal')
+
+		-- Test with change_id only
+		vim.cmd('JJ status xyz789')
+		expect.equality(#calls, 6)
+		expect.equality(calls[6].dir, nil)
+		expect.equality(calls[6].revision, 'xyz789')
+		expect.equality(calls[6].split, nil)
 	]])
 end
 

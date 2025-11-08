@@ -120,7 +120,7 @@ For detailed documentation, see `:help neojj` in Neovim.
 NeoJJ provides a unified `:JJ` command with subcommands:
 
 ```vim
-:JJ status [split]              " Open status buffer
+:JJ status [change_id] [split]  " Open status buffer (working copy or specific change)
 :JJ log [split]                 " Open log buffer
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
 :JJ commit <commit_id> [split]  " View commit details
@@ -132,8 +132,10 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 #### Examples
 
 ```vim
-:JJ status                    " Open status in current window
+:JJ status                    " Open status for working copy in current window
 :JJ status horizontal         " Open status in horizontal split
+:JJ status abc123             " Show status for a specific change
+:JJ status abc123 vertical    " Show specific change in vertical split
 :JJ log vertical              " Open log in vertical split
 :JJ describe                  " Describe current commit (@)
 :JJ describe @-               " Describe parent commit

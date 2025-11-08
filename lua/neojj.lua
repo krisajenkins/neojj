@@ -47,8 +47,25 @@ function M.setup(opts)
 		local rest_args = vim.list_slice(args.fargs, 2)
 
 		if subcommand == "status" then
-			local split = rest_args[1]
-			M.jj_status(nil, split)
+			local arg1 = rest_args[1]
+			local arg2 = rest_args[2]
+
+			-- Determine if arg1 is a split type or change_id
+			local split_types = { "horizontal", "vertical", "tab" }
+			local is_split = arg1 and vim.tbl_contains(split_types, arg1)
+
+			local change_id, split
+			if is_split then
+				-- First arg is split type
+				change_id = nil
+				split = arg1
+			else
+				-- First arg is change_id (or nil), second is split
+				change_id = arg1
+				split = arg2
+			end
+
+			M.jj_status(nil, change_id, split)
 		elseif subcommand == "describe" then
 			local revision = rest_args[1] or "@"
 			local split = rest_args[2]
@@ -87,7 +104,21 @@ function M.setup(opts)
 
 			-- If we're completing split type for status/log/describe
 			local subcommand = args[2]
-			if subcommand == "status" or subcommand == "log" then
+			if subcommand == "status" then
+				if num_args == 3 then
+					-- Could be change_id or split type
+					local splits = { "horizontal", "vertical", "tab" }
+					return vim.tbl_filter(function(split)
+						return vim.startswith(split, arglead)
+					end, splits)
+				elseif num_args == 4 then
+					-- Third arg is split type (after change_id)
+					local splits = { "horizontal", "vertical", "tab" }
+					return vim.tbl_filter(function(split)
+						return vim.startswith(split, arglead)
+					end, splits)
+				end
+			elseif subcommand == "log" then
 				if num_args == 3 then
 					local splits = { "horizontal", "vertical", "tab" }
 					return vim.tbl_filter(function(split)
@@ -171,15 +202,16 @@ end
 
 ---Open the JJ status buffer UI
 ---@param dir? string Directory path (defaults to current working directory)
+---@param revision? string Revision to show status for (defaults to working copy)
 ---@param split? string Split type ("horizontal", "vertical", "tab")
-function M.jj_status(dir, split)
+function M.jj_status(dir, revision, split)
 	local repo = M.get_repo(dir)
 	if not repo:is_jj_repo() then
 		vim.notify("Not a jj repository", vim.log.levels.ERROR)
 		return
 	end
 
-	local status_buffer = StatusBuffer.new(repo)
+	local status_buffer = StatusBuffer.new(repo, revision)
 
 	if split == "horizontal" then
 		status_buffer:show_split("horizontal")

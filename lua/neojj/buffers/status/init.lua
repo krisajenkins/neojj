@@ -5,6 +5,7 @@ local logger = require("neojj.logger")
 ---@class StatusBuffer
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
+---@field revision? string Optional revision to show (defaults to working copy)
 ---@field state table Current repository state
 local StatusBuffer = {}
 StatusBuffer.__index = StatusBuffer
@@ -14,9 +15,13 @@ local instances = {}
 
 ---Create or get existing status buffer for a repository
 ---@param repo table Repository instance
+---@param revision? string Optional revision to show (defaults to working copy)
 ---@return StatusBuffer status_buffer Status buffer instance
-function StatusBuffer.new(repo)
+function StatusBuffer.new(repo, revision)
 	local repo_key = vim.fs.normalize(repo.dir)
+	if revision then
+		repo_key = repo_key .. ":" .. revision
+	end
 
 	-- Return existing instance if available
 	if instances[repo_key] and instances[repo_key]:is_valid() then
@@ -25,14 +30,16 @@ function StatusBuffer.new(repo)
 
 	local instance = setmetatable({
 		repo = repo,
+		revision = revision,
 		state = {},
 		expanded_files = {},
 		show_help = false,
 	}, StatusBuffer)
 
 	-- Create buffer with fixed name (reuse if exists)
+	local buffer_name = revision and ("NeoJJ Status: " .. revision:sub(1, 8)) or "NeoJJ Status"
 	local buffer = Buffer.create({
-		name = "NeoJJ Status",
+		name = buffer_name,
 		filetype = "neojj-status",
 		kind = "replace", -- Default to replace current view
 		modifiable = false,
@@ -146,9 +153,64 @@ function StatusBuffer:_setup_mappings()
 	end, { desc = "Move cursor up" })
 end
 
+---Get commit data for a specific revision
+---@param revision string Revision identifier
+---@return table|nil working_copy Working copy data or nil on error
+function StatusBuffer:get_revision_data(revision)
+	local cli = require("neojj.lib.jj.cli")
+	local json_parser = require("neojj.lib.jj.parsers.json_parser")
+
+	-- Get commit data using JSON template
+	local log_result =
+		cli.log():arg("-r"):arg(revision):option("template", "json(self)"):flag("no-graph"):cwd(self.repo.dir):call()
+
+	if not log_result.success then
+		logger.warn("Failed to get revision data: " .. tostring(log_result.stderr))
+		return nil
+	end
+
+	local log_json, err = json_parser.parse_log_json(log_result.stdout)
+	if not log_json then
+		logger.warn("Failed to parse revision JSON: " .. tostring(err))
+		return nil
+	end
+
+	local working_copy = json_parser.json_to_working_copy(log_json)
+
+	-- Get file list from diff
+	local diff_result = cli.raw()
+		:arg("diff")
+		:arg("-r")
+		:arg(revision)
+		:option("summary", nil)
+		:option("color", "never")
+		:cwd(self.repo.dir)
+		:call()
+
+	if diff_result.success and diff_result.stdout then
+		-- Parse diff summary to get file list
+		local files = {}
+		for line in diff_result.stdout:gmatch("[^\r\n]+") do
+			-- Parse lines like "M path/to/file" or "A path/to/file"
+			local status, path = line:match("^([MADR])%s+(.+)$")
+			if status and path then
+				table.insert(files, { status = status, path = path })
+			end
+		end
+		working_copy.modified_files = files
+	else
+		working_copy.modified_files = {}
+	end
+
+	working_copy.conflicts = {}
+	working_copy.is_empty = #working_copy.modified_files == 0
+
+	return working_copy
+end
+
 ---Refresh the status buffer
 function StatusBuffer:refresh()
-	logger.info("Refreshing status buffer")
+	logger.info("Refreshing status buffer" .. (self.revision and (" for revision: " .. self.revision) or ""))
 
 	if not self.repo:is_jj_repo() then
 		self:render_error("Not a JJ repository")
@@ -158,11 +220,24 @@ function StatusBuffer:refresh()
 	local async = require("plenary.async")
 
 	async.run(function()
-		-- Refresh repository state
-		self.repo:refresh()
+		local working_copy
 
-		-- Get current state
-		local working_copy = self.repo:get_working_copy()
+		if self.revision then
+			-- Get data for specific revision
+			working_copy = self:get_revision_data(self.revision)
+			if not working_copy then
+				vim.schedule(function()
+					self:render_error("Failed to get data for revision: " .. self.revision)
+				end)
+				return
+			end
+		else
+			-- Refresh repository state for working copy
+			self.repo:refresh()
+
+			-- Get current state
+			working_copy = self.repo:get_working_copy()
+		end
 
 		self.state = {
 			working_copy = working_copy,
@@ -315,7 +390,14 @@ function StatusBuffer:get_file_diff(file_path)
 	local cli = require("neojj.lib.jj.cli")
 
 	-- Create a diff command builder
-	local builder = cli.raw():arg("diff"):option("color", "never"):flag("git"):arg(file_path):cwd(self.repo.dir)
+	local builder = cli.raw():arg("diff"):option("color", "never"):flag("git")
+
+	-- Add revision flag if showing a specific revision
+	if self.revision then
+		builder:arg("-r"):arg(self.revision)
+	end
+
+	builder:arg(file_path):cwd(self.repo.dir)
 
 	local result = builder:call()
 
@@ -388,7 +470,8 @@ function StatusBuffer:describe_current_commit()
 		end
 	end
 
-	local describe_buffer = DescribeBuffer.new(self.repo, "@", on_submit, on_abort)
+	local revision_to_describe = self.revision or "@"
+	local describe_buffer = DescribeBuffer.new(self.repo, revision_to_describe, on_submit, on_abort)
 	describe_buffer:show()
 end
 
@@ -440,8 +523,11 @@ function StatusBuffer:create_new_change()
 	local async = require("plenary.async")
 
 	async.run(function()
-		-- Create new change from the working copy (no revision argument means from @)
+		-- Create new change from the current revision (or working copy if no revision specified)
 		local builder = cli.new():cwd(self.repo.dir)
+		if self.revision then
+			builder:arg(self.revision)
+		end
 		local result = builder:call()
 
 		vim.schedule(function()
@@ -450,10 +536,7 @@ function StatusBuffer:create_new_change()
 				-- Refresh the status buffer
 				self:refresh()
 			else
-				vim.notify(
-					"Failed to create new change: " .. (result.stderr or "Unknown error"),
-					vim.log.levels.ERROR
-				)
+				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
 			end
 		end)
 	end)
