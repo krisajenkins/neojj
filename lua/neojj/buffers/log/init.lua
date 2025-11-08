@@ -395,10 +395,7 @@ function LogBuffer:create_new_change()
 				-- Refresh the log buffer
 				self:refresh()
 			else
-				vim.notify(
-					"Failed to create new change: " .. (result.stderr or "Unknown error"),
-					vim.log.levels.ERROR
-				)
+				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
 			end
 		end)
 	end)
