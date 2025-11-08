@@ -12,6 +12,11 @@ A Neovim plugin for [Jujutsu (jj)](https://github.com/martinvonz/jj) version con
 
 ---
 
+## Status: Work In Progress
+
+Feel free to use it. What it does, it does well. But it probably doesn't do all
+the things you want.
+
 ## Features
 
 - **Beautiful UI** - Syntax-highlighted buffers with intuitive navigation
