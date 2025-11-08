@@ -64,9 +64,12 @@ function M.setup(opts)
 				return
 			end
 			M.jj_commit(nil, commit_id, split)
+		elseif subcommand == "new" then
+			local revision = rest_args[1]
+			M.jj_new(nil, revision)
 		else
 			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
-			vim.notify("Available: status, describe, log, commit", vim.log.levels.INFO)
+			vim.notify("Available: status, describe, log, commit, new", vim.log.levels.INFO)
 		end
 	end, {
 		nargs = "+",
@@ -76,7 +79,7 @@ function M.setup(opts)
 
 			-- If we're completing the first argument (subcommand)
 			if num_args <= 2 then
-				local subcommands = { "status", "describe", "log", "commit" }
+				local subcommands = { "status", "describe", "log", "commit", "new" }
 				return vim.tbl_filter(function(cmd)
 					return vim.startswith(cmd, arglead)
 				end, subcommands)
@@ -113,7 +116,7 @@ function M.setup(opts)
 
 			return {}
 		end,
-		desc = "JJ commands (status, describe, log, commit)",
+		desc = "JJ commands (status, describe, log, commit, new)",
 	})
 end
 
@@ -306,6 +309,40 @@ function M.jj_commit(dir, commit_id, split)
 	else
 		commit_buffer:show()
 	end
+end
+
+---Create a new empty change
+---@param dir? string Directory path (defaults to current working directory)
+---@param revision? string Revision to create new change after (optional)
+function M.jj_new(dir, revision)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	async.run(function()
+		local builder = cli.new():cwd(repo.dir)
+
+		-- Add revision argument if provided
+		if revision and revision ~= "" then
+			builder:arg(revision)
+		end
+
+		local result = builder:call()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Created new change", vim.log.levels.INFO)
+				-- Note: Buffers will auto-refresh when user navigates back to them
+			else
+				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+			end
+		end)
+	end)
 end
 
 return M

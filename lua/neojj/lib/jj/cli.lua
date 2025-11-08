@@ -171,6 +171,10 @@ function M.git()
 	return new_builder("jj"):arg("git")
 end
 
+function M.new()
+	return new_builder("jj"):arg("new")
+end
+
 function M.raw()
 	return new_builder("jj")
 end

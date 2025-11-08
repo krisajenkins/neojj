@@ -126,6 +126,11 @@ function StatusBuffer:_setup_mappings()
 		self:diff_file_at_cursor()
 	end, { desc = "Show diff" })
 
+	-- Create new change
+	self.buffer:map("n", "n", function()
+		self:create_new_change()
+	end, { desc = "Create new change from current commit" })
+
 	-- Navigation to other views
 	self.buffer:map("n", "l", function()
 		self:open_log_buffer()
@@ -427,6 +432,31 @@ function StatusBuffer:open_log_buffer()
 
 	-- Show and refresh the log buffer
 	log_buffer:show()
+end
+
+---Create a new change from the current commit
+function StatusBuffer:create_new_change()
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	async.run(function()
+		-- Create new change from the working copy (no revision argument means from @)
+		local builder = cli.new():cwd(self.repo.dir)
+		local result = builder:call()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Created new change", vim.log.levels.INFO)
+				-- Refresh the status buffer
+				self:refresh()
+			else
+				vim.notify(
+					"Failed to create new change: " .. (result.stderr or "Unknown error"),
+					vim.log.levels.ERROR
+				)
+			end
+		end)
+	end)
 end
 
 return StatusBuffer

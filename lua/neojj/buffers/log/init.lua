@@ -126,6 +126,11 @@ function LogBuffer:_setup_mappings()
 		self:open_status_buffer()
 	end, { desc = "Open status view" })
 
+	-- Create new change
+	self.buffer:map("n", "n", function()
+		self:create_new_change()
+	end, { desc = "Create new change after cursor" })
+
 	-- Navigation
 	self.buffer:map("n", "j", function()
 		self:move_cursor_down()
@@ -360,6 +365,43 @@ function LogBuffer:open_status_buffer()
 
 	-- Show and refresh the status buffer
 	status_buffer:show()
+end
+
+---Create a new change after the commit at cursor
+function LogBuffer:create_new_change()
+	local component = self.buffer:get_component_at_cursor()
+	if not component or not component:is_interactive() then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return
+	end
+
+	local item = component:get_item()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return
+	end
+
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	async.run(function()
+		-- Create new change after the selected revision
+		local builder = cli.new():arg(item.change_id):cwd(self.repo.dir)
+		local result = builder:call()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Created new change after " .. item.change_id:sub(1, 8), vim.log.levels.INFO)
+				-- Refresh the log buffer
+				self:refresh()
+			else
+				vim.notify(
+					"Failed to create new change: " .. (result.stderr or "Unknown error"),
+					vim.log.levels.ERROR
+				)
+			end
+		end)
+	end)
 end
 
 return LogBuffer

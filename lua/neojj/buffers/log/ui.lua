@@ -195,6 +195,7 @@ function LogUI.create_help()
 		Ui.text("  d         - Show commit diff", { highlight = "NeoJJHelpText" }),
 		Ui.empty_line(),
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
+		Ui.text("  n         - Create new change after cursor", { highlight = "NeoJJHelpText" }),
 		Ui.text("  r         - Refresh log", { highlight = "NeoJJHelpText" }),
 		Ui.text("  s         - Open status view", { highlight = "NeoJJHelpText" }),
 		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),

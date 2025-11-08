@@ -388,6 +388,7 @@ function StatusUI.create_help()
 		Ui.text("  <S-Tab> - Toggle all file diffs", { highlight = "NeoJJHelpText" }),
 		Ui.empty_line(),
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
+		Ui.text("  n       - Create new change from current commit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  r       - Refresh status", { highlight = "NeoJJHelpText" }),
 		Ui.text("  d       - Describe current commit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  D       - Show diff for file at cursor", { highlight = "NeoJJHelpText" }),
