@@ -401,4 +401,139 @@ T.test_diff_highlighting_screenshot = function()
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+---Test multi-line description rendering with blank lines
+---@return nil
+T.test_multiline_description_with_blank_lines = function()
+	child.lua([[
+		local StatusUI = require('neojj.buffers.status.ui')
+		local Ui = require('neojj.lib.ui')
+
+		-- Create test data with multi-line description including blank lines
+		local test_repo_state = {
+			working_copy = {
+				change_id = "testmultiline",
+				commit_id = "abc123",
+				description = "First line\n\nSecond paragraph after blank line\n\nThird paragraph",
+				author = { name = "Test User", email = "test@example.com" },
+				modified_files = {},
+				conflicts = {},
+				is_empty = true
+			}
+		}
+
+		-- Create the UI components
+		local components = StatusUI.create(test_repo_state)
+
+		-- Count how many components we have in the working copy section
+		local function count_lines_in_section(comps)
+			local count = 0
+			for _, comp in ipairs(comps) do
+				if comp:get_tag() == "Col" then
+					count = count + count_lines_in_section(comp:get_children())
+				elseif comp:get_tag() == "Section" then
+					count = count + count_lines_in_section(comp:get_children())
+				elseif comp:get_tag() == "Text" or comp:get_tag() == "EmptyLine" then
+					count = count + 1
+				end
+			end
+			return count
+		end
+
+		-- Verify we have the right number of components
+		-- Should have: change_id line, commit_id line, author line, empty line,
+		-- then: "First line", empty line, "Second paragraph...", empty line, "Third paragraph", final empty line
+		-- That's minimum 11 lines in the metadata section
+		local line_count = count_lines_in_section(components)
+		expect.equality(line_count >= 11, true)
+
+		-- Now verify the description lines are split correctly by rendering
+		local Buffer = require('neojj.lib.buffer')
+		local buffer = Buffer.create({
+			name = "Test Multi-line Description",
+			filetype = "neojj-test",
+			kind = "replace",
+			modifiable = false,
+			readonly = true,
+		})
+
+		buffer:open()
+		buffer:render(components)
+
+		-- Get the buffer content
+		local lines = vim.api.nvim_buf_get_lines(buffer.handle, 0, -1, false)
+
+		-- Find the description lines (they come after "Author:")
+		local found_first_line = false
+		local found_blank_after_first = false
+		local found_second_para = false
+		local found_blank_after_second = false
+		local found_third_para = false
+
+		for i, line in ipairs(lines) do
+			if line:match("First line") then
+				found_first_line = true
+			elseif found_first_line and not found_blank_after_first and line == "" then
+				found_blank_after_first = true
+			elseif found_blank_after_first and line:match("Second paragraph") then
+				found_second_para = true
+			elseif found_second_para and not found_blank_after_second and line == "" then
+				found_blank_after_second = true
+			elseif found_blank_after_second and line:match("Third paragraph") then
+				found_third_para = true
+			end
+		end
+
+		expect.equality(found_first_line, true)
+		expect.equality(found_blank_after_first, true)
+		expect.equality(found_second_para, true)
+		expect.equality(found_blank_after_second, true)
+		expect.equality(found_third_para, true)
+
+		buffer:close()
+	]])
+end
+
+---Screenshot test for multi-line description with blank lines
+---@return nil
+T.test_multiline_description_screenshot = function()
+	child.lua([[
+		local StatusUI = require('neojj.buffers.status.ui')
+		local Buffer = require('neojj.lib.buffer')
+
+		-- Create test data with multi-line description including blank lines
+		local test_repo_state = {
+			working_copy = {
+				change_id = "multilinetest123",
+				commit_id = "abc123def456789",
+				description = "Add multi-line support\n\nThis commit adds support for multi-line descriptions with proper blank line preservation.\n\nPreviously, consecutive newlines would be collapsed into a single line, losing the paragraph structure.",
+				author = { name = "Test User", email = "test@example.com" },
+				modified_files = {
+					{ status = "M", path = "lua/neojj/buffers/status/ui.lua" }
+				},
+				conflicts = {},
+				is_empty = false
+			}
+		}
+
+		-- Create the UI components
+		local components = StatusUI.create(test_repo_state)
+
+		-- Create and render buffer
+		local buffer = Buffer.create({
+			name = "Multi-line Description Test",
+			filetype = "neojj-test",
+			kind = "replace",
+			modifiable = false,
+			readonly = true,
+		})
+
+		buffer:open()
+		buffer:render(components)
+		vim.cmd('redraw')
+	]])
+
+	-- Take screenshot to verify visual rendering
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

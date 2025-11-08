@@ -17,7 +17,9 @@ function StatusUI.create(repo_state, expanded_files, status_buffer)
 
 	-- Add working copy information
 	if repo_state.working_copy then
-		table.insert(components, StatusUI.create_working_copy_section(repo_state.working_copy))
+		-- Determine section title based on whether we're showing a specific revision
+		local is_working_copy = not status_buffer or not status_buffer.revision
+		table.insert(components, StatusUI.create_working_copy_section(repo_state.working_copy, is_working_copy))
 	end
 
 	-- Add modified files section
@@ -58,22 +60,63 @@ function StatusUI.create_header()
 	})
 end
 
----Create the working copy section
+---Create the working copy section with full metadata
 ---@param working_copy table Working copy information
+---@param is_working_copy? boolean True if showing working copy, false for specific revision
 ---@return table component Working copy section
-function StatusUI.create_working_copy_section(working_copy)
-	-- Only show the first line of description in status view
-	local description = working_copy.description or ""
-	local first_line = description:match("^([^\n\r]*)")
+function StatusUI.create_working_copy_section(working_copy, is_working_copy)
+	local metadata_items = {}
+	local section_title = is_working_copy and "Working Copy" or "Commit"
 
-	return Ui.section("Working Copy", {
-		Ui.commit_info(
-			working_copy.change_id or "unknown",
-			working_copy.commit_id or "unknown",
-			first_line or "",
-			working_copy.author or { name = "unknown", email = "unknown" }
-		),
-	}, {
+	-- Change ID
+	if working_copy.change_id then
+		table.insert(metadata_items, Ui.text("Change ID: " .. working_copy.change_id, { highlight = "NeoJJChangeId" }))
+	end
+
+	-- Commit ID
+	if working_copy.commit_id then
+		table.insert(metadata_items, Ui.text("Commit ID: " .. working_copy.commit_id, { highlight = "NeoJJCommitId" }))
+	end
+
+	-- Author
+	if working_copy.author then
+		-- Handle both string format (from jj show) and table format (from jj status)
+		local author_str
+		if type(working_copy.author) == "table" then
+			author_str = working_copy.author.name .. " <" .. working_copy.author.email .. ">"
+		else
+			author_str = working_copy.author
+		end
+		table.insert(metadata_items, Ui.text("Author: " .. author_str, { highlight = "NeoJJAuthor" }))
+	end
+
+	-- Committer (if different from author)
+	if working_copy.committer and working_copy.committer ~= working_copy.author then
+		table.insert(metadata_items, Ui.text("Committer: " .. working_copy.committer, { highlight = "NeoJJCommitter" }))
+	end
+
+	-- Date
+	if working_copy.date then
+		table.insert(metadata_items, Ui.text("Date: " .. working_copy.date, { highlight = "NeoJJDate" }))
+	end
+
+	table.insert(metadata_items, Ui.empty_line())
+
+	-- Description (full, not just first line)
+	if working_copy.description then
+		-- Split description by newlines, preserving blank lines
+		local lines = vim.split(working_copy.description, "\n", { plain = true })
+		for _, line in ipairs(lines) do
+			if line == "" then
+				table.insert(metadata_items, Ui.empty_line())
+			else
+				table.insert(metadata_items, Ui.text(line, { highlight = "NeoJJDescription" }))
+			end
+		end
+		-- Note: Section component adds empty line at end automatically
+	end
+
+	return Ui.section(section_title, metadata_items, {
 		section = "working_copy",
 	})
 end

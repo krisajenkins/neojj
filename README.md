@@ -123,7 +123,6 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ status [change_id] [split]  " Open status buffer (working copy or specific change)
 :JJ log [split]                 " Open log buffer
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
-:JJ commit <commit_id> [split]  " View commit details
 :JJ new [revision]              " Create new empty change
 ```
 
@@ -139,7 +138,6 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ log vertical              " Open log in vertical split
 :JJ describe                  " Describe current commit (@)
 :JJ describe @-               " Describe parent commit
-:JJ commit abc123             " View commit details
 :JJ new                       " Create new change from working copy
 ```
 

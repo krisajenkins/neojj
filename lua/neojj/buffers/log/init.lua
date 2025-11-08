@@ -303,10 +303,10 @@ function LogBuffer:show_commit_at_cursor()
 		return
 	end
 
-	-- Open commit view for this commit
-	local CommitBuffer = require("neojj.buffers.commit")
-	local commit_buffer = CommitBuffer.new(self.repo, item.change_id)
-	commit_buffer:show()
+	-- Open status view for this commit
+	local StatusBuffer = require("neojj.buffers.status")
+	local status_buffer = StatusBuffer.new(self.repo, item.change_id)
+	status_buffer:show()
 end
 
 ---Show diff for commit at cursor

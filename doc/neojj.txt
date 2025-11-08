@@ -10,11 +10,10 @@ CONTENTS                                                       *neojj-contents*
 5. Status Buffer ..................... |neojj-status|
 6. Log Buffer ........................ |neojj-log|
 7. Describe Buffer ................... |neojj-describe|
-8. Commit Buffer ..................... |neojj-commit|
-9. Configuration ..................... |neojj-configuration|
-10. Highlights ....................... |neojj-highlights|
-11. Lua API .......................... |neojj-api|
-12. About ............................ |neojj-about|
+8. Configuration ..................... |neojj-configuration|
+9. Highlights ........................ |neojj-highlights|
+10. Lua API .......................... |neojj-api|
+11. About ............................ |neojj-about|
 
 ==============================================================================
 1. INTRODUCTION                                            *neojj-introduction*
@@ -81,7 +80,6 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 • status
                 • log
                 • describe
-                • commit
                 • new
 
                                                                    *:JJ-status*
@@ -128,19 +126,6 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ describe
                     :JJ describe @-
                     :JJ describe @ horizontal
-<
-
-                                                                   *:JJ-commit*
-:JJ commit <commit_id> [split]
-                View detailed information about a specific commit.
-
-                Arguments:
-                • `commit_id` - Commit or change ID (required)
-                • `split` - Split type (optional)
-
-                Examples: >
-                    :JJ commit abc123
-                    :JJ commit qpvuntsm vertical
 <
 
                                                                       *:JJ-new*
@@ -266,38 +251,7 @@ Note: Lines starting with '#' are treated as comments and will be excluded
 from the final description.
 
 ==============================================================================
-8. COMMIT BUFFER                                                  *neojj-commit*
-
-The commit buffer displays detailed information about a specific commit,
-including:
-
-• Change ID and commit ID
-• Author and committer information
-• Timestamp
-• Full description
-• List of changed files
-• Inline diffs
-
-COMMIT MAPPINGS                                          *neojj-commit-mappings*
-
-                                                      *neojj-commit-navigation*
-j                       Move cursor down
-k                       Move cursor up
-
-                                                         *neojj-commit-display*
-?                       Toggle help text
-
-                                                         *neojj-commit-refresh*
-r                       Refresh commit buffer
-<C-r>                   Refresh commit buffer
-
-                                                           *neojj-commit-close*
-q                       Close commit buffer
-<Esc>                   Close commit buffer
-<C-c>                   Close commit buffer
-
-==============================================================================
-9. CONFIGURATION                                          *neojj-configuration*
+8. CONFIGURATION                                          *neojj-configuration*
 
 NeoJJ can be configured by passing options to the setup function.
 
@@ -338,7 +292,7 @@ You can set up custom keybindings for NeoJJ commands:
 <
 
 ==============================================================================
-10. HIGHLIGHTS                                                *neojj-highlights*
+9. HIGHLIGHTS                                                 *neojj-highlights*
 
 NeoJJ defines the following highlight groups. They link to standard Neovim
 highlight groups by default but can be customized.
@@ -394,7 +348,7 @@ After calling setup, you can customize highlight groups:
 Note: Highlights are automatically reapplied when the colorscheme changes.
 
 ==============================================================================
-11. LUA API                                                          *neojj-api*
+10. LUA API                                                          *neojj-api*
 
 NeoJJ provides a Lua API for programmatic access to its functionality.
 
@@ -438,14 +392,6 @@ neojj.jj_describe({dir}, {revision}, {split})            *neojj.jj_describe()*
                     {revision} (string|nil) Revision to describe (default: "@")
                     {split}    (string|nil) Split type
 
-neojj.jj_commit({dir}, {commit_id}, {split})              *neojj.jj_commit()*
-                Open the commit details buffer.
-
-                Parameters: ~
-                    {dir}       (string|nil) Directory path (default: cwd)
-                    {commit_id} (string) Commit or change ID (required)
-                    {split}     (string|nil) Split type
-
 neojj.jj_new({dir}, {revision})                              *neojj.jj_new()*
                 Create a new empty change.
 
@@ -469,7 +415,7 @@ neojj.get_repo({dir})                                      *neojj.get_repo()*
                     • :get_working_copy() - Get working copy information
 
 ==============================================================================
-12. ABOUT                                                          *neojj-about*
+11. ABOUT                                                          *neojj-about*
 
 NeoJJ is inspired by Neogit and Magit, bringing a similar interactive
 experience to Jujutsu version control in Neovim.

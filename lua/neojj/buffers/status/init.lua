@@ -153,57 +153,135 @@ function StatusBuffer:_setup_mappings()
 	end, { desc = "Move cursor up" })
 end
 
----Get commit data for a specific revision
+---Get commit data for a specific revision using jj show
 ---@param revision string Revision identifier
 ---@return table|nil working_copy Working copy data or nil on error
 function StatusBuffer:get_revision_data(revision)
 	local cli = require("neojj.lib.jj.cli")
-	local json_parser = require("neojj.lib.jj.parsers.json_parser")
 
-	-- Get commit data using JSON template
-	local log_result =
-		cli.log():arg("-r"):arg(revision):option("template", "json(self)"):flag("no-graph"):cwd(self.repo.dir):call()
+	-- Get commit details with jj show (includes metadata and diffs)
+	local result = cli.show():arg(revision):cwd(self.repo.dir):call()
 
-	if not log_result.success then
-		logger.warn("Failed to get revision data: " .. tostring(log_result.stderr))
+	if not result.success then
+		logger.warn("Failed to get revision data: " .. tostring(result.stderr))
 		return nil
 	end
 
-	local log_json, err = json_parser.parse_log_json(log_result.stdout)
-	if not log_json then
-		logger.warn("Failed to parse revision JSON: " .. tostring(err))
-		return nil
-	end
+	-- Parse the show output
+	local parsed = self:parse_show_output(result.stdout)
 
-	local working_copy = json_parser.json_to_working_copy(log_json)
+	return parsed
+end
 
-	-- Get file list from diff
-	local diff_result = cli.raw()
-		:arg("diff")
-		:arg("-r")
-		:arg(revision)
-		:option("summary", nil)
-		:option("color", "never")
-		:cwd(self.repo.dir)
-		:call()
+---Parse jj show output into working copy data structure
+---@param output string Raw jj show output
+---@return table working_copy Parsed working copy data
+function StatusBuffer:parse_show_output(output)
+	local lines = vim.split(output, "\n")
+	local working_copy = {
+		change_id = nil,
+		commit_id = nil,
+		description = nil,
+		author = nil,
+		committer = nil,
+		date = nil,
+		modified_files = {},
+		conflicts = {},
+		is_empty = true,
+	}
+	local files = {}
 
-	if diff_result.success and diff_result.stdout then
-		-- Parse diff summary to get file list
-		local files = {}
-		for line in diff_result.stdout:gmatch("[^\r\n]+") do
-			-- Parse lines like "M path/to/file" or "A path/to/file"
-			local status, path = line:match("^([MADR])%s+(.+)$")
-			if status and path then
-				table.insert(files, { status = status, path = path })
+	local in_diff = false
+	local current_file = nil
+	local current_file_diff = {}
+
+	for i, line in ipairs(lines) do
+		-- Parse commit metadata (before diff starts)
+		if not in_diff then
+			-- Skip empty lines only before we've started collecting description
+			if line == "" and not working_copy.description then
+				goto continue
+			end
+			local change_id = line:match("^Change ID: (%S+)")
+			local commit_id = line:match("^Commit ID: (%S+)")
+			local author = line:match("^Author%s*:%s*(.+)")
+			local committer = line:match("^Committer%s*:%s*(.+)")
+			local date = line:match("^[Dd]ate%s*:%s*(.+)")
+
+			if change_id then
+				working_copy.change_id = change_id
+			elseif commit_id then
+				working_copy.commit_id = commit_id
+			elseif author then
+				working_copy.author = author
+			elseif committer then
+				working_copy.committer = committer
+			elseif date then
+				working_copy.date = date
+			elseif line:match("^%s*$") and not working_copy.description then -- luacheck: ignore (intentionally empty)
+				-- Skip whitespace-only lines before description starts
+			elseif line:match("^diff ") then
+				-- Start of diff section
+				in_diff = true
+
+				-- Extract file path from this first diff line
+				local file_path = line:match("^diff %-%-git a/.+ b/(.+)$")
+				if file_path then
+					current_file = {
+						path = file_path,
+						status = "M", -- Default to modified
+						diff = { line },
+					}
+					current_file_diff = { line }
+					table.insert(files, current_file)
+				end
+			else
+				-- This is description text
+				if not working_copy.description then
+					working_copy.description = line
+				else
+					working_copy.description = working_copy.description .. "\n" .. line
+				end
+			end
+		else
+			-- We're in the diff section
+			local file_path = line:match("^diff %-%-git a/.+ b/(.+)$")
+			if file_path then
+				-- New file diff starting
+				if current_file then
+					current_file.diff = current_file_diff
+				end
+				current_file = {
+					path = file_path,
+					status = "M",
+					diff = { line },
+				}
+				current_file_diff = { line }
+				table.insert(files, current_file)
+			elseif current_file then
+				table.insert(current_file_diff, line)
+
+				-- Detect file status from diff headers
+				if line:match("^new file mode") then
+					current_file.status = "A"
+				elseif line:match("^deleted file mode") then
+					current_file.status = "D"
+				elseif line:match("^rename from") then
+					current_file.status = "R"
+				end
 			end
 		end
-		working_copy.modified_files = files
-	else
-		working_copy.modified_files = {}
+
+		::continue::
 	end
 
-	working_copy.conflicts = {}
-	working_copy.is_empty = #working_copy.modified_files == 0
+	-- Save last file's diff
+	if current_file then
+		current_file.diff = current_file_diff
+	end
+
+	working_copy.modified_files = files
+	working_copy.is_empty = #files == 0
 
 	return working_copy
 end
@@ -387,6 +465,16 @@ end
 ---@param file_path string Path to the file
 ---@return string[] diff_lines Diff lines
 function StatusBuffer:get_file_diff(file_path)
+	-- First check if we have embedded diff data (from jj show for revisions)
+	if self.state.working_copy and self.state.working_copy.modified_files then
+		for _, file in ipairs(self.state.working_copy.modified_files) do
+			if file.path == file_path and file.diff then
+				return file.diff
+			end
+		end
+	end
+
+	-- Fall back to fetching diff via jj diff command (for working copy)
 	local cli = require("neojj.lib.jj.cli")
 
 	-- Create a diff command builder

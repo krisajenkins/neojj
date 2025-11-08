@@ -114,7 +114,7 @@ T.test_workflow_basic_commit = function()
 
 	-- Open commit buffer directly with the working copy commit
 	child.lua([[
-        vim.cmd("JJ commit @")
+        vim.cmd("JJ status @")
 	]])
 
 	-- Wait for async operations to complete
@@ -165,7 +165,7 @@ T.test_workflow_commit_file_interactions = function()
 
 	-- Open commit buffer for the working copy
 	child.lua([[
-        vim.cmd("JJ commit @")
+        vim.cmd("JJ status @")
 	]])
 
 	-- Wait for async operations to complete
@@ -198,7 +198,7 @@ T.test_workflow_commit_help = function()
 
 	-- Open commit buffer
 	child.lua([[
-        vim.cmd("JJ commit @")
+        vim.cmd("JJ status @")
 	]])
 
 	-- Wait for async operations to complete
