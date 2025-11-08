@@ -113,6 +113,8 @@ use {
 
 ## Usage
 
+For detailed documentation, see `:help neojj` in Neovim.
+
 ### Commands
 
 NeoJJ provides a unified `:JJ` command with subcommands:

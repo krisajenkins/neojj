@@ -1,0 +1,482 @@
+*neojj.txt*	Neovim plugin for Jujutsu version control
+
+==============================================================================
+CONTENTS                                                       *neojj-contents*
+
+1. Introduction ...................... |neojj-introduction|
+2. Requirements ...................... |neojj-requirements|
+3. Installation ...................... |neojj-installation|
+4. Commands .......................... |neojj-commands|
+5. Status Buffer ..................... |neojj-status|
+6. Log Buffer ........................ |neojj-log|
+7. Describe Buffer ................... |neojj-describe|
+8. Commit Buffer ..................... |neojj-commit|
+9. Configuration ..................... |neojj-configuration|
+10. Highlights ....................... |neojj-highlights|
+11. Lua API .......................... |neojj-api|
+12. About ............................ |neojj-about|
+
+==============================================================================
+1. INTRODUCTION                                            *neojj-introduction*
+
+NeoJJ is a Neovim plugin that provides integration with the Jujutsu (jj)
+version control system. It offers an intuitive, interactive interface for
+managing Jujutsu repositories without leaving Neovim.
+
+NeoJJ is inspired by Neogit and provides similar functionality for the
+Jujutsu version control system, including:
+
+• Beautiful syntax-highlighted buffers
+• Interactive status view with inline diffs
+• Commit history browser with graph visualization
+• Commit description editor
+• Async operations for non-blocking UI
+• Vim-style keybindings throughout
+
+==============================================================================
+2. REQUIREMENTS                                            *neojj-requirements*
+
+• Neovim >= 0.9.0
+• Jujutsu >= 0.9.0 (the `jj` command-line tool)
+• plenary.nvim - Required dependency for async operations
+
+==============================================================================
+3. INSTALLATION                                            *neojj-installation*
+
+Using lazy.nvim: >lua
+    {
+      "yourusername/NeoJJ",
+      dependencies = {
+        "nvim-lua/plenary.nvim",
+      },
+      config = function()
+        require("neojj").setup()
+
+        -- Optional keybindings
+        vim.keymap.set("n", "<leader>js", "<cmd>JJ status<cr>")
+        vim.keymap.set("n", "<leader>jl", "<cmd>JJ log<cr>")
+        vim.keymap.set("n", "<leader>jd", "<cmd>JJ describe<cr>")
+      end,
+    }
+<
+
+Using packer.nvim: >lua
+    use {
+      "yourusername/NeoJJ",
+      requires = { "nvim-lua/plenary.nvim" },
+      config = function()
+        require("neojj").setup()
+      end
+    }
+<
+
+==============================================================================
+4. COMMANDS                                                    *neojj-commands*
+
+NeoJJ provides a unified `:JJ` command with subcommands:
+
+                                                                          *:JJ*
+:JJ {subcommand} [args...]
+                Execute a JJ subcommand. Available subcommands:
+                • status
+                • log
+                • describe
+                • commit
+                • new
+
+                                                                   *:JJ-status*
+:JJ status [split]
+                Open the status buffer showing working copy changes.
+
+                Optional split argument:
+                • `horizontal` - Open in horizontal split
+                • `vertical` - Open in vertical split
+                • `tab` - Open in new tab
+
+                Examples: >
+                    :JJ status
+                    :JJ status horizontal
+                    :JJ status vertical
+<
+
+                                                                      *:JJ-log*
+:JJ log [split]
+                Open the log buffer showing commit history.
+
+                Optional split argument (same as status).
+
+                Examples: >
+                    :JJ log
+                    :JJ log vertical
+<
+
+                                                                 *:JJ-describe*
+:JJ describe [revision] [split]
+                Edit the description for a commit.
+
+                Arguments:
+                • `revision` - Revision to describe (default: @)
+                • `split` - Split type (optional)
+
+                Examples: >
+                    :JJ describe
+                    :JJ describe @-
+                    :JJ describe @ horizontal
+<
+
+                                                                   *:JJ-commit*
+:JJ commit <commit_id> [split]
+                View detailed information about a specific commit.
+
+                Arguments:
+                • `commit_id` - Commit or change ID (required)
+                • `split` - Split type (optional)
+
+                Examples: >
+                    :JJ commit abc123
+                    :JJ commit qpvuntsm vertical
+<
+
+                                                                      *:JJ-new*
+:JJ new [revision]
+                Create a new empty change.
+
+                Arguments:
+                • `revision` - Create new change after this revision (optional)
+
+                Examples: >
+                    :JJ new
+                    :JJ new @
+                    :JJ new qpvuntsm
+<
+
+==============================================================================
+5. STATUS BUFFER                                                  *neojj-status*
+
+The status buffer displays the current state of your working copy, including:
+
+• Current working copy information (change ID, commit ID, description)
+• Modified files with inline diffs
+• Conflicts (if any)
+
+STATUS MAPPINGS                                          *neojj-status-mappings*
+
+The following keybindings are available in the status buffer:
+
+                                                      *neojj-status-navigation*
+j                       Move cursor down
+k                       Move cursor up
+
+                                                         *neojj-status-display*
+<Tab>                   Toggle diff expansion for file at cursor
+<S-Tab>                 Toggle all file diffs
+?                       Toggle help text
+
+                                                         *neojj-status-refresh*
+r                       Refresh status buffer
+<C-r>                   Refresh status buffer
+
+                                                         *neojj-status-actions*
+<CR>                    Open file at cursor
+d                       Describe current commit (edit description)
+D                       Show diff for file at cursor
+n                       Create new change from current commit
+l                       Open log view
+
+                                                           *neojj-status-close*
+q                       Close status buffer
+<Esc>                   Close status buffer
+<C-c>                   Close status buffer
+
+==============================================================================
+6. LOG BUFFER                                                        *neojj-log*
+
+The log buffer displays commit history with a graph visualization. Each
+commit shows:
+
+• Graph visualization
+• Change ID (abbreviated)
+• Author information
+• Timestamp
+• Commit description
+
+LOG MAPPINGS                                                *neojj-log-mappings*
+
+The following keybindings are available in the log buffer:
+
+                                                        *neojj-log-navigation*
+j                       Move cursor down
+k                       Move cursor up
+
+                                                           *neojj-log-display*
+?                       Toggle help text
+
+                                                           *neojj-log-refresh*
+r                       Refresh log buffer
+<C-r>                   Refresh log buffer
+
+                                                           *neojj-log-actions*
+<CR>                    Show commit details for commit at cursor
+d                       Show diff for commit at cursor
+n                       Create new change after commit at cursor
+s                       Open status view
+
+                                                             *neojj-log-close*
+q                       Close log buffer
+<Esc>                   Close log buffer
+<C-c>                   Close log buffer
+
+==============================================================================
+7. DESCRIBE BUFFER                                              *neojj-describe*
+
+The describe buffer is used to edit commit descriptions. It behaves similarly
+to Git commit message editors, with help text displayed as comments.
+
+DESCRIBE MAPPINGS                                      *neojj-describe-mappings*
+
+The following keybindings are available in the describe buffer:
+
+                                                      *neojj-describe-actions*
+<C-s>                   Submit description (normal/insert mode)
+<C-c><C-c>              Submit description (like git commit)
+ZZ                      Submit description (vim-style save and quit)
+
+                                                       *neojj-describe-abort*
+<C-c><C-q>              Abort editing (discard changes)
+ZQ                      Abort editing (vim-style quit without saving)
+q                       Close with confirmation if modified
+
+                                                    *neojj-describe-commands*
+:w                      Submit description
+:wq                     Submit description
+:q!                     Abort editing
+
+Note: Lines starting with '#' are treated as comments and will be excluded
+from the final description.
+
+==============================================================================
+8. COMMIT BUFFER                                                  *neojj-commit*
+
+The commit buffer displays detailed information about a specific commit,
+including:
+
+• Change ID and commit ID
+• Author and committer information
+• Timestamp
+• Full description
+• List of changed files
+• Inline diffs
+
+COMMIT MAPPINGS                                          *neojj-commit-mappings*
+
+                                                      *neojj-commit-navigation*
+j                       Move cursor down
+k                       Move cursor up
+
+                                                         *neojj-commit-display*
+?                       Toggle help text
+
+                                                         *neojj-commit-refresh*
+r                       Refresh commit buffer
+<C-r>                   Refresh commit buffer
+
+                                                           *neojj-commit-close*
+q                       Close commit buffer
+<Esc>                   Close commit buffer
+<C-c>                   Close commit buffer
+
+==============================================================================
+9. CONFIGURATION                                          *neojj-configuration*
+
+NeoJJ can be configured by passing options to the setup function.
+
+SETUP OPTIONS                                          *neojj-setup-options*
+
+>lua
+    require("neojj").setup({
+      log_level = vim.log.levels.INFO,  -- Set log level
+    })
+<
+
+                                                            *neojj-log-level*
+log_level               Set the logging level for NeoJJ. Available levels:
+                        • vim.log.levels.DEBUG
+                        • vim.log.levels.INFO (default)
+                        • vim.log.levels.WARN
+                        • vim.log.levels.ERROR
+
+CUSTOM KEYBINDINGS                                      *neojj-keybindings*
+
+You can set up custom keybindings for NeoJJ commands:
+
+>lua
+    -- Basic keybindings
+    vim.keymap.set("n", "<leader>js", "<cmd>JJ status<cr>")
+    vim.keymap.set("n", "<leader>jl", "<cmd>JJ log<cr>")
+    vim.keymap.set("n", "<leader>jd", "<cmd>JJ describe<cr>")
+
+    -- Smart keybinding: JJ in jj repos, fallback to git tool
+    vim.keymap.set("n", "<Leader>jj", function()
+      local util = require("neojj.lib.jj.util")
+      if util.is_jj_repo() then
+        require("neojj").jj_status()
+      else
+        vim.cmd("Git")  -- or your preferred git tool
+      end
+    end, { desc = "Open VCS status" })
+<
+
+==============================================================================
+10. HIGHLIGHTS                                                *neojj-highlights*
+
+NeoJJ defines the following highlight groups. They link to standard Neovim
+highlight groups by default but can be customized.
+
+HIGHLIGHT GROUPS                                      *neojj-highlight-groups*
+
+NeoJJTitle              Buffer titles
+                        Default: links to |hl-Title|
+
+NeoJJSectionHeader      Section headers
+                        Default: links to |hl-Function|
+
+NeoJJFileAdded          Added files in status/diff
+                        Default: links to |hl-DiffAdd|
+
+NeoJJFileModified       Modified files in status/diff
+                        Default: links to |hl-DiffChange|
+
+NeoJJFileDeleted        Deleted files in status/diff
+                        Default: links to |hl-DiffDelete|
+
+NeoJJDiffAdd            Added lines in diffs
+                        Default: links to |hl-DiffAdd|
+
+NeoJJDiffDelete         Deleted lines in diffs
+                        Default: links to |hl-DiffDelete|
+
+NeoJJLogGraph           Graph characters in log view
+                        Default: links to |hl-Special|
+
+NeoJJConflict           Conflict markers
+                        Default: links to |hl-Error|
+
+NeoJJHelpText           Help text and comments
+                        Default: links to |hl-Comment|
+
+CUSTOMIZING HIGHLIGHTS                                  *neojj-custom-highlights*
+
+After calling setup, you can customize highlight groups:
+
+>lua
+    require("neojj").setup()
+
+    -- Override with custom colors
+    vim.api.nvim_set_hl(0, "NeoJJTitle", { fg = "#ff0000", bold = true })
+    vim.api.nvim_set_hl(0, "NeoJJDiffAdd", { fg = "#00ff00" })
+
+    -- Or link to different groups
+    vim.api.nvim_set_hl(0, "NeoJJTitle", { link = "Keyword" })
+    vim.api.nvim_set_hl(0, "NeoJJSectionHeader", { link = "Type" })
+<
+
+Note: Highlights are automatically reapplied when the colorscheme changes.
+
+==============================================================================
+11. LUA API                                                          *neojj-api*
+
+NeoJJ provides a Lua API for programmatic access to its functionality.
+
+SETUP FUNCTION                                                  *neojj.setup()*
+
+neojj.setup({opts})
+                Initialize NeoJJ with configuration options.
+
+                Parameters: ~
+                    {opts}  (table|nil) Configuration options
+                            • log_level: Log verbosity level
+
+                Example: >lua
+                    require("neojj").setup({
+                      log_level = vim.log.levels.INFO,
+                    })
+<
+
+BUFFER FUNCTIONS                                           *neojj-api-buffers*
+
+neojj.jj_status({dir}, {split})                            *neojj.jj_status()*
+                Open the status buffer.
+
+                Parameters: ~
+                    {dir}   (string|nil) Directory path (default: cwd)
+                    {split} (string|nil) Split type: "horizontal", "vertical",
+                            "tab", or nil for replace
+
+neojj.jj_log({dir}, {split})                                  *neojj.jj_log()*
+                Open the log buffer.
+
+                Parameters: same as |neojj.jj_status()|
+
+neojj.jj_describe({dir}, {revision}, {split})            *neojj.jj_describe()*
+                Open the describe buffer to edit a commit description.
+
+                Parameters: ~
+                    {dir}      (string|nil) Directory path (default: cwd)
+                    {revision} (string|nil) Revision to describe (default: "@")
+                    {split}    (string|nil) Split type
+
+neojj.jj_commit({dir}, {commit_id}, {split})              *neojj.jj_commit()*
+                Open the commit details buffer.
+
+                Parameters: ~
+                    {dir}       (string|nil) Directory path (default: cwd)
+                    {commit_id} (string) Commit or change ID (required)
+                    {split}     (string|nil) Split type
+
+neojj.jj_new({dir}, {revision})                              *neojj.jj_new()*
+                Create a new empty change.
+
+                Parameters: ~
+                    {dir}      (string|nil) Directory path (default: cwd)
+                    {revision} (string|nil) Create new change after this
+                               revision (optional)
+
+REPOSITORY FUNCTIONS                                    *neojj-api-repository*
+
+neojj.get_repo({dir})                                      *neojj.get_repo()*
+                Get a repository instance for the given directory.
+
+                Parameters: ~
+                    {dir} (string|nil) Directory path (default: cwd)
+
+                Returns: ~
+                    Repository instance with methods:
+                    • :is_jj_repo() - Check if directory is a jj repo
+                    • :refresh() - Refresh repository state
+                    • :get_working_copy() - Get working copy information
+
+==============================================================================
+12. ABOUT                                                          *neojj-about*
+
+NeoJJ is inspired by Neogit and Magit, bringing a similar interactive
+experience to Jujutsu version control in Neovim.
+
+PROJECT LINKS                                              *neojj-project-links*
+
+• GitHub: https://github.com/yourusername/NeoJJ
+• Issues: https://github.com/yourusername/NeoJJ/issues
+• Jujutsu: https://github.com/martinvonz/jj
+• Neogit: https://github.com/NeogitOrg/neogit
+
+LICENSE                                                          *neojj-license*
+
+MIT License
+
+ACKNOWLEDGMENTS                                          *neojj-acknowledgments*
+
+• Inspired by Neogit and Magit
+• Built for the Jujutsu version control system
+• Thanks to the Neovim community
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
