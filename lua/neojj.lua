@@ -3,6 +3,7 @@ local logger = require("neojj.logger")
 local StatusBuffer = require("neojj.buffers.status")
 local DescribeBuffer = require("neojj.buffers.describe")
 local LogBuffer = require("neojj.buffers.log")
+local AnnotateBuffer = require("neojj.buffers.annotate")
 local Highlights = require("neojj.highlights")
 
 ---@class NeoJJSetupOptions
@@ -75,9 +76,12 @@ function M.setup(opts)
 		elseif subcommand == "new" then
 			local revision = rest_args[1]
 			M.jj_new(nil, revision)
+		elseif subcommand == "annotate" then
+			local filepath = rest_args[1]
+			M.jj_annotate(nil, filepath)
 		else
 			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
-			vim.notify("Available: status, describe, log, new", vim.log.levels.INFO)
+			vim.notify("Available: status, describe, log, new, annotate", vim.log.levels.INFO)
 		end
 	end, {
 		nargs = "+",
@@ -87,7 +91,7 @@ function M.setup(opts)
 
 			-- If we're completing the first argument (subcommand)
 			if num_args <= 2 then
-				local subcommands = { "status", "describe", "log", "new" }
+				local subcommands = { "status", "describe", "log", "new", "annotate" }
 				return vim.tbl_filter(function(cmd)
 					return vim.startswith(cmd, arglead)
 				end, subcommands)
@@ -129,7 +133,7 @@ function M.setup(opts)
 
 			return {}
 		end,
-		desc = "JJ commands (status, describe, log, new)",
+		desc = "JJ commands (status, describe, log, new, annotate)",
 	})
 end
 
@@ -333,6 +337,57 @@ function M.jj_new(dir, revision)
 			end
 		end)
 	end)
+end
+
+---Open the JJ annotate buffer for a file
+---@param dir? string Directory path (defaults to current working directory)
+---@param filepath? string File path to annotate (defaults to current file)
+function M.jj_annotate(dir, filepath)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	-- If no filepath provided, use the current buffer's file
+	if not filepath or filepath == "" then
+		local current_file = vim.api.nvim_buf_get_name(0)
+		if current_file == "" then
+			vim.notify("No file to annotate. Provide a filename or open a file.", vim.log.levels.ERROR)
+			return
+		end
+
+		-- Make filepath relative to repo root
+		local repo_dir = repo.dir
+		if current_file:sub(1, #repo_dir) == repo_dir then
+			filepath = current_file:sub(#repo_dir + 2) -- +2 to skip the directory separator
+		else
+			vim.notify("Current file is not in the repository", vim.log.levels.ERROR)
+			return
+		end
+	end
+
+	local source_bufnr = vim.api.nvim_get_current_buf()
+
+	-- If the source file is not already open, open it
+	local full_path = repo.dir .. "/" .. filepath
+	if vim.api.nvim_buf_get_name(source_bufnr) ~= full_path then
+		-- Find or create buffer for the file
+		local existing_bufs = vim.tbl_filter(function(buf)
+			return vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_name(buf) == full_path
+		end, vim.api.nvim_list_bufs())
+
+		if #existing_bufs > 0 then
+			source_bufnr = existing_bufs[1]
+		else
+			-- Open the file
+			vim.cmd("edit " .. vim.fn.fnameescape(full_path))
+			source_bufnr = vim.api.nvim_get_current_buf()
+		end
+	end
+
+	local annotate_buffer = AnnotateBuffer.new(repo, filepath, source_bufnr)
+	annotate_buffer:show()
 end
 
 return M
