@@ -1,5 +1,4 @@
 :JJ	neojj.txt	/*:JJ*
-:JJ-commit	neojj.txt	/*:JJ-commit*
 :JJ-describe	neojj.txt	/*:JJ-describe*
 :JJ-log	neojj.txt	/*:JJ-log*
 :JJ-new	neojj.txt	/*:JJ-new*
@@ -10,12 +9,6 @@ neojj-api	neojj.txt	/*neojj-api*
 neojj-api-buffers	neojj.txt	/*neojj-api-buffers*
 neojj-api-repository	neojj.txt	/*neojj-api-repository*
 neojj-commands	neojj.txt	/*neojj-commands*
-neojj-commit	neojj.txt	/*neojj-commit*
-neojj-commit-close	neojj.txt	/*neojj-commit-close*
-neojj-commit-display	neojj.txt	/*neojj-commit-display*
-neojj-commit-mappings	neojj.txt	/*neojj-commit-mappings*
-neojj-commit-navigation	neojj.txt	/*neojj-commit-navigation*
-neojj-commit-refresh	neojj.txt	/*neojj-commit-refresh*
 neojj-configuration	neojj.txt	/*neojj-configuration*
 neojj-contents	neojj.txt	/*neojj-contents*
 neojj-custom-highlights	neojj.txt	/*neojj-custom-highlights*
@@ -49,7 +42,6 @@ neojj-status-mappings	neojj.txt	/*neojj-status-mappings*
 neojj-status-navigation	neojj.txt	/*neojj-status-navigation*
 neojj-status-refresh	neojj.txt	/*neojj-status-refresh*
 neojj.get_repo()	neojj.txt	/*neojj.get_repo()*
-neojj.jj_commit()	neojj.txt	/*neojj.jj_commit()*
 neojj.jj_describe()	neojj.txt	/*neojj.jj_describe()*
 neojj.jj_log()	neojj.txt	/*neojj.jj_log()*
 neojj.jj_new()	neojj.txt	/*neojj.jj_new()*
