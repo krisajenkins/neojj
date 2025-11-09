@@ -9,11 +9,13 @@ NeoJJ is a Neovim plugin that provides integration with the Jujutsu (jj) version
 ## Development Setup
 
 The project uses Nix for development environment. Always enter the Nix shell before development:
+
 ```bash
 nix develop
 ```
 
 This provides:
+
 - luacheck (static analysis)
 - stylua (code formatting)
 - lua-language-server (type checking)
@@ -37,6 +39,22 @@ make typecheck
 # Format code
 make format
 ```
+
+## Documentation
+
+### Regenerating Help Tags
+
+After modifying documentation in `doc/`, regenerate the help tags file:
+
+```bash
+# From within Neovim
+:helptags doc/
+
+# Or from command line
+nvim --headless -c "helptags doc/" -c "quit"
+```
+
+The `doc/tags` file is tracked in git and should be updated when documentation changes.
 
 ## Architecture Overview
 
@@ -101,6 +119,7 @@ The renderer tracks the position of interactive components to enable cursor-base
 ## Testing with MiniTest
 
 ### Test Structure
+
 ```lua
 local T = MiniTest.new_set()
 local expect = MiniTest.expect
@@ -113,18 +132,20 @@ return T
 ```
 
 ### Integration Tests with Child Neovim
+
 ```lua
 local child = MiniTest.new_child_neovim()
 
 T.test_with_child = function()
-  child.lua([[ 
+  child.lua([[
     -- Code runs in child neovim
-    expect = require('mini.test').expect 
+    expect = require('mini.test').expect
   ]])
 end
 ```
 
 ### Key Assertions
+
 - `expect.equality(actual, expected)` - Test equality
 - `expect.no_equality(actual, expected)` - Test inequality
 - `expect.error(function() ... end)` - Test that function throws error
@@ -144,6 +165,7 @@ Note: When using `expect` inside `child.lua()` blocks, you must make it availabl
 To add new interactive features to buffers:
 
 1. **Create Interactive Components**:
+
    ```lua
    local component = Ui.file_item(status, path, {
        item = { path = "file.txt", status = "M" },
@@ -152,6 +174,7 @@ To add new interactive features to buffers:
    ```
 
 2. **Add Keybindings** in buffer `_setup_mappings()`:
+
    ```lua
    self.buffer:map("n", "<key>", function()
        self:action_method()
