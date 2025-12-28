@@ -1,0 +1,16 @@
+{
+  "commit_id": "f812d13fcf7bd1e7c734028dbac03c4149da7ef6",
+  "parents": ["d2b46e5296d8a1052b16b4a2a033af627612ae18"],
+  "change_id": "rszmmswmqkrpywtkuuvmrvsvyvnlntmp",
+  "description": "Work in progress: multiple changes\n",
+  "author": {
+    "name": "Test User",
+    "email": "test@example.com",
+    "timestamp": "2024-01-01T12:00:00Z"
+  },
+  "committer": {
+    "name": "Test User",
+    "email": "test@example.com",
+    "timestamp": "2024-01-01T12:00:00Z"
+  }
+}

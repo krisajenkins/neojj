@@ -1,0 +1,7 @@
+Working copy changes:
+M src/main.lua
+D src/utils.lua
+A temp.txt
+A tests/test_new.lua
+Working copy  (@) : rszmmswm f812d13f multiple-changes | Work in progress: multiple changes
+Parent commit (@-): kmkxlson d2b46e52 feature-start | Add project structure

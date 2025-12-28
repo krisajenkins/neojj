@@ -1,0 +1,19 @@
+×    xsmlzlpq test@example.com 2024-01-01 12:00:00 merge-state 8b050db2 conflict
+├─╮  (empty) Merge: Features in progress
+│ ○  rsstmvvp test@example.com 2024-01-01 12:00:00 add-components e4bcef23
+│ │  Add components
+○ │  zloopyzu test@example.com 2024-01-01 12:00:00 modify-main d031a4b8
+├─╯  Modify main.lua
+│ ○  rszmmswm test@example.com 2024-01-01 12:00:00 multiple-changes f812d13f
+├─╯  Work in progress: multiple changes
+@  kmkxlson test@example.com 2024-01-01 12:00:00 feature-start d2b46e52
+│  Add project structure
+│ ×    myrmppvl test@example.com 2024-01-01 12:00:00 conflict-state 1ce52fde conflict
+│ ├─╮  (empty) Merge: Add config versions
+│ │ ○  qluzpwwq test@example.com 2024-01-01 12:00:00 config-v2 f0dbc004
+├───╯  Add config (version 2)
+│ ○  nzqnkovr test@example.com 2024-01-01 12:00:00 config-v1 3bc980a7
+├─╯  Add config (version 1)
+○  ttokvzsn test@example.com 2024-01-01 12:00:00 initial git_head() cdad2788
+│  Initial commit
+◆  zzzzzzzz root() 00000000

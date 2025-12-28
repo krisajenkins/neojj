@@ -16,51 +16,63 @@ local T = MiniTest.new_set({
 			child.o.columns = 120
 
 			child.cmd([[ set rtp+=deps/plenary.nvim ]])
+
+			-- Set up the mock CLI before loading neojj
+			child.lua([[
+				-- Get absolute paths
+				local cwd = vim.fn.getcwd()
+				local fixtures_dir = cwd .. '/tests/fixtures/jj-outputs'
+				local helpers_dir = cwd .. '/tests/helpers'
+
+				-- Add helpers to package path
+				package.path = helpers_dir .. '/?.lua;' .. package.path
+
+				-- Load and configure the mock CLI
+				local MockCli = require('mock_cli')
+				MockCli.set_fixtures_dir(fixtures_dir)
+				MockCli.set_state('initial')
+
+				-- Inject the mock into package.loaded BEFORE neojj loads
+				package.loaded['neojj.lib.jj.cli'] = MockCli.create_mock_module()
+
+				-- Also make MockCli globally available for state switching
+				_G.MockCli = MockCli
+
+				-- Helper to switch to a known repository state
+				function switch_to_state(state_name)
+					MockCli.set_state(state_name)
+				end
+			]])
+
+			-- Now load neojj (it will use our mock CLI)
 			child.lua([[ M = require('neojj') ]])
 			child.lua([[ M.setup() ]])
 			child.lua([[ expect = require('mini.test').expect ]])
 
-			-- Setup helper to switch repository states
+			-- Create a fake repo directory for testing
 			child.lua([[
-				local demo_repo_path = vim.fn.fnamemodify('fixtures/demo-repo', ':p')
+				-- Create a minimal mock repository
+				local mock_repo_dir = vim.fn.tempname() .. '_neojj_test'
+				vim.fn.mkdir(mock_repo_dir, 'p')
+				vim.fn.mkdir(mock_repo_dir .. '/.jj', 'p')
 
-				-- Helper to switch to a known repository state
-				function switch_to_state(bookmark_name)
-					local Cli = require('neojj.lib.jj.cli')
-
-					-- Change to demo repo directory only if not already there
-					if vim.fn.getcwd() ~= demo_repo_path then
-						vim.cmd('cd ' .. demo_repo_path)
-					end
-
-					-- Switch to the bookmark using JJ CLI
-					local result = Cli.raw()
-						:arg("edit")
-						:arg(bookmark_name)
-						:cwd(demo_repo_path)
-						:call()
-
-					-- JJ edit outputs to stderr even on success, check success flag
-					if not result.success then
-						error("Failed to switch to state " .. bookmark_name .. ": " .. (result.stderr or "Unknown error"))
-					end
-
-					-- Give JJ time to update working copy
-					vim.wait(100)
-
-					return result
-				end
-
-				-- Ensure demo repo exists
-				if vim.fn.isdirectory(demo_repo_path) == 0 then
-					error("Demo repository not found at " .. demo_repo_path .. ". Run: fixtures/create-demo-repo.sh")
-				end
+				-- Change to the mock repo directory
+				vim.cmd('cd ' .. mock_repo_dir)
+				_G.mock_repo_dir = mock_repo_dir
 			]])
 		end,
 
 		---Post-test cleanup
 		---@return nil
-		post_once = child.stop,
+		post_once = function()
+			-- Clean up temp directory
+			child.lua([[
+				if _G.mock_repo_dir then
+					vim.fn.delete(_G.mock_repo_dir, 'rf')
+				end
+			]])
+			child.stop()
+		end,
 	},
 })
 
@@ -160,7 +172,7 @@ end
 T.test_workflow_commit_file_interactions = function()
 	-- Switch to state with some file changes
 	child.lua([[
-		switch_to_state("initial")
+		switch_to_state("multiple-changes")
 	]])
 
 	-- Open commit buffer for the working copy
@@ -210,6 +222,46 @@ T.test_workflow_commit_help = function()
 	]])
 
 	-- Take a screenshot of the help display
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+---Test status with multiple file changes
+---@return nil
+T.test_workflow_multiple_changes_status = function()
+	-- Switch to multiple-changes state
+	child.lua([[
+		switch_to_state("multiple-changes")
+	]])
+
+	-- Open status buffer
+	child.lua([[
+        vim.cmd("JJ status")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	-- Take a screenshot showing modified, added, and deleted files
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+---Test conflict state display
+---@return nil
+T.test_workflow_conflict_status = function()
+	-- Switch to conflict state
+	child.lua([[
+		switch_to_state("conflict-state")
+	]])
+
+	-- Open status buffer
+	child.lua([[
+        vim.cmd("JJ status")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	-- Take a screenshot showing conflict markers
 	expect.reference_screenshot(child.get_screenshot())
 end
 

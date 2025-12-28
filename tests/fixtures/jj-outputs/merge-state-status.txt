@@ -1,0 +1,6 @@
+The working copy has no changes.
+Working copy  (@) : xsmlzlpq 8b050db2 merge-state | (conflict) (empty) Merge: Features in progress
+Parent commit (@-): zloopyzu d031a4b8 modify-main | Modify main.lua
+Parent commit (@-): rsstmvvp e4bcef23 add-components | Add components
+Warning: There are unresolved conflicts at these paths:
+src/main.lua    2-sided conflict

@@ -1,0 +1,14 @@
+diff --git a/src/main.lua b/src/main.lua
+new file mode 100644
+index 0000000000..3974e51c78
+--- /dev/null
++++ b/src/main.lua
+@@ -0,0 +1,8 @@
++-- Main module
++local M = {}
++
++function M.hello()
++    return "Hello from NeoJJ test"
++end
++
++return M

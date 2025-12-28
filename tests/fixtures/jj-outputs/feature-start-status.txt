@@ -1,0 +1,6 @@
+Working copy changes:
+A src/main.lua
+A src/utils.lua
+A tests/test_main.lua
+Working copy  (@) : kmkxlson d2b46e52 feature-start | Add project structure
+Parent commit (@-): ttokvzsn cdad2788 initial | Initial commit

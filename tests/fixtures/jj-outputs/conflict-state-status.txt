@@ -1,0 +1,6 @@
+The working copy has no changes.
+Working copy  (@) : myrmppvl 1ce52fde conflict-state | (conflict) (empty) Merge: Add config versions
+Parent commit (@-): nzqnkovr 3bc980a7 config-v1 | Add config (version 1)
+Parent commit (@-): qluzpwwq f0dbc004 config-v2 | Add config (version 2)
+Warning: There are unresolved conflicts at these paths:
+src/config.lua    2-sided conflict

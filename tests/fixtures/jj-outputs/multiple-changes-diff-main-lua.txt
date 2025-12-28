@@ -1,0 +1,12 @@
+diff --git a/src/main.lua b/src/main.lua
+index 3974e51c78..ffe357b596 100644
+--- a/src/main.lua
++++ b/src/main.lua
+@@ -6,3 +6,7 @@
+ end
+ 
+ return M
++
++function M.new_feature()
++    return "This is new"
++end

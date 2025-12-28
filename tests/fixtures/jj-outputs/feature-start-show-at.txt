@@ -1,0 +1,46 @@
+Commit ID: d2b46e5296d8a1052b16b4a2a033af627612ae18
+Change ID: kmkxlsonrlvvrpwpvwwzmxsxomtvtmqz
+Bookmarks: feature-start feature-start@git
+Author   : Test User <test@example.com> (2024-01-01 12:00:00)
+Committer: Test User <test@example.com> (2024-01-01 12:00:00)
+
+    Add project structure
+
+diff --git a/src/main.lua b/src/main.lua
+new file mode 100644
+index 0000000000..3974e51c78
+--- /dev/null
++++ b/src/main.lua
+@@ -0,0 +1,8 @@
++-- Main module
++local M = {}
++
++function M.hello()
++    return "Hello from NeoJJ test"
++end
++
++return M
+diff --git a/src/utils.lua b/src/utils.lua
+new file mode 100644
+index 0000000000..175da78b7f
+--- /dev/null
++++ b/src/utils.lua
+@@ -0,0 +1,8 @@
++-- Utility functions
++local U = {}
++
++function U.format(str)
++    return string.upper(str)
++end
++
++return U
+diff --git a/tests/test_main.lua b/tests/test_main.lua
+new file mode 100644
+index 0000000000..2f50a58762
+--- /dev/null
++++ b/tests/test_main.lua
+@@ -0,0 +1,4 @@
++-- Test file
++local main = require('src.main')
++
++assert(main.hello() == "Hello from NeoJJ test")

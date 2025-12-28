@@ -1,0 +1,9 @@
+add-components: rsstmvvp e4bcef23 Add components
+config-v1: nzqnkovr 3bc980a7 Add config (version 1)
+config-v2: qluzpwwq f0dbc004 Add config (version 2)
+conflict-state: myrmppvl 1ce52fde (conflict) (empty) Merge: Add config versions
+feature-start: kmkxlson d2b46e52 Add project structure
+initial: ttokvzsn cdad2788 Initial commit
+merge-state: xsmlzlpq 8b050db2 (conflict) (empty) Merge: Features in progress
+modify-main: zloopyzu d031a4b8 Modify main.lua
+multiple-changes: rszmmswm f812d13f Work in progress: multiple changes

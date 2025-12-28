@@ -1,0 +1,4 @@
+Working copy changes:
+A .gitignore
+Working copy  (@) : ttokvzsn cdad2788 initial | Initial commit
+Parent commit (@-): zzzzzzzz 00000000 (empty) (no description set)

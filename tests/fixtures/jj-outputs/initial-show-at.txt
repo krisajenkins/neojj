@@ -1,0 +1,16 @@
+Commit ID: cdad2788bf9615e2307a969704f38cc33b745483
+Change ID: ttokvzsnktvrtyppqxunwtmovknuwvmu
+Bookmarks: initial initial@git
+Author   : Test User <test@example.com> (2024-01-01 12:00:00)
+Committer: Test User <test@example.com> (2024-01-01 12:00:00)
+
+    Initial commit
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000000..a4d6587e39
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,2 @@
++*.swp
++temp/

@@ -1,0 +1,49 @@
+Commit ID: f812d13fcf7bd1e7c734028dbac03c4149da7ef6
+Change ID: rszmmswmqkrpywtkuuvmrvsvyvnlntmp
+Bookmarks: multiple-changes multiple-changes@git
+Author   : Test User <test@example.com> (2024-01-01 12:00:00)
+Committer: Test User <test@example.com> (2024-01-01 12:00:00)
+
+    Work in progress: multiple changes
+
+diff --git a/src/main.lua b/src/main.lua
+index 3974e51c78..ffe357b596 100644
+--- a/src/main.lua
++++ b/src/main.lua
+@@ -6,3 +6,7 @@
+ end
+ 
+ return M
++
++function M.new_feature()
++    return "This is new"
++end
+diff --git a/src/utils.lua b/src/utils.lua
+deleted file mode 100644
+index 175da78b7f..0000000000
+--- a/src/utils.lua
++++ /dev/null
+@@ -1,8 +0,0 @@
+--- Utility functions
+-local U = {}
+-
+-function U.format(str)
+-    return string.upper(str)
+-end
+-
+-return U
+diff --git a/temp.txt b/temp.txt
+new file mode 100644
+index 0000000000..f638f97021
+--- /dev/null
++++ b/temp.txt
+@@ -0,0 +1,1 @@
++temporary file
+diff --git a/tests/test_new.lua b/tests/test_new.lua
+new file mode 100644
+index 0000000000..4869cbce37
+--- /dev/null
++++ b/tests/test_new.lua
+@@ -0,0 +1,2 @@
++-- New test file
++print("New test")
