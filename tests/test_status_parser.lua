@@ -96,4 +96,24 @@ T["parse_working_copy_info"]["handles empty input"] = function()
 	expect.equality(result.is_empty, true)
 end
 
+T["parse_working_copy_info"]["parses dotfiles in paths"] = function()
+	local output = read_fixture("dotfile-test-status.txt")
+	local lines = vim.split(output, "\n")
+	local result = status_parser.parse_working_copy_info(lines)
+
+	expect.equality(#result.modified_files, 3)
+	expect.equality(result.is_empty, false)
+
+	-- Check dotfile path is parsed correctly
+	expect.equality(result.modified_files[1].status, "A")
+	expect.equality(result.modified_files[1].path, "fixtures/demo-repo/.gitignore")
+
+	-- Check other files still work
+	expect.equality(result.modified_files[2].status, "M")
+	expect.equality(result.modified_files[2].path, "lua/neojj/buffers/log/init.lua")
+
+	expect.equality(result.modified_files[3].status, "M")
+	expect.equality(result.modified_files[3].path, "lua/neojj/buffers/status/init.lua")
+end
+
 return T

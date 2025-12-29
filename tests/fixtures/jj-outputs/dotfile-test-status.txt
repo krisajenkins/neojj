@@ -1,0 +1,6 @@
+Working copy changes:
+A fixtures/demo-repo/.gitignore
+M lua/neojj/buffers/log/init.lua
+M lua/neojj/buffers/status/init.lua
+Working copy  (@) : snyokzly 75a96735 (no description set)
+Parent commit (@-): utmwlyyz 7502086f Replace demo-repo with static fixtures for integration tests
