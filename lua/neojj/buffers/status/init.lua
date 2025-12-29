@@ -54,9 +54,9 @@ function StatusBuffer.new(repo, revision)
 		spell_check = false,
 		mappings = {
 			n = {
-				["q"] = "<cmd>close<cr>",
-				["<c-c>"] = "<cmd>close<cr>",
-				["<esc>"] = "<cmd>close<cr>",
+				["q"] = "<cmd>bdelete<cr>",
+				["<c-c>"] = "<cmd>bdelete<cr>",
+				["<esc>"] = "<cmd>bdelete<cr>",
 			},
 		},
 		autocmds = {
