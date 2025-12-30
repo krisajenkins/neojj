@@ -85,14 +85,64 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 	local is_current_head = revision.graph and revision.graph:match("@") ~= nil
 	local commit_highlight = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogCommit"
 
-	-- Create interactive component with revision data
-	return Ui.row({
+	-- Create the header row
+	local header_row = Ui.row({
 		Ui.text(LogUI.highlight_graph(graph_part), { highlight = "NeoJJLogGraph" }),
 		Ui.text(LogUI.highlight_commit_info(commit_part, revision), { highlight = commit_highlight }),
 	}, {
 		item = revision,
 		interactive = true,
 	})
+
+	-- Check if this revision is expanded
+	local is_expanded = log_buffer
+		and log_buffer.expanded_revisions
+		and log_buffer.expanded_revisions[revision.change_id]
+
+	if is_expanded then
+		-- Fetch and render expanded details
+		local details = log_buffer:get_revision_details(revision.change_id)
+		local expanded_components = LogUI.create_expanded_details(details, graph_part)
+
+		return Ui.col({
+			header_row,
+			Ui.col(expanded_components),
+		})
+	end
+
+	return header_row
+end
+
+---Create expanded details components (description + stats)
+---@param details table Details with description and stats arrays
+---@param graph_prefix string Graph prefix for indentation
+---@return table[] components Expanded detail components
+function LogUI.create_expanded_details(details, graph_prefix)
+	local components = {}
+	-- Create an indent that continues the graph visually
+	local indent = string.rep(" ", #graph_prefix)
+
+	-- Add description lines
+	for _, line in ipairs(details.description or {}) do
+		table.insert(components, Ui.text(indent .. line, { highlight = "NeoJJLogDescription" }))
+	end
+
+	-- Add separator if we have both description and stats
+	if #(details.description or {}) > 0 and #(details.stats or {}) > 0 then
+		table.insert(components, Ui.empty_line())
+	end
+
+	-- Add stats lines with highlighting
+	for _, line in ipairs(details.stats or {}) do
+		local highlight = "NeoJJLogStats"
+		-- Summary line gets different highlighting
+		if line:match("^%d+ files? changed") then
+			highlight = "NeoJJLogStatsSummary"
+		end
+		table.insert(components, Ui.text(indent .. line, { highlight = highlight }))
+	end
+
+	return components
 end
 
 ---Create a graph line component (non-interactive)
@@ -191,6 +241,7 @@ function LogUI.create_help()
 		Ui.empty_line(),
 		Ui.text("Navigation:", { highlight = "NeoJJSectionHeader" }),
 		Ui.text("  j/k       - Move cursor up/down", { highlight = "NeoJJHelpText" }),
+		Ui.text("  <Tab>     - Toggle revision details", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <Enter>   - Show commit details", { highlight = "NeoJJHelpText" }),
 		Ui.text("  d         - Show commit diff", { highlight = "NeoJJHelpText" }),
 		Ui.empty_line(),

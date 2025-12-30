@@ -35,6 +35,7 @@ function LogBuffer.new(repo, options)
 		},
 		options = options,
 		show_help = false,
+		expanded_revisions = {},
 	}, LogBuffer)
 
 	-- Create buffer with fixed name (reuse if exists)
@@ -139,6 +140,11 @@ function LogBuffer:_setup_mappings()
 	self.buffer:map("n", "k", function()
 		self:move_cursor_up()
 	end, { desc = "Move cursor up" })
+
+	-- Toggle expanded details
+	self.buffer:map("n", "<tab>", function()
+		self:toggle_revision_expanded()
+	end, { desc = "Toggle revision details" })
 end
 
 ---Refresh the log buffer
@@ -399,6 +405,77 @@ function LogBuffer:create_new_change()
 			end
 		end)
 	end)
+end
+
+---Toggle expanded state for revision at cursor
+function LogBuffer:toggle_revision_expanded()
+	local component = self.buffer:get_component_at_cursor()
+	if not component or not component:is_interactive() then
+		return
+	end
+
+	local item = component:get_item()
+	if not item or not item.change_id then
+		return
+	end
+
+	local change_id = item.change_id
+	local was_expanded = self.expanded_revisions[change_id] or false
+	self.expanded_revisions[change_id] = not was_expanded
+
+	-- Find the line number to restore cursor to when collapsing
+	local target_line = nil
+	if was_expanded then
+		for line_idx, comp in pairs(self.buffer.component_positions or {}) do
+			if comp:is_interactive() and comp:get_item() and comp:get_item().change_id == change_id then
+				target_line = line_idx + 1 -- Convert to 1-indexed
+				break
+			end
+		end
+	end
+
+	self:render()
+
+	-- Restore cursor to the commit line if we collapsed
+	if target_line then
+		self.buffer:set_cursor(target_line, 0)
+	end
+end
+
+---Get detailed info for a revision (description + stats)
+---@param change_id string The change ID to get details for
+---@return table details Table with description and stats lines
+function LogBuffer:get_revision_details(change_id)
+	local cli = require("neojj.lib.jj.cli")
+
+	-- Get log with stats for this specific revision
+	local builder = cli.log():short_flag("r"):arg(change_id):flag("stat"):flag("no-graph"):cwd(self.repo.dir)
+	local result = builder:call()
+
+	if not result.success then
+		logger.warn("Failed to get revision details: " .. tostring(result.stderr))
+		return { description = {}, stats = {} }
+	end
+
+	-- Parse the output
+	local lines = vim.split(result.stdout, "\n")
+	local description = {}
+	local stats = {}
+	local in_stats = false
+
+	-- Skip the first line (commit header) and parse the rest
+	for i = 2, #lines do
+		local line = lines[i]
+		-- Stats lines typically contain | and +/- characters, or are the summary line
+		if line:match("|.*[%+%-]") or line:match("^%d+ files? changed") then
+			in_stats = true
+			table.insert(stats, line)
+		elseif not in_stats and line ~= "" then
+			table.insert(description, line)
+		end
+	end
+
+	return { description = description, stats = stats }
 end
 
 return LogBuffer
