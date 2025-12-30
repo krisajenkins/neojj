@@ -243,7 +243,7 @@ function LogUI.create_help()
 		Ui.text("  j/k       - Move cursor up/down", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <Tab>     - Toggle revision details", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <Enter>   - Show commit details", { highlight = "NeoJJHelpText" }),
-		Ui.text("  d         - Show commit diff", { highlight = "NeoJJHelpText" }),
+		Ui.text("  d         - Describe commit", { highlight = "NeoJJHelpText" }),
 		Ui.empty_line(),
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
 		Ui.text("  n         - Create new change after cursor", { highlight = "NeoJJHelpText" }),

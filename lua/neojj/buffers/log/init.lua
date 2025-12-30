@@ -117,10 +117,10 @@ function LogBuffer:_setup_mappings()
 		self:show_commit_at_cursor()
 	end, { desc = "Show commit details" })
 
-	-- Show diff for commit
+	-- Describe commit at cursor
 	self.buffer:map("n", "d", function()
-		self:show_diff_at_cursor()
-	end, { desc = "Show commit diff" })
+		self:describe_commit_at_cursor()
+	end, { desc = "Describe commit" })
 
 	-- Navigation to other views
 	self.buffer:map("n", "s", function()
@@ -315,8 +315,8 @@ function LogBuffer:show_commit_at_cursor()
 	status_buffer:show()
 end
 
----Show diff for commit at cursor
-function LogBuffer:show_diff_at_cursor()
+---Describe commit at cursor
+function LogBuffer:describe_commit_at_cursor()
 	local component = self.buffer:get_component_at_cursor()
 	if not component or not component:is_interactive() then
 		return
@@ -327,8 +327,33 @@ function LogBuffer:show_diff_at_cursor()
 		return
 	end
 
-	-- TODO: Implement diff view
-	print("Show diff for commit: " .. item.change_id)
+	local DescribeBuffer = require("neojj.buffers.describe")
+
+	-- Callback to refresh log buffer when description is updated
+	local function on_submit()
+		vim.notify("Description updated", vim.log.levels.INFO)
+		if self.buffer and self.buffer:is_valid() then
+			self:refresh()
+			vim.defer_fn(function()
+				if self.buffer and self.buffer:is_valid() then
+					self.buffer:open()
+				end
+			end, 100)
+		end
+	end
+
+	local function on_abort()
+		if self.buffer and self.buffer:is_valid() then
+			vim.defer_fn(function()
+				if self.buffer and self.buffer:is_valid() then
+					self.buffer:open()
+				end
+			end, 100)
+		end
+	end
+
+	local describe_buffer = DescribeBuffer.new(self.repo, item.change_id, on_submit, on_abort)
+	describe_buffer:show()
 end
 
 ---Move cursor down
