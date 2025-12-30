@@ -56,7 +56,6 @@ function StatusUI.create_header()
 	return Ui.col({
 		Ui.text("JJ Status", { highlight = "NeoJJTitle" }),
 		Ui.text("Press ? for help, q to quit", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
 	})
 end
 
@@ -104,8 +103,12 @@ function StatusUI.create_working_copy_section(working_copy, is_working_copy)
 
 	-- Description (full, not just first line)
 	if working_copy.description then
-		-- Split description by newlines, preserving blank lines
+		-- Split description by newlines, preserving internal blank lines
 		local lines = vim.split(working_copy.description, "\n", { plain = true })
+		-- Strip trailing empty lines to avoid extra whitespace at end of section
+		while #lines > 0 and lines[#lines] == "" do
+			table.remove(lines)
+		end
 		for _, line in ipairs(lines) do
 			if line == "" then
 				table.insert(metadata_items, Ui.empty_line())
@@ -113,7 +116,6 @@ function StatusUI.create_working_copy_section(working_copy, is_working_copy)
 				table.insert(metadata_items, Ui.text(line, { highlight = "NeoJJDescription" }))
 			end
 		end
-		-- Note: Section component adds empty line at end automatically
 	end
 
 	return Ui.section(section_title, metadata_items, {
@@ -356,7 +358,6 @@ function StatusUI.create_empty_state()
 		Ui.text("No changes in working copy", { highlight = "NeoJJEmptyState" }),
 		Ui.empty_line(),
 		Ui.text("The working copy is clean and matches the current revision.", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
 	})
 end
 
@@ -439,7 +440,6 @@ function StatusUI.create_help()
 		Ui.text("  q       - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <Esc>   - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  ?       - Show/hide this help", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
 	})
 end
 

@@ -136,7 +136,7 @@ function Ui.section(title, items, options)
 		table.insert(children, item)
 	end
 
-	table.insert(children, Ui.empty_line())
+	-- Note: No trailing empty_line - spacing between sections is handled by the renderer
 
 	return Ui.col(children, section_options)
 end

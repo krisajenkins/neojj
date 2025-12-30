@@ -148,6 +148,11 @@ function Renderer.render_to_buffer(buffer, components)
 		table.insert(context.lines, "")
 	end
 
+	-- Strip trailing empty lines to keep buffer tidy
+	while #context.lines > 1 and context.lines[#context.lines] == "" do
+		table.remove(context.lines)
+	end
+
 	-- Set buffer content
 	vim.api.nvim_buf_set_lines(buffer, 0, -1, false, context.lines)
 
