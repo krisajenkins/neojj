@@ -291,10 +291,32 @@ end
 ---@return table[] components List of UI components
 function StatusUI.create_diff_components(diff_lines, file_path)
 	local components = {}
+	local current_line = nil -- Line number in the new/target file
 
 	for _, line in ipairs(diff_lines) do
 		local highlight = StatusUI.get_diff_highlight(line, file_path)
-		local enhanced_component = StatusUI.create_enhanced_diff_line(line, highlight, file_path)
+
+		-- Parse hunk headers to get starting line number
+		if highlight == "NeoJJDiffHunk" then
+			local _, _, new_start = line:match("^@@ %-(%d+),?(%d*) %+(%d+),?(%d*) @@")
+			if new_start then
+				current_line = tonumber(new_start)
+			end
+		end
+
+		-- Determine if this line maps to a source line
+		local source_line = nil
+		if current_line then
+			if highlight == "NeoJJDiffAdd" or highlight == "NeoJJDiffContext" then
+				source_line = current_line
+				current_line = current_line + 1
+			elseif highlight == "NeoJJDiffDelete" then
+				-- Deleted lines don't exist in the new file, don't increment
+				source_line = nil
+			end
+		end
+
+		local enhanced_component = StatusUI.create_enhanced_diff_line(line, highlight, file_path, source_line)
 		table.insert(components, enhanced_component)
 	end
 
@@ -305,8 +327,9 @@ end
 ---@param line string Diff line content
 ---@param base_highlight string|nil Base highlight group
 ---@param file_path string File path for syntax detection
+---@param source_line number|nil Line number in the source file (for navigation)
 ---@return table component UI component for the diff line
-function StatusUI.create_enhanced_diff_line(line, base_highlight, file_path)
+function StatusUI.create_enhanced_diff_line(line, base_highlight, file_path, source_line)
 	-- Handle special formatting for different diff line types
 	local prefix = "  "
 	local content = line
@@ -348,7 +371,14 @@ function StatusUI.create_enhanced_diff_line(line, base_highlight, file_path)
 		prefix = "  "
 	end
 
-	return Ui.text(prefix .. content, { highlight = base_highlight })
+	-- Make diff lines with source line info interactive for navigation
+	local options = { highlight = base_highlight }
+	if source_line then
+		options.interactive = true
+		options.item = { path = file_path, line = source_line }
+	end
+
+	return Ui.text(prefix .. content, options)
 end
 
 ---Create the empty state component

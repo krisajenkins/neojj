@@ -517,7 +517,13 @@ function StatusBuffer:open_file_at_cursor()
 	end
 
 	-- Open the file in the current window
-	vim.cmd("edit " .. vim.fn.fnameescape(item.path))
+	local escaped_path = vim.fn.fnameescape(item.path)
+	if item.line then
+		-- Jump to specific line (from diff position)
+		vim.cmd("edit +" .. item.line .. " " .. escaped_path)
+	else
+		vim.cmd("edit " .. escaped_path)
+	end
 end
 
 ---Show diff for file at cursor
