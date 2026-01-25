@@ -2,6 +2,7 @@
 :JJ-describe	neojj.txt	/*:JJ-describe*
 :JJ-log	neojj.txt	/*:JJ-log*
 :JJ-new	neojj.txt	/*:JJ-new*
+:JJ-split	neojj.txt	/*:JJ-split*
 :JJ-status	neojj.txt	/*:JJ-status*
 neojj-about	neojj.txt	/*neojj-about*
 neojj-acknowledgments	neojj.txt	/*neojj-acknowledgments*
@@ -45,6 +46,7 @@ neojj.get_repo()	neojj.txt	/*neojj.get_repo()*
 neojj.jj_describe()	neojj.txt	/*neojj.jj_describe()*
 neojj.jj_log()	neojj.txt	/*neojj.jj_log()*
 neojj.jj_new()	neojj.txt	/*neojj.jj_new()*
+neojj.jj_split()	neojj.txt	/*neojj.jj_split()*
 neojj.jj_status()	neojj.txt	/*neojj.jj_status()*
 neojj.setup()	neojj.txt	/*neojj.setup()*
 neojj.txt	neojj.txt	/*neojj.txt*

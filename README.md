@@ -37,7 +37,9 @@ the things you want.
 ## Screenshots
 
 ### Status Buffer
+
 View your working copy changes, expand file diffs inline, and navigate with ease:
+
 ```
 JJ Status
 Press ? for help, q to quit
@@ -54,7 +56,9 @@ Modified Files:
 ```
 
 ### Log Buffer
+
 Browse commit history with graph visualization:
+
 ```
 JJ Log
 Press ? for help, q to quit
@@ -85,6 +89,7 @@ o  yostqsxw you@example.com 2024-01-14 16:45:00
     vim.keymap.set("n", "<leader>js", neojj.jj_status, { desc = "JJ Status" })
     vim.keymap.set("n", "<leader>jl", neojj.jj_log, { desc = "JJ Log" })
     vim.keymap.set("n", "<leader>jd", neojj.jj_describe, { desc = "JJ Describe" })
+    vim.keymap.set("n", "<leader>jS", neojj.jj_split, { desc = "JJ Split" })
   end,
 }
 ```
@@ -104,11 +109,13 @@ use {
 ### Manual Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/krisajenkins/neojj.git ~/.local/share/nvim/site/pack/plugins/start/neojj
    ```
 
 2. Install dependencies:
+
    ```bash
    git clone https://github.com/nvim-lua/plenary.nvim.git ~/.local/share/nvim/site/pack/plugins/start/plenary.nvim
    ```
@@ -131,6 +138,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ log [split]                 " Open log buffer
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
 :JJ new [revision]              " Create new empty change
+:JJ split [revision]            " Interactively split a commit
 ```
 
 **Split types**: `horizontal`, `vertical`, `tab`
@@ -146,44 +154,46 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ describe                  " Describe current commit (@)
 :JJ describe @-               " Describe parent commit
 :JJ new                       " Create new change from working copy
+:JJ split                     " Split current commit interactively
+:JJ split @-                  " Split parent commit
 ```
 
 ### Status Buffer Keybindings
 
-| Key | Action |
-|-----|--------|
-| `j`/`k` | Move cursor up/down |
-| `<Tab>` | Toggle file diff |
-| `<S-Tab>` | Toggle all file diffs |
-| `r` | Refresh status |
-| `d` | Describe current commit |
-| `D` | Show diff for file at cursor |
-| `l` | Open log view |
-| `q` / `<Esc>` | Quit |
-| `?` | Show/hide help |
+| Key           | Action                       |
+| ------------- | ---------------------------- |
+| `j`/`k`       | Move cursor up/down          |
+| `<Tab>`       | Toggle file diff             |
+| `<S-Tab>`     | Toggle all file diffs        |
+| `r`           | Refresh status               |
+| `d`           | Describe current commit      |
+| `D`           | Show diff for file at cursor |
+| `l`           | Open log view                |
+| `q` / `<Esc>` | Quit                         |
+| `?`           | Show/hide help               |
 
 ### Log Buffer Keybindings
 
-| Key | Action |
-|-----|--------|
-| `j`/`k` | Move cursor up/down |
-| `<Enter>` | Show commit details |
-| `d` | Show commit diff |
-| `r` | Refresh log |
-| `s` | Open status view |
-| `q` / `<Esc>` | Quit |
-| `?` | Show/hide help |
+| Key           | Action              |
+| ------------- | ------------------- |
+| `j`/`k`       | Move cursor up/down |
+| `<Enter>`     | Show commit details |
+| `d`           | Show commit diff    |
+| `r`           | Refresh log         |
+| `s`           | Open status view    |
+| `q` / `<Esc>` | Quit                |
+| `?`           | Show/hide help      |
 
 ### Describe Buffer Keybindings
 
-| Key | Action |
-|-----|--------|
-| `<C-s>` | Submit description |
-| `<C-c><C-c>` | Submit description |
+| Key          | Action                  |
+| ------------ | ----------------------- |
+| `<C-s>`      | Submit description      |
+| `<C-c><C-c>` | Submit description      |
 | `<C-c><C-q>` | Abort (discard changes) |
-| `ZZ` | Submit description |
-| `ZQ` | Abort (discard changes) |
-| `:w` / `:wq` | Submit description |
+| `ZZ`         | Submit description      |
+| `ZQ`         | Abort (discard changes) |
+| `:w` / `:wq` | Submit description      |
 
 ## Configuration
 
@@ -242,17 +252,17 @@ vim.api.nvim_set_hl(0, "NeoJJSectionHeader", { link = "Type" })
 
 #### Available Highlight Groups
 
-| Group | Default Link | Purpose |
-|-------|--------------|---------|
-| `NeoJJTitle` | `Title` | Buffer titles |
-| `NeoJJSectionHeader` | `Function` | Section headers |
-| `NeoJJFileAdded` | `DiffAdd` | Added files |
-| `NeoJJFileModified` | `DiffChange` | Modified files |
-| `NeoJJFileDeleted` | `DiffDelete` | Deleted files |
-| `NeoJJDiffAdd` | `DiffAdd` | Added lines in diffs |
-| `NeoJJDiffDelete` | `DiffDelete` | Deleted lines in diffs |
-| `NeoJJLogGraph` | `Special` | Log graph characters |
-| `NeoJJConflict` | `Error` | Conflict markers |
+| Group                | Default Link | Purpose                |
+| -------------------- | ------------ | ---------------------- |
+| `NeoJJTitle`         | `Title`      | Buffer titles          |
+| `NeoJJSectionHeader` | `Function`   | Section headers        |
+| `NeoJJFileAdded`     | `DiffAdd`    | Added files            |
+| `NeoJJFileModified`  | `DiffChange` | Modified files         |
+| `NeoJJFileDeleted`   | `DiffDelete` | Deleted files          |
+| `NeoJJDiffAdd`       | `DiffAdd`    | Added lines in diffs   |
+| `NeoJJDiffDelete`    | `DiffDelete` | Deleted lines in diffs |
+| `NeoJJLogGraph`      | `Special`    | Log graph characters   |
+| `NeoJJConflict`      | `Error`      | Conflict markers       |
 
 See `lua/neojj/highlights.lua` for the complete list.
 
@@ -334,12 +344,15 @@ Then open Neovim and test your changes:
 If you don't see colors in NeoJJ buffers:
 
 1. **Verify highlights are loaded**:
+
    ```vim
    :lua print(vim.inspect(vim.api.nvim_get_hl(0, {name='NeoJJTitle'})))
    ```
+
    Should show: `{ link = "Title" }`
 
 2. **Manually reapply highlights**:
+
    ```vim
    :lua require('neojj.highlights').setup()
    ```
@@ -356,9 +369,11 @@ See [HIGHLIGHTS_FIX.md](HIGHLIGHTS_FIX.md) for more details.
 If `:JJ` command doesn't exist:
 
 1. Verify the plugin is loaded:
+
    ```vim
    :lua print(vim.g.loaded_neojj)
    ```
+
    Should print `1`
 
 2. Manually initialize:

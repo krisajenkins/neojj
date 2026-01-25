@@ -79,9 +79,12 @@ function M.setup(opts)
 		elseif subcommand == "annotate" then
 			local filepath = rest_args[1]
 			M.jj_annotate(nil, filepath)
+		elseif subcommand == "split" then
+			local revision = rest_args[1]
+			M.jj_split(nil, revision)
 		else
 			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
-			vim.notify("Available: status, describe, log, new, annotate", vim.log.levels.INFO)
+			vim.notify("Available: status, describe, log, new, annotate, split", vim.log.levels.INFO)
 		end
 	end, {
 		nargs = "+",
@@ -91,7 +94,7 @@ function M.setup(opts)
 
 			-- If we're completing the first argument (subcommand)
 			if num_args <= 2 then
-				local subcommands = { "status", "describe", "log", "new", "annotate" }
+				local subcommands = { "status", "describe", "log", "new", "annotate", "split" }
 				return vim.tbl_filter(function(cmd)
 					return vim.startswith(cmd, arglead)
 				end, subcommands)
@@ -133,7 +136,7 @@ function M.setup(opts)
 
 			return {}
 		end,
-		desc = "JJ commands (status, describe, log, new, annotate)",
+		desc = "JJ commands (status, describe, log, new, annotate, split)",
 	})
 end
 
@@ -388,6 +391,27 @@ function M.jj_annotate(dir, filepath)
 
 	local annotate_buffer = AnnotateBuffer.new(repo, filepath, source_bufnr)
 	annotate_buffer:show()
+end
+
+---Open a terminal to interactively split a commit
+---@param dir? string Directory path (defaults to current working directory)
+---@param revision? string Revision to split (defaults to @)
+function M.jj_split(dir, revision)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local cmd = "jj split"
+	if revision and revision ~= "" then
+		cmd = cmd .. " -r " .. revision
+	end
+
+	-- Open terminal in the repo directory
+	vim.cmd("lcd " .. vim.fn.fnameescape(repo.dir))
+	vim.cmd("terminal " .. cmd)
+	vim.cmd("startinsert")
 end
 
 return M

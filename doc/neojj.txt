@@ -81,6 +81,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 • log
                 • describe
                 • new
+                • split
 
                                                                    *:JJ-status*
 :JJ status [change_id] [split]
@@ -139,6 +140,23 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ new
                     :JJ new @
                     :JJ new qpvuntsm
+<
+
+                                                                    *:JJ-split*
+:JJ split [revision]
+                Interactively split a commit into two commits.
+
+                Opens a terminal with jj's native interactive diff editor,
+                allowing you to select which changes go into the first commit.
+                The remaining changes stay in the second commit.
+
+                Arguments:
+                • `revision` - Revision to split (default: @)
+
+                Examples: >
+                    :JJ split           " Split current commit
+                    :JJ split @-        " Split parent commit
+                    :JJ split abc123    " Split specific revision
 <
 
 ==============================================================================
@@ -399,6 +417,16 @@ neojj.jj_new({dir}, {revision})                              *neojj.jj_new()*
                     {dir}      (string|nil) Directory path (default: cwd)
                     {revision} (string|nil) Create new change after this
                                revision (optional)
+
+neojj.jj_split({dir}, {revision})                          *neojj.jj_split()*
+                Open a terminal to interactively split a commit.
+
+                Uses jj's native diff editor to select changes for the
+                first commit. Remaining changes go to the second commit.
+
+                Parameters: ~
+                    {dir}      (string|nil) Directory path (default: cwd)
+                    {revision} (string|nil) Revision to split (default: "@")
 
 REPOSITORY FUNCTIONS                                    *neojj-api-repository*
 
