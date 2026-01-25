@@ -4,6 +4,12 @@ A Neovim plugin for [Jujutsu (jj)](https://github.com/martinvonz/jj) version con
 
 <div align="center">
 
+![NeoJJ Demo](demo.gif)
+
+</div>
+
+<div align="center">
+
 **Manage your Jujutsu repositories without leaving Neovim**
 
 [Features](#features) - [Installation](#installation) - [Usage](#usage) - [Configuration](#configuration) - [Development](#development)
