@@ -141,6 +141,11 @@ function LogBuffer:_setup_mappings()
 		self:move_cursor_up()
 	end, { desc = "Move cursor up" })
 
+	-- Yank change ID
+	self.buffer:map("n", "y", function()
+		self:yank_change_id_at_cursor()
+	end, { desc = "Yank change ID" })
+
 	-- Toggle expanded details
 	self.buffer:map("n", "<tab>", function()
 		self:toggle_revision_expanded()
@@ -299,12 +304,7 @@ end
 
 ---Show commit details at cursor
 function LogBuffer:show_commit_at_cursor()
-	local component = self.buffer:get_component_at_cursor()
-	if not component or not component:is_interactive() then
-		return
-	end
-
-	local item = component:get_item()
+	local item = self.buffer:get_item_at_cursor()
 	if not item or not item.change_id then
 		return
 	end
@@ -317,12 +317,7 @@ end
 
 ---Describe commit at cursor
 function LogBuffer:describe_commit_at_cursor()
-	local component = self.buffer:get_component_at_cursor()
-	if not component or not component:is_interactive() then
-		return
-	end
-
-	local item = component:get_item()
+	local item = self.buffer:get_item_at_cursor()
 	if not item or not item.change_id then
 		return
 	end
@@ -400,13 +395,7 @@ end
 
 ---Create a new change after the commit at cursor
 function LogBuffer:create_new_change()
-	local component = self.buffer:get_component_at_cursor()
-	if not component or not component:is_interactive() then
-		vim.notify("No commit at cursor", vim.log.levels.WARN)
-		return
-	end
-
-	local item = component:get_item()
+	local item = self.buffer:get_item_at_cursor()
 	if not item or not item.change_id then
 		vim.notify("No commit at cursor", vim.log.levels.WARN)
 		return
@@ -432,14 +421,21 @@ function LogBuffer:create_new_change()
 	end)
 end
 
----Toggle expanded state for revision at cursor
-function LogBuffer:toggle_revision_expanded()
-	local component = self.buffer:get_component_at_cursor()
-	if not component or not component:is_interactive() then
+---Yank the change ID of the commit at cursor
+function LogBuffer:yank_change_id_at_cursor()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
 		return
 	end
 
-	local item = component:get_item()
+	vim.fn.setreg("+", item.change_id)
+	vim.notify("Copied change ID: " .. item.change_id, vim.log.levels.INFO)
+end
+
+---Toggle expanded state for revision at cursor
+function LogBuffer:toggle_revision_expanded()
+	local item = self.buffer:get_item_at_cursor()
 	if not item or not item.change_id then
 		return
 	end

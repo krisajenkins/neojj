@@ -395,12 +395,7 @@ end
 
 ---Toggle file diff at cursor
 function StatusBuffer:toggle_file_diff()
-	local component = self.buffer:get_component_at_cursor()
-	if not component or not component:is_interactive() then
-		return
-	end
-
-	local item = component:get_item()
+	local item = self.buffer:get_item_at_cursor()
 	if not item or not item.path then
 		return
 	end
@@ -506,12 +501,7 @@ end
 
 ---Open file at cursor
 function StatusBuffer:open_file_at_cursor()
-	local component = self.buffer:get_component_at_cursor()
-	if not component or not component:is_interactive() then
-		return
-	end
-
-	local item = component:get_item()
+	local item = self.buffer:get_item_at_cursor()
 	if not item or not item.path then
 		return
 	end

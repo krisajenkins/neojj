@@ -263,6 +263,16 @@ function Buffer:get_component_at_cursor()
 	return nil
 end
 
+---Get the item from the interactive component at the current cursor position
+---@return table|nil item Item data from the component, or nil if no interactive component at cursor
+function Buffer:get_item_at_cursor()
+	local component = self:get_component_at_cursor()
+	if not component or not component:is_interactive() then
+		return nil
+	end
+	return component:get_item()
+end
+
 ---Refresh the buffer content
 function Buffer:refresh()
 	if #self.components > 0 then
