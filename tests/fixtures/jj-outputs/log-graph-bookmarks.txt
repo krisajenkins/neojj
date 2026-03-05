@@ -1,0 +1,8 @@
+@  qpvuntsm jane@example.com 2024-03-15 10:30:42 main 230dd059
+│  Update README with examples
+○  rlvkpnrz john@example.com 2024-03-14 15:20:10 feature-branch dev 2443ea76
+│  Add initial implementation
+○  tknwxqrs jane@example.com 2024-03-13 09:45:33 5621ab34
+│  Setup project structure
+◆  zzzzzzzz root@example.com 1970-01-01 00:00:00 release-v1.0 00000000
+   Initial commit

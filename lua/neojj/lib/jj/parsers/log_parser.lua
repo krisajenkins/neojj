@@ -28,12 +28,21 @@ function M.parse_log_output(output)
 		local graph_part, commit_info = line:match("^([│@○◆%s├└┤┬┴─┌┐┘]*)(.*)")
 
 		-- Check if this line has commit data (change_id, author, timestamp, commit_id)
-		local change_id, author, timestamp, commit_id = nil, nil, nil, nil
+		local change_id, author, date_part, time_part, rest = nil, nil, nil, nil, nil
 		if commit_info and commit_info ~= "" then
-			change_id, author, timestamp, commit_id = commit_info:match("^%s*(%S+)%s+(%S+@%S+)%s+([%d%-:T%s]+)%s+(%S+)")
+			change_id, author, date_part, time_part, rest =
+				commit_info:match("^%s*(%S+)%s+(%S+@%S+)%s+(%d%d%d%d%-%d%d%-%d%d)%s+(%d%d:%d%d:%d%d)%s+(.*)")
 		end
 
-		if change_id and author and timestamp and commit_id then
+		if change_id and author and date_part and time_part and rest then
+			-- Parse the rest: everything before the last word is bookmarks, last word is commit_id
+			local words = vim.split(rest, "%s+", { trimempty = true })
+			local commit_id = words[#words]
+			local bookmarks = {}
+			for w = 1, #words - 1 do
+				table.insert(bookmarks, words[w])
+			end
+
 			-- This is a commit header line with actual commit data
 			if current_revision then
 				-- Save previous revision
@@ -44,8 +53,9 @@ function M.parse_log_output(output)
 			current_revision = {
 				change_id = change_id,
 				author = author,
-				timestamp = timestamp,
+				timestamp = date_part .. " " .. time_part,
 				commit_id = commit_id,
+				bookmarks = bookmarks,
 				description = "",
 				graph = graph_part,
 				line_number = i,

@@ -69,6 +69,7 @@ local default_highlights = {
 	NeoJJDiffRange = { link = "DiffText" },
 
 	-- Log display
+	NeoJJLogBookmark = { link = "Keyword" },
 	NeoJJLogGraph = { link = "Special" },
 	NeoJJLogGraphLine = { link = "Comment" },
 	NeoJJLogWorkingCopy = { link = "DiffAdd" },

@@ -85,11 +85,17 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 	local is_current_head = revision.graph and revision.graph:match("@") ~= nil
 	local commit_highlight = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogCommit"
 
+	-- Build commit text components with bookmark highlighting
+	local commit_components = LogUI.create_commit_text_components(commit_part, revision, commit_highlight)
+
+	-- Combine graph + commit text components
+	local row_children = { Ui.text(LogUI.highlight_graph(graph_part), { highlight = "NeoJJLogGraph" }) }
+	for _, comp in ipairs(commit_components) do
+		table.insert(row_children, comp)
+	end
+
 	-- Create the header row
-	local header_row = Ui.row({
-		Ui.text(LogUI.highlight_graph(graph_part), { highlight = "NeoJJLogGraph" }),
-		Ui.text(LogUI.highlight_commit_info(commit_part, revision), { highlight = commit_highlight }),
-	}, {
+	local header_row = Ui.row(row_children, {
 		item = revision,
 		interactive = true,
 	})
@@ -172,14 +178,52 @@ function LogUI.highlight_graph(graph_text)
 	return graph_text
 end
 
----Apply highlighting to commit information
----@param commit_text string Commit info portion
----@param revision table Revision data
----@return string highlighted_commit Commit text with highlighting
-function LogUI.highlight_commit_info(commit_text, revision)
-	-- For now, return as-is. We could enhance this later to highlight
-	-- specific parts like change ID, author, timestamp differently
-	return commit_text
+---Create highlighted text components for the commit info, with bookmarks highlighted
+---@param commit_text string The commit info portion of the line
+---@param revision table Revision data with bookmarks field
+---@param base_highlight string Base highlight group for non-bookmark text
+---@return table[] components List of text components
+function LogUI.create_commit_text_components(commit_text, revision, base_highlight)
+	if not revision.bookmarks or #revision.bookmarks == 0 then
+		return { Ui.text(commit_text, { highlight = base_highlight }) }
+	end
+
+	-- Find the region where bookmarks appear (between timestamp and commit_id)
+	local _, ts_end = commit_text:find(revision.timestamp, 1, true)
+	local cid_start = ts_end and commit_text:find(revision.commit_id, ts_end + 1, true)
+
+	if not ts_end or not cid_start then
+		return { Ui.text(commit_text, { highlight = base_highlight }) }
+	end
+
+	local components = {}
+
+	-- Text before bookmarks (change_id, author, timestamp)
+	local prefix = commit_text:sub(1, ts_end)
+	table.insert(components, Ui.text(prefix, { highlight = base_highlight }))
+
+	-- Highlight each bookmark within the region between timestamp and commit_id
+	local bookmark_region = commit_text:sub(ts_end + 1, cid_start - 1)
+	local remaining = bookmark_region
+	for _, bookmark in ipairs(revision.bookmarks) do
+		local bm_start, bm_end = remaining:find(bookmark, 1, true)
+		if bm_start then
+			if bm_start > 1 then
+				table.insert(components, Ui.text(remaining:sub(1, bm_start - 1), { highlight = base_highlight }))
+			end
+			table.insert(components, Ui.text(bookmark, { highlight = "NeoJJLogBookmark" }))
+			remaining = remaining:sub(bm_end + 1)
+		end
+	end
+	if remaining ~= "" then
+		table.insert(components, Ui.text(remaining, { highlight = base_highlight }))
+	end
+
+	-- Text after bookmarks (commit_id and beyond)
+	local suffix = commit_text:sub(cid_start)
+	table.insert(components, Ui.text(suffix, { highlight = base_highlight }))
+
+	return components
 end
 
 ---Get highlight group for graph characters

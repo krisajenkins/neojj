@@ -32,6 +32,7 @@
 ---@field timestamp string Timestamp string
 ---@field commit_id string Commit ID
 ---@field description string First line of description
+---@field bookmarks string[] Bookmark names pointing to this revision
 ---@field graph string ASCII graph prefix for this revision
 ---@field line_number integer Line number in the output where this revision appears
 

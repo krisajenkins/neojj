@@ -31,6 +31,7 @@ T["parse_log_output"]["parses simple linear history"] = function()
 	expect.equality(rev1.commit_id, "230dd059")
 	expect.equality(rev1.description, "Update README with examples")
 	expect.equality(rev1.graph, "@  ")
+	expect.equality(#rev1.bookmarks, 0)
 
 	-- Check second revision
 	local rev2 = result.revisions[2]
@@ -43,6 +44,42 @@ T["parse_log_output"]["parses simple linear history"] = function()
 	expect.equality(type(result.graph_data), "table")
 	-- The first line should have graph data with the revision
 	expect.equality(result.graph_data[1].revision, rev1)
+end
+
+T["parse_log_output"]["parses bookmarks from commit lines"] = function()
+	local output = read_fixture("log-graph-bookmarks.txt")
+	local result = log_parser.parse_log_output(output)
+
+	-- Should have 4 revisions
+	expect.equality(#result.revisions, 4)
+
+	-- First revision has one bookmark
+	local rev1 = result.revisions[1]
+	expect.equality(rev1.change_id, "qpvuntsm")
+	expect.equality(rev1.commit_id, "230dd059")
+	expect.equality(#rev1.bookmarks, 1)
+	expect.equality(rev1.bookmarks[1], "main")
+
+	-- Second revision has two bookmarks
+	local rev2 = result.revisions[2]
+	expect.equality(rev2.change_id, "rlvkpnrz")
+	expect.equality(rev2.commit_id, "2443ea76")
+	expect.equality(#rev2.bookmarks, 2)
+	expect.equality(rev2.bookmarks[1], "feature-branch")
+	expect.equality(rev2.bookmarks[2], "dev")
+
+	-- Third revision has no bookmarks
+	local rev3 = result.revisions[3]
+	expect.equality(rev3.change_id, "tknwxqrs")
+	expect.equality(rev3.commit_id, "5621ab34")
+	expect.equality(#rev3.bookmarks, 0)
+
+	-- Fourth revision has one bookmark
+	local rev4 = result.revisions[4]
+	expect.equality(rev4.change_id, "zzzzzzzz")
+	expect.equality(rev4.commit_id, "00000000")
+	expect.equality(#rev4.bookmarks, 1)
+	expect.equality(rev4.bookmarks[1], "release-v1.0")
 end
 
 T["parse_log_output"]["parses merge commits with complex graph"] = function()
