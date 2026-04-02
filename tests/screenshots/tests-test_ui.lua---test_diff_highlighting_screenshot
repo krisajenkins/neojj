@@ -18,7 +18,7 @@
 17|                                                                                                                        
 18|+ +-- New function added                                                                                                
 19|+ +local function helper()                                                                                              
-20|Test Diff [RO]                                                                                        1,1            Top
+20|Test Diff [-][RO]                                                                                     1,1            Top
 21|                                                                                                                        
 22|~                                                                                                                       
 23|~                                                                                                                       

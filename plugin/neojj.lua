@@ -7,6 +7,9 @@ if vim.g.loaded_neojj then
 end
 vim.g.loaded_neojj = 1
 
+-- Define highlight groups immediately on plugin load
+require("neojj.highlights").setup()
+
 -- Re-apply highlights after colorscheme changes
 vim.api.nvim_create_autocmd("ColorScheme", {
 	group = vim.api.nvim_create_augroup("NeoJJHighlights", { clear = true }),

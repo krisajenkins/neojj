@@ -161,7 +161,10 @@ function Renderer.render_to_buffer(buffer, components)
 	vim.api.nvim_buf_clear_namespace(buffer, namespace, 0, -1)
 
 	for _, hl in ipairs(context.highlights) do
-		vim.api.nvim_buf_add_highlight(buffer, namespace, hl.group, hl.line, hl.col_start, hl.col_end)
+		vim.api.nvim_buf_set_extmark(buffer, namespace, hl.line, hl.col_start, {
+			end_col = hl.col_end,
+			hl_group = hl.group,
+		})
 	end
 
 	-- Apply extmarks
