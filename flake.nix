@@ -12,7 +12,10 @@
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
-          overlays = [ (import ./overlays/jujutsu.nix) ];
+          overlays = [
+            (import ./overlays/jujutsu.nix)
+            (import ./overlays/neovim.nix)
+          ];
         };
       in
       {
