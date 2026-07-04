@@ -1,15 +1,16 @@
+# @update github-release jj-vcs/jj
 final: prev: {
   jujutsu = prev.jujutsu.overrideAttrs (oldAttrs: rec {
-    version = "0.40.0";
+    version = "0.43.0";
     src = prev.fetchFromGitHub {
       owner = "jj-vcs";
       repo = "jj";
       rev = "v${version}";
-      hash = "sha256-PBrsNHywOUEiFyyHW6J4WHDmLwVWv2JkbHCNvbE0tHE=";
+      hash = "sha256-XgBq2ZN34iWlwKVgW7Syr46KUdt7pJuSDd/J6QWJwwQ=";
     };
     cargoDeps = prev.rustPlatform.fetchCargoVendor {
       inherit src;
-      hash = "sha256-jOklgYw6mYCs/FnTczmkT7MlepNtnHXfFB4lghpLOVE=";
+      hash = "sha256-bEvpTd+FAHrD+CZN7+AuCuThyJ5LtufQR7OrGpjrWK0=";
     };
 
     meta = oldAttrs.meta // {
