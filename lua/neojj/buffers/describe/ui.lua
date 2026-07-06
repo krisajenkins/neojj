@@ -42,7 +42,6 @@ function DescribeUI.create_help_section()
 end
 
 ---Create a section header with proper highlighting
----@param text string Header text
 ---@return table component Section header component
 function DescribeUI.create_help_header()
 	return Ui.text("JJ: Commands:", { highlight = "NeoJJDescribeSection" })

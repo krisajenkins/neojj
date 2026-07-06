@@ -19,9 +19,8 @@ local T = MiniTest.new_set({
 			child.lua([[ M = require('neojj') ]])
 			child.lua([[ expect = require('mini.test').expect ]])
 
-			---Helper function to read test data files
-			---@param filename string Name of the test data file
-			---@return string[] File contents as array of lines
+			-- Defines slurp_test_data(filename) -> string[] in the child nvim;
+			-- annotations kept as plain comments since the body lives in a string.
 			child.lua([=[ function slurp_test_data(filename)
           return vim.fn.readfile('tests/'..filename)
       end ]=])
