@@ -19,11 +19,6 @@ function Cli:arg(value)
 	return self
 end
 
-function Cli:args(values)
-	vim.list_extend(self.args, values)
-	return self
-end
-
 function Cli:option(key, value)
 	if value then
 		table.insert(self.args, "--" .. key)
