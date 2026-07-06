@@ -10,21 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Handle missing jj binary and slow commands gracefully
-
-In `Cli:call` (`lua/neojj/lib/jj/cli.lua:72-91`), `Job:new` sits *outside* the
-pcall; plenary raises `error(debug.traceback(...))` when the executable is
-missing, so a user without jj on Neovim's PATH gets a raw Lua stack trace from
-`:JJ new`. Also `job:sync()` (line 80) uses plenary's default 5000 ms timeout
-and hard-errors past it — `jj log` on a large repo or a first-run working-copy
-snapshot surfaces as a cryptic "unable to complete in 5000ms" failure.
-
-Fix: pre-check `vim.fn.exepath("jj") == ""` (or move `Job:new` inside the
-pcall) and return `{success=false, stderr="jj executable not found..."}` with a
-`vim.notify`-worthy message; pass an explicit generous timeout (e.g.
-`job:sync(60000)`); surface timeouts via `vim.notify`. Error-path tests come in
-a later item.
-
 # [ ] Make the CLI layer genuinely async and stop running jj during render
 
 Despite CLAUDE.md's description, the async architecture is not real: every jj

@@ -66,4 +66,36 @@ T["call passes env when a variable is set"] = function()
 	restore()
 end
 
+T["call fails gracefully when jj is not on PATH"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	local saved_exepath = vim.fn.exepath
+	local saved_notify = vim.notify
+	local notified = {}
+	vim.fn.exepath = function()
+		return ""
+	end
+	vim.notify = function(msg, level)
+		table.insert(notified, { msg = msg, level = level })
+	end
+
+	local ok, result = pcall(function()
+		return Cli.status():call()
+	end)
+
+	vim.fn.exepath = saved_exepath
+	vim.notify = saved_notify
+	restore()
+
+	-- No raw error should reach the caller...
+	expect.equality(ok, true)
+	-- ...instead the standard failure table with a string stderr.
+	expect.equality(result.success, false)
+	expect.equality(type(result.stderr), "string")
+	expect.no_equality(result.stderr, "")
+	-- No Job should have been spawned, and the user should be notified.
+	expect.equality(captured.opts, nil)
+	expect.equality(#notified >= 1, true)
+end
+
 return T

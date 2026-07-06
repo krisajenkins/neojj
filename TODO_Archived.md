@@ -5,6 +5,25 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change slpsoxow)*
+
+# [x] Handle missing jj binary and slow commands gracefully
+
+In `Cli:call` (`lua/neojj/lib/jj/cli.lua:72-91`), `Job:new` sits *outside* the
+pcall; plenary raises `error(debug.traceback(...))` when the executable is
+missing, so a user without jj on Neovim's PATH gets a raw Lua stack trace from
+`:JJ new`. Also `job:sync()` (line 80) uses plenary's default 5000 ms timeout
+and hard-errors past it — `jj log` on a large repo or a first-run working-copy
+snapshot surfaces as a cryptic "unable to complete in 5000ms" failure.
+
+Fix: pre-check `vim.fn.exepath("jj") == ""` (or move `Job:new` inside the
+pcall) and return `{success=false, stderr="jj executable not found..."}` with a
+`vim.notify`-worthy message; pass an explicit generous timeout (e.g.
+`job:sync(60000)`); surface timeouts via `vim.notify`. Error-path tests come in
+a later item.
+
+---
+
 *Archived: 2026-07-06 (change lqvrnlpn)*
 
 # [x] Stop passing an empty environment to jj subprocesses

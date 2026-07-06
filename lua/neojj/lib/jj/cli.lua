@@ -5,6 +5,10 @@ local logger = require("neojj.logger")
 local Cli = {}
 Cli.__index = Cli
 
+-- Generous timeout (ms) for synchronous jj calls. plenary defaults to 5000ms,
+-- which is too tight for large repos or a first-run working-copy snapshot.
+local SYNC_TIMEOUT_MS = 60000
+
 local function new_builder(cmd)
 	local builder = setmetatable({}, Cli)
 	builder.cmd = cmd or "jj"
@@ -53,44 +57,69 @@ function Cli:call()
 	local cmd_args = vim.deepcopy(self.args)
 	local cwd = self.options.cwd or vim.fn.getcwd()
 
-	-- Resolve full path for jj command at call time
+	-- Resolve full path for jj command at call time, and fail loudly (rather
+	-- than with a raw plenary stack trace) when it isn't on PATH.
 	local command = self.cmd
 	if command == "jj" then
 		local jj_path = vim.fn.exepath("jj")
-		if jj_path ~= "" then
-			command = jj_path
+		if jj_path == "" then
+			local msg = "jj executable not found on PATH"
+			logger.error(msg)
+			vim.notify("NeoJJ: " .. msg, vim.log.levels.ERROR)
+			return {
+				success = false,
+				exit_code = -1,
+				stdout = nil,
+				stderr = msg,
+			}
 		end
+		command = jj_path
 	end
 
 	logger.debug("Executing: " .. command .. " " .. table.concat(cmd_args, " ") .. " (cwd: " .. cwd .. ")")
 
-	local job = Job:new({
-		command = command,
-		args = cmd_args,
-		cwd = cwd,
-		-- Only pass env when the caller has actually set variables. plenary's
-		-- Job treats any non-nil env table as the *entire* child environment,
-		-- so an empty-but-non-nil table would strip PATH, SSH_AUTH_SOCK,
-		-- JJ_CONFIG, EDITOR, etc. Passing nil lets the child inherit ours.
-		env = next(self._env) and self._env or nil,
-	})
-
+	-- Guard both Job:new (which raises when the executable is missing) and
+	-- job:sync (which raises on timeout) so an infrastructure failure becomes a
+	-- normal failure table instead of a stack trace at the user.
 	local ok, result = pcall(function()
-		return job:sync()
+		local job = Job:new({
+			command = command,
+			args = cmd_args,
+			cwd = cwd,
+			-- Only pass env when the caller has actually set variables. plenary's
+			-- Job treats any non-nil env table as the *entire* child environment,
+			-- so an empty-but-non-nil table would strip PATH, SSH_AUTH_SOCK,
+			-- JJ_CONFIG, EDITOR, etc. Passing nil lets the child inherit ours.
+			env = next(self._env) and self._env or nil,
+		})
+		-- plenary's Job:sync(timeout, wait_interval) accepts a timeout; its
+		-- bundled type stub omits the params, so silence the false positive.
+		---@diagnostic disable-next-line: redundant-parameter
+		local stdout = job:sync(SYNC_TIMEOUT_MS)
+		return { job = job, stdout = stdout }
 	end)
 
 	if not ok then
-		logger.error("Command failed: " .. tostring(result))
+		local err = tostring(result)
+		logger.error("Command failed: " .. err)
+		-- Timeouts and spawn failures are infrastructure problems the buffers
+		-- can't meaningfully render, so surface them directly to the user.
+		if err:match("unable to complete") then
+			vim.notify("NeoJJ: jj command timed out after " .. SYNC_TIMEOUT_MS .. "ms", vim.log.levels.WARN)
+		else
+			vim.notify("NeoJJ: failed to run jj: " .. err, vim.log.levels.ERROR)
+		end
 		return {
 			success = false,
 			exit_code = -1,
 			stdout = nil,
-			stderr = tostring(result),
+			stderr = err,
 		}
 	end
 
+	local job = result.job
 	local exit_code = job.code
-	local stdout = result or {}
+	local stdout = result.stdout or {}
 	local stderr = job:stderr_result() or {}
 
 	local success = exit_code == 0
