@@ -7,8 +7,9 @@ local AnnotateUI = {}
 ---@param str string String with ANSI codes
 ---@return string clean String without ANSI codes
 local function strip_ansi(str)
-	-- Pattern matches ANSI escape sequences
-	return str:gsub("\27%[[%d;]*m", "")
+	-- Pattern matches ANSI escape sequences.
+	-- Parenthesised so only the cleaned string is returned, not gsub's count.
+	return (str:gsub("\27%[[%d;]*m", ""))
 end
 
 ---Parse a single line from jj file annotate output

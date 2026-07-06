@@ -18,14 +18,7 @@ local Highlights = require("neojj.highlights")
 ---@field is_jj_repo function
 ---@field get_working_copy function
 
----@class WorkingCopy
----@field change_id? string
----@field commit_id? string
----@field description string
----@field author { name: string, email: string }
----@field modified_files { status: string, path: string }[]
----@field conflicts { path: string }[]
----@field is_empty boolean
+-- WorkingCopy is defined canonically in lua/neojj/lib/jj/types.lua
 
 local M = {}
 
