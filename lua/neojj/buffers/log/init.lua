@@ -48,8 +48,10 @@ local LOG_TEMPLATE = table.concat({
 local LogBuffer = {}
 LogBuffer.__index = LogBuffer
 
--- Singleton instance
-local instance = nil
+-- Per-repo instance tracking. Keyed by the normalized repo dir so that log
+-- views for two different repos coexist instead of sharing one instance (and
+-- one underlying buffer).
+local instances = {}
 
 ---Create or get existing log buffer
 ---@param repo table Repository instance
@@ -58,11 +60,13 @@ local instance = nil
 function LogBuffer.new(repo, options)
 	options = options or {}
 
-	-- Return existing instance if available and for same repo
-	if instance and instance:is_valid() and instance.repo.dir == repo.dir then
+	local repo_key = vim.fs.normalize(repo.dir)
+
+	-- Return existing instance if available for this repo
+	if instances[repo_key] and instances[repo_key]:is_valid() then
 		-- Update options on existing instance
-		instance.options = options
-		return instance
+		instances[repo_key].options = options
+		return instances[repo_key]
 	end
 
 	local new_instance = setmetatable({
@@ -76,9 +80,11 @@ function LogBuffer.new(repo, options)
 		expanded_revisions = {},
 	}, LogBuffer)
 
-	-- Create buffer with fixed name (reuse if exists)
+	-- Create buffer with a per-repo namespaced name (reuse if exists). Two
+	-- different repos must not share the same underlying buffer.
+	local util = require("neojj.lib.jj.util")
 	local buffer = Buffer.create({
-		name = "NeoJJ Log",
+		name = "NeoJJ Log (" .. util.repo_namespace(repo) .. ")",
 		filetype = "neojj-log",
 		kind = "replace", -- Default to replace current view
 		modifiable = false,
@@ -127,8 +133,8 @@ function LogBuffer.new(repo, options)
 	-- Add log-specific key mappings
 	new_instance:_setup_mappings()
 
-	-- Store as singleton instance
-	instance = new_instance
+	-- Store instance for reuse
+	instances[repo_key] = new_instance
 
 	return new_instance
 end

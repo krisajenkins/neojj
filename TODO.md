@@ -10,18 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Namespace buffers per repo
-
-Buffer names are fixed strings (`"NeoJJ Status"` at `status/init.lua:40`,
-`"NeoJJ Log"` at `log/init.lua:24-43`) while instances are keyed per repo
-(`status/init.lua:14-29`), so status views for two different repos share one
-underlying nvim buffer — the second repo's `_setup_mappings` closures overwrite
-the first's, and a still-"valid" first instance renders repo A's content while
-`r`/`d`/`n` act on repo B.
-
-Fix: include a repo identifier (root basename, disambiguated) in the buffer
-name. Do this after the exact-name matching fix above.
-
 # [ ] Re-detect repositories initialised after first use
 
 `JjRepo.instance` memoises per cwd and `detect_repository` only runs in the

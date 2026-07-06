@@ -32,4 +32,32 @@ function M.dir_exists(path)
 	return vim.fn.isdirectory(path) == 1
 end
 
+---Derive a short, stable identifier for a repository, suitable for namespacing
+---buffer names so that status/log views for different repos don't share (and
+---clobber) the same underlying Neovim buffer.
+---
+---The identifier is the repo root's basename, with a short deterministic hash
+---of the full normalized root path appended so that two distinct repos which
+---happen to share a basename still get distinct identifiers. The hash is a slice
+---of `sha256` (not a random suffix), so the same repo always maps to the same
+---identifier across sessions.
+---@param repo table Repository instance (responds to `get_root`; falls back to `repo.dir`)
+---@return string id Namespace identifier, e.g. "myproject-1a2b3c"
+function M.repo_namespace(repo)
+	local root = type(repo.get_root) == "function" and repo:get_root() or nil
+	if not root or root == "" then
+		root = repo.dir
+	end
+
+	root = vim.fs.normalize(root)
+
+	local base = vim.fs.basename(root)
+	if not base or base == "" then
+		base = root
+	end
+
+	local hash = vim.fn.sha256(root):sub(1, 6)
+	return base .. "-" .. hash
+end
+
 return M

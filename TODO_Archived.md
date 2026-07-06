@@ -5,6 +5,28 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change tpvrmzxl)*
+
+# [x] Namespace buffers per repo
+
+Buffer names are fixed strings (`"NeoJJ Status"` at `status/init.lua:40`,
+`"NeoJJ Log"` at `log/init.lua:24-43`) while instances are keyed per repo
+(`status/init.lua:14-29`), so status views for two different repos share one
+underlying nvim buffer — the second repo's `_setup_mappings` closures overwrite
+the first's, and a still-"valid" first instance renders repo A's content while
+`r`/`d`/`n` act on repo B.
+
+Fix: include a repo identifier (root basename, disambiguated) in the buffer
+name. Do this after the exact-name matching fix above.
+
+> Note: added `util.repo_namespace(repo)` (basename + 6-char sha256 slice of the
+> root path); converted the log buffer's module-global singleton to a per-repo
+> `instances` map so two repos' log views coexist. The path-hash suffix is
+> visible in the statusline, so the integration test repo was pinned to a
+> deterministic path and the 8 reference screenshots re-baselined.
+
+---
+
 *Archived: 2026-07-06 (change uonomuxv)*
 
 # [x] Match NeoJJ buffers by exact name

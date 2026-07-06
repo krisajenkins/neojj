@@ -37,8 +37,13 @@ function StatusBuffer.new(repo, revision)
 		show_help = false,
 	}, StatusBuffer)
 
-	-- Create buffer with fixed name (reuse if exists)
-	local buffer_name = revision and ("NeoJJ Status: " .. revision:sub(1, 8)) or "NeoJJ Status"
+	-- Create buffer with a per-repo namespaced name (reuse if exists). Two
+	-- different repos must not share the same underlying buffer, otherwise the
+	-- second repo's mappings clobber the first's.
+	local util = require("neojj.lib.jj.util")
+	local id = util.repo_namespace(repo)
+	local buffer_name = revision and ("NeoJJ Status (" .. id .. "): " .. revision:sub(1, 8))
+		or ("NeoJJ Status (" .. id .. ")")
 	local buffer = Buffer.create({
 		name = buffer_name,
 		filetype = "neojj-status",

@@ -49,10 +49,18 @@ local T = MiniTest.new_set({
 			child.lua([[ M.setup() ]])
 			child.lua([[ expect = require('mini.test').expect ]])
 
-			-- Create a fake repo directory for testing
+			-- Create a fake repo directory for testing.
+			--
+			-- The directory path must be *deterministic* (not vim.fn.tempname(),
+			-- which is random per run) because buffer names are now namespaced per
+			-- repo: they embed a short hash of the repo root path, and that name is
+			-- shown in the window statusline captured by the reference screenshots.
+			-- A random path would produce a different hash — and thus a different
+			-- statusline — on every run, so the screenshots could never match.
 			child.lua([[
-				-- Create a minimal mock repository
-				local mock_repo_dir = vim.fn.tempname() .. '_neojj_test'
+				-- Create a minimal mock repository at a fixed, deterministic path.
+				local mock_repo_dir = vim.fn.fnamemodify(vim.fn.resolve('/tmp'), ':p') .. 'neojj_integration_test_repo'
+				vim.fn.delete(mock_repo_dir, 'rf')
 				vim.fn.mkdir(mock_repo_dir, 'p')
 				vim.fn.mkdir(mock_repo_dir .. '/.jj', 'p')
 
