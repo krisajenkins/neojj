@@ -5,6 +5,24 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change yrmnzrqm)*
+
+# [x] Describe buffer: don't wipe user input on async load
+
+The describe buffer opens empty, schedules `startinsert`, and the async
+`load_current_description` render lands later
+(`lua/neojj/buffers/describe/init.lua:129-144, 263-299`) — erasing anything the
+user has already typed and force-resetting `'modified'`.
+
+Fix: render the current description synchronously before showing the buffer, or
+skip the render if the buffer is already modified.
+
+> Note: implemented the skip-if-modified guard in render_components (the async
+> load is deliberately not made synchronous). Also nil-guarded the load's CLI
+> result.
+
+---
+
 *Archived: 2026-07-07 (change kpvyurpz)*
 
 # [x] Make the plugin work without setup() and validate options

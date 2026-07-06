@@ -295,7 +295,7 @@ function DescribeBuffer:load_current_description()
 
 		local result = cmd:call()
 
-		if result.success and result.stdout then
+		if result and result.success and result.stdout then
 			local log_json, err = json_parser.parse_log_json(result.stdout)
 			if log_json then
 				vim.schedule(function()
@@ -312,7 +312,7 @@ function DescribeBuffer:load_current_description()
 				end)
 			end
 		else
-			logger.warn("Could not load current description: " .. (result.stderr or ""))
+			logger.warn("Could not load current description: " .. (result and result.stderr or ""))
 			vim.schedule(function()
 				self.current_description = ""
 				self.description_loaded = true
@@ -331,6 +331,17 @@ end
 ---Render components to the buffer
 function DescribeBuffer:render_components()
 	if not self.buffer or not self.buffer:is_valid() then
+		return
+	end
+
+	-- Don't clobber user input. load_current_description() runs async and its
+	-- render can land after the user has already started typing (the buffer
+	-- opens empty and schedules startinsert). If the buffer is already
+	-- modified, the user has typed something, so bail out rather than
+	-- overwriting their text with the loaded description and force-resetting
+	-- 'modified'. The freshly-opened, unmodified case still renders normally.
+	if vim.api.nvim_get_option_value("modified", { buf = self.buffer.handle }) then
+		logger.debug("Skipping describe render: buffer already modified by user")
 		return
 	end
 

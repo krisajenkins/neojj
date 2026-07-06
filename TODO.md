@@ -10,16 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Describe buffer: don't wipe user input on async load
-
-The describe buffer opens empty, schedules `startinsert`, and the async
-`load_current_description` render lands later
-(`lua/neojj/buffers/describe/init.lua:129-144, 263-299`) — erasing anything the
-user has already typed and force-resetting `'modified'`.
-
-Fix: render the current description synchronously before showing the buffer, or
-skip the render if the buffer is already modified.
-
 # [ ] Annotate robustness: cursor parsing, scroll alignment, help
 
 Three fixes in `lua/neojj/buffers/annotate/`:

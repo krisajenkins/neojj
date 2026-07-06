@@ -330,4 +330,57 @@ T.test_submit_reentry_guard = function()
 	]])
 end
 
+--- The async load_current_description() render must not wipe text the user has
+--- already typed. The describe buffer opens empty and schedules startinsert, so
+--- an impatient user can type before the (async) description load lands. If the
+--- buffer is already modified, render_components() must bail out rather than
+--- overwrite the user's in-progress text with the loaded description.
+T.test_load_does_not_wipe_user_input = function()
+	child.lua([[
+		expect = require('mini.test').expect
+
+		-- Capture the async load fn instead of running it, so we control exactly
+		-- when the description render lands (i.e. after the user has typed).
+		local captured_fn
+		package.loaded['plenary.async'] = {
+			run = function(fn) captured_fn = fn end,
+		}
+		_G.__run_captured = function() if captured_fn then captured_fn() end end
+
+		-- Mock the jj CLI so the deferred load resolves to a real description.
+		local function chain()
+			local b = {}
+			b.option = function(self) return self end
+			b.flag = function(self) return self end
+			b.call = function()
+				return { success = true, stdout = '{"description":"loaded from jj"}' }
+			end
+			return b
+		end
+		package.loaded['neojj.lib.jj.cli'] = { log = function() return chain() end }
+
+		local mock_repo = { dir = '/fake/repo', is_jj_repo = function() return true end }
+		local DescribeBuffer = require('neojj.buffers.describe')
+		db = DescribeBuffer.new(mock_repo, '@')
+		db:show()
+
+		-- The load has NOT resolved yet (async.run only captured its fn).
+		-- Simulate the user typing before the description arrives.
+		vim.cmd('stopinsert')
+		vim.api.nvim_buf_set_lines(db.buffer.handle, 0, -1, false, { 'my work in progress' })
+		vim.api.nvim_set_option_value('modified', true, { buf = db.buffer.handle })
+
+		-- Now the async load resolves and tries to render the loaded description.
+		_G.__run_captured()
+		vim.wait(500, function() return db.description_loaded end)
+
+		-- The user's text must survive; the loaded description must NOT clobber it.
+		local lines = vim.api.nvim_buf_get_lines(db.buffer.handle, 0, -1, false)
+		expect.equality(lines[1], 'my work in progress')
+		expect.equality(table.concat(lines, '\n'):find('loaded from jj'), nil)
+
+		package.loaded['plenary.async'] = nil
+	]])
+end
+
 return T
