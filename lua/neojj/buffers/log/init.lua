@@ -200,7 +200,7 @@ function LogBuffer:refresh()
 	logger.info("Refreshing log buffer")
 
 	if not self.repo:is_jj_repo() then
-		self:render_error("Not a JJ repository")
+		self.buffer:render_error("Not a JJ repository")
 		return
 	end
 
@@ -315,18 +315,6 @@ function LogBuffer:render()
 	self.buffer:render(components)
 end
 
----Render an error message
----@param message string Error message
-function LogBuffer:render_error(message)
-	local Ui = require("neojj.lib.ui")
-	local components = {
-		Ui.text("Error: " .. message, { highlight = "ErrorMsg" }),
-		Ui.empty_line(),
-		Ui.text("Press q to quit", { highlight = "NeoJJHelpText" }),
-	}
-	self.buffer:render(components)
-end
-
 ---Show the log buffer
 ---@param kind? string Display mode override
 function LogBuffer:show(kind)
@@ -381,26 +369,19 @@ function LogBuffer:describe_commit_at_cursor()
 
 	local DescribeBuffer = require("neojj.buffers.describe")
 
-	-- Callback to refresh log buffer when description is updated
+	-- Callbacks fire after describe's submit()/abort() have already closed the
+	-- describe view, so we refresh and re-focus the log synchronously (no timer).
 	local function on_submit()
 		vim.notify("Description updated", vim.log.levels.INFO)
 		if self.buffer and self.buffer:is_valid() then
 			self:refresh()
-			vim.defer_fn(function()
-				if self.buffer and self.buffer:is_valid() then
-					self.buffer:open()
-				end
-			end, 100)
+			self.buffer:open()
 		end
 	end
 
 	local function on_abort()
 		if self.buffer and self.buffer:is_valid() then
-			vim.defer_fn(function()
-				if self.buffer and self.buffer:is_valid() then
-					self.buffer:open()
-				end
-			end, 100)
+			self.buffer:open()
 		end
 	end
 

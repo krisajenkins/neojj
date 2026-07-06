@@ -14,6 +14,22 @@ StatusBuffer.__index = StatusBuffer
 -- Singleton instance tracking
 local instances = {}
 
+---Return the currently-valid status buffer instances tracked by this module.
+---
+---Lets callers outside this module (e.g. the top-level :JJ describe handler)
+---refresh and re-focus an open status view without reaching into the private
+---`instances` map or scanning buffers by name.
+---@return StatusBuffer[] instances Valid status buffer instances
+function StatusBuffer.list_instances()
+	local result = {}
+	for _, inst in pairs(instances) do
+		if inst:is_valid() then
+			table.insert(result, inst)
+		end
+	end
+	return result
+end
+
 ---Create or get existing status buffer for a repository
 ---@param repo table Repository instance
 ---@param revision? string Optional revision to show (defaults to working copy)
@@ -292,7 +308,7 @@ function StatusBuffer:refresh()
 	logger.info("Refreshing status buffer" .. (self.revision and (" for revision: " .. self.revision) or ""))
 
 	if not self.repo:is_jj_repo() then
-		self:render_error("Not a JJ repository")
+		self.buffer:render_error("Not a JJ repository")
 		return
 	end
 
@@ -306,7 +322,7 @@ function StatusBuffer:refresh()
 			working_copy = self:get_revision_data(self.revision)
 			if not working_copy then
 				vim.schedule(function()
-					self:render_error("Failed to get data for revision: " .. self.revision)
+					self.buffer:render_error("Failed to get data for revision: " .. self.revision)
 				end)
 				return
 			end
@@ -315,7 +331,7 @@ function StatusBuffer:refresh()
 			local ok, err = self.repo:refresh()
 			if not ok then
 				vim.schedule(function()
-					self:render_error("Failed to refresh status: " .. tostring(err))
+					self.buffer:render_error("Failed to refresh status: " .. tostring(err))
 				end)
 				return
 			end
@@ -365,18 +381,6 @@ function StatusBuffer:render()
 		components = StatusUI.create(self.state, self.expanded_files, self)
 	end
 
-	self.buffer:render(components)
-end
-
----Render an error message
----@param message string Error message
-function StatusBuffer:render_error(message)
-	local Ui = require("neojj.lib.ui")
-	local components = {
-		Ui.text("Error: " .. message, { highlight = "ErrorMsg" }),
-		Ui.empty_line(),
-		Ui.text("Press q to quit", { highlight = "NeoJJHelpText" }),
-	}
 	self.buffer:render(components)
 end
 
@@ -589,31 +593,22 @@ end
 function StatusBuffer:describe_current_commit()
 	local DescribeBuffer = require("neojj.buffers.describe")
 
-	-- Callback to refresh status buffer when description is updated
+	-- Callbacks fire after describe's submit()/abort() have already closed the
+	-- describe view, so we refresh and re-focus the status buffer synchronously
+	-- (no timer needed to wait for describe's window to tear down).
 	local function on_submit()
 		vim.notify("Description updated", vim.log.levels.INFO)
-		-- Only refresh if the status buffer is still valid
 		if self.buffer and self.buffer:is_valid() then
 			self:refresh()
-			-- Return focus to the status buffer after a short delay to ensure describe buffer closes first
-			vim.defer_fn(function()
-				if self.buffer and self.buffer:is_valid() then
-					self.buffer:open()
-				end
-			end, 100)
+			self.buffer:open()
 		else
 			logger.debug("Status buffer no longer valid, skipping refresh after describe")
 		end
 	end
 
 	local function on_abort()
-		-- Return focus to status buffer on abort as well
 		if self.buffer and self.buffer:is_valid() then
-			vim.defer_fn(function()
-				if self.buffer and self.buffer:is_valid() then
-					self.buffer:open()
-				end
-			end, 100)
+			self.buffer:open()
 		end
 	end
 

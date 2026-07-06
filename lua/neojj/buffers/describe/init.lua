@@ -234,17 +234,21 @@ function DescribeBuffer:submit()
 				-- Clear the guard so a later, legitimate submit can proceed.
 				self.submitting = false
 				vim.notify("Description updated", vim.log.levels.INFO)
-				-- Call the callback before closing the buffer
+				-- Close the describe buffer BEFORE invoking on_submit. Tearing down
+				-- the describe window first lets callers refresh and re-focus their
+				-- originating view synchronously, rather than deferring past
+				-- describe's window teardown with a timer. Mirrors abort(), which
+				-- already closes before invoking its callback.
+				if self.buffer and self.buffer:is_valid() then
+					self.buffer:close()
+				end
+				-- Call the callback after the buffer has closed
 				if self.on_submit then
 					-- Wrap the callback in pcall to prevent errors from crashing
 					local success, err = pcall(self.on_submit)
 					if not success then
 						logger.error("Error in on_submit callback: " .. tostring(err))
 					end
-				end
-				-- Close buffer after callback
-				if self.buffer and self.buffer:is_valid() then
-					self.buffer:close()
 				end
 			end)
 		else

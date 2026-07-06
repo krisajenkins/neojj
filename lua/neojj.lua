@@ -220,51 +220,34 @@ function M.jj_describe(dir, revision, split)
 		return
 	end
 
-	-- Callback to refresh status buffer if it exists
+	-- Re-focus an open status view (if one is visible) after describe tears down.
+	-- describe's submit()/abort() now close the describe buffer before invoking
+	-- these callbacks, so we act synchronously instead of deferring past the
+	-- window teardown with a timer.
+	local function refocus_status(status_buffer)
+		if not status_buffer then
+			return
+		end
+		local windows = vim.fn.win_findbuf(status_buffer.buffer.handle)
+		if #windows > 0 then
+			vim.api.nvim_set_current_win(windows[1])
+		end
+	end
+
 	local function on_submit()
 		vim.notify("Description updated for " .. revision, vim.log.levels.INFO)
 
-		-- Look for any open status buffers and refresh/focus them
-		local status_buffers = vim.tbl_filter(function(buf)
-			if not vim.api.nvim_buf_is_valid(buf) then
-				return false
-			end
-			local name = vim.api.nvim_buf_get_name(buf)
-			return name:match("JJ Status") ~= nil
-		end, vim.api.nvim_list_bufs())
-
-		if #status_buffers > 0 then
-			-- Focus the first status buffer found
-			local status_buf = status_buffers[1]
-			local windows = vim.fn.win_findbuf(status_buf)
-			if #windows > 0 then
-				vim.defer_fn(function()
-					vim.api.nvim_set_current_win(windows[1])
-				end, 100)
-			end
+		-- Refresh and re-focus an open status view, mirroring what the status/log
+		-- describe handlers do for their own views.
+		local status_buffer = StatusBuffer.list_instances()[1]
+		if status_buffer then
+			status_buffer:refresh()
+			refocus_status(status_buffer)
 		end
 	end
 
 	local function on_abort()
-		-- Look for any open status buffers and focus them on abort too
-		local status_buffers = vim.tbl_filter(function(buf)
-			if not vim.api.nvim_buf_is_valid(buf) then
-				return false
-			end
-			local name = vim.api.nvim_buf_get_name(buf)
-			return name:match("JJ Status") ~= nil
-		end, vim.api.nvim_list_bufs())
-
-		if #status_buffers > 0 then
-			-- Focus the first status buffer found
-			local status_buf = status_buffers[1]
-			local windows = vim.fn.win_findbuf(status_buf)
-			if #windows > 0 then
-				vim.defer_fn(function()
-					vim.api.nvim_set_current_win(windows[1])
-				end, 100)
-			end
-		end
+		refocus_status(StatusBuffer.list_instances()[1])
 	end
 
 	local describe_buffer = DescribeBuffer.new(repo, revision, on_submit, on_abort)

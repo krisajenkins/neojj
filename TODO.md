@@ -10,19 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Extract shared buffer helpers to stop copy-paste drift
-
-The describe-submit callback logic exists three times
-(`log/init.lua:319-352`, `status/init.lua:526-560`, `neojj.lua:229-273`) with
-100 ms `vim.defer_fn` focus hacks, and has already drifted (the `neojj.lua` copy
-claims to refresh status buffers but only focuses them). `move_cursor_up/down`,
-`show/show_split/show_tab`, `render_error`, `is_valid`, `get_handle` are
-copy-pasted across all four buffer classes.
-
-Fix: extract a shared `buffers/common.lua` (or push the methods onto `Buffer`);
-replace the defer_fn timing hacks by focusing from the describe buffer's close
-path. Pure refactor — behaviour covered by the suite before and after.
-
 # [ ] Fix the two integration tests that pass without testing anything
 
 `tests/test_integration_workflows.lua:160` uses `vim.cmd("normal! \\<CR>")` —

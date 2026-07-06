@@ -208,6 +208,19 @@ function Buffer:render(components)
 	vim.api.nvim_set_option_value("readonly", self.config.readonly == true, { buf = self.handle })
 end
 
+---Render a standard "Error: ..." banner into the buffer.
+---
+---Shared by the status and log views so their failure rendering stays identical.
+---@param message string Error message
+function Buffer:render_error(message)
+	local Ui = require("neojj.lib.ui")
+	self:render({
+		Ui.text("Error: " .. message, { highlight = "ErrorMsg" }),
+		Ui.empty_line(),
+		Ui.text("Press q to quit", { highlight = "NeoJJHelpText" }),
+	})
+end
+
 ---Show the buffer in the current window
 function Buffer:show()
 	vim.api.nvim_set_current_buf(self.handle)
