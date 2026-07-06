@@ -7,6 +7,8 @@ local log_parser = require("neojj.lib.jj.parsers.log_parser")
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
 ---@field state table Current log state
+---@field options table Log options (e.g. revset/limit) passed at construction
+---@field expanded_revisions table<string, boolean> Which revisions are expanded, keyed by change id
 local LogBuffer = {}
 LogBuffer.__index = LogBuffer
 

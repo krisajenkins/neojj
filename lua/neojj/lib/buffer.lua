@@ -7,7 +7,21 @@ local Renderer = require("neojj.lib.ui.renderer")
 ---@field mappings table Key mappings
 ---@field autocmds table[] Auto commands
 ---@field components table[] UI components
+---@field component_positions table Interactive component positions keyed by line
 ---@field config table Buffer configuration
+--- Extended fields populated by `Buffer.create` from a BufferCreateConfig:
+---@field kind? string Display mode: "split", "vsplit", "tab", "floating", "replace", "auto"
+---@field initialize? function Pre-display setup callback
+---@field render_fn? function Function that returns UI components to render
+---@field after? function Post-display callback (buffer, window)
+---@field on_detach? function Cleanup callback when buffer is closed
+---@field context_highlight? boolean Enable context-based highlighting
+---@field active_item_highlight? boolean Enable active item highlighting
+---@field foldmarkers? boolean Show fold markers in sign column
+---@field header? string Optional header text
+---@field scroll_header? boolean Whether header scrolls with content
+---@field status_column? string Status column configuration
+---@field cwd? string Working directory for the buffer
 local Buffer = {}
 Buffer.__index = Buffer
 

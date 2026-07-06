@@ -7,6 +7,7 @@ local logger = require("neojj.logger")
 ---@field repo table Repository instance
 ---@field revision? string Optional revision to show (defaults to working copy)
 ---@field state table Current repository state
+---@field expanded_files table<string, boolean> Which file diffs are expanded, keyed by path
 local StatusBuffer = {}
 StatusBuffer.__index = StatusBuffer
 
