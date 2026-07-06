@@ -136,7 +136,7 @@ function StatusUI.create_modified_files_section(modified_files, expanded_files, 
 	expanded_files = expanded_files or {}
 	local file_items = {}
 	for _, file in ipairs(modified_files) do
-		table.insert(file_items, StatusUI.create_file_item(file, expanded_files, status_buffer))
+		table.insert(file_items, StatusUI.create_file_item(file, expanded_files, "modified", status_buffer))
 	end
 
 	return Ui.section("Modified Files", file_items, {
@@ -167,7 +167,7 @@ function StatusUI.create_conflicts_section(conflicts, expanded_files, status_buf
 		}
 		table.insert(
 			conflict_items,
-			StatusUI.create_file_item(conflict_file, expanded_files, status_buffer, "NeoJJConflict")
+			StatusUI.create_file_item(conflict_file, expanded_files, "conflicts", status_buffer, "NeoJJConflict")
 		)
 	end
 
@@ -178,11 +178,18 @@ end
 
 ---Create a file item with optional diff expansion
 ---@param file table File information {status, path}
----@param expanded_files table Expanded files state (maps path to cached { diff } when expanded)
+---@param expanded_files table Expanded files state (maps "<section>:<path>" to cached { diff } when expanded)
+---@param section string Section name ("modified"/"conflicts"); namespaces the expanded key so a file present in both sections toggles independently
 ---@param _status_buffer? table Unused; retained for signature/threading compatibility
 ---@param row_highlight? string Optional highlight applied to the whole row (e.g. conflicts)
 ---@return table component File item component
-function StatusUI.create_file_item(file, expanded_files, _status_buffer, row_highlight)
+function StatusUI.create_file_item(file, expanded_files, section, _status_buffer, row_highlight)
+	section = section or "modified"
+	-- Stamp the section onto the item the component carries so the toggle
+	-- handlers can reconstruct the same namespaced expanded_files key.
+	file.section = section
+	local key = section .. ":" .. file.path
+
 	local children = {
 		Ui.file_item(file.status, file.path, {
 			item = file,
@@ -194,9 +201,9 @@ function StatusUI.create_file_item(file, expanded_files, _status_buffer, row_hig
 	-- Add diff content if file is expanded. The diff is fetched and cached by the
 	-- status buffer at toggle time (see StatusBuffer:toggle_file_diff), so this
 	-- pure UI builder only reads cached data and never runs jj during render.
-	local expanded = expanded_files[file.path]
+	local expanded = expanded_files[key]
 	if type(expanded) == "table" and expanded.diff then
-		local diff_components = StatusUI.create_diff_components(expanded.diff, file.path)
+		local diff_components = StatusUI.create_diff_components(expanded.diff, file.path, section)
 
 		if #diff_components > 0 then
 			table.insert(children, Ui.col(diff_components))
@@ -297,8 +304,9 @@ end
 ---Create enhanced diff components with syntax-aware highlighting
 ---@param diff_lines string[] List of diff lines
 ---@param file_path string File path for syntax detection
+---@param section? string Section name stamped onto interactive diff-line items
 ---@return table[] components List of UI components
-function StatusUI.create_diff_components(diff_lines, file_path)
+function StatusUI.create_diff_components(diff_lines, file_path, section)
 	local components = {}
 	local current_line = nil -- Line number in the new/target file
 
@@ -325,7 +333,7 @@ function StatusUI.create_diff_components(diff_lines, file_path)
 			end
 		end
 
-		local enhanced_component = StatusUI.create_enhanced_diff_line(line, highlight, file_path, source_line)
+		local enhanced_component = StatusUI.create_enhanced_diff_line(line, highlight, file_path, source_line, section)
 		table.insert(components, enhanced_component)
 	end
 
@@ -337,8 +345,9 @@ end
 ---@param base_highlight string|nil Base highlight group
 ---@param file_path string File path for syntax detection
 ---@param source_line number|nil Line number in the source file (for navigation)
+---@param section? string Section name stamped onto the item for toggle key reconstruction
 ---@return table component UI component for the diff line
-function StatusUI.create_enhanced_diff_line(line, base_highlight, file_path, source_line)
+function StatusUI.create_enhanced_diff_line(line, base_highlight, file_path, source_line, section)
 	-- Handle special formatting for different diff line types
 	local prefix = "  "
 	local content = line
@@ -384,7 +393,7 @@ function StatusUI.create_enhanced_diff_line(line, base_highlight, file_path, sou
 	local options = { highlight = base_highlight }
 	if source_line then
 		options.interactive = true
-		options.item = { path = file_path, line = source_line }
+		options.item = { path = file_path, line = source_line, section = section }
 	end
 
 	return Ui.text(prefix .. content, options)

@@ -191,6 +191,12 @@ end
 ---Render components to the buffer
 ---@param components table[] Components to render
 function Buffer:render(components)
+	-- Async/deferred callbacks can fire after a bufhidden="wipe" buffer has been
+	-- wiped; bail out rather than hit "Invalid buffer id".
+	if not self:is_valid() then
+		return
+	end
+
 	self.components = components
 
 	-- Temporarily disable readonly and make buffer modifiable
@@ -272,12 +278,27 @@ function Buffer:get_name()
 	return self.name
 end
 
+---Find a window displaying this buffer, preferring the current window
+---
+---Preferring the current window matters when the buffer is shown in more than
+---one window: cursor reads/writes should target the window the user is actually
+---in, not an arbitrary `win_findbuf` result.
+---@return number|nil window Window handle, or nil if no window shows the buffer
+function Buffer:_window()
+	local current = vim.api.nvim_get_current_win()
+	if vim.api.nvim_win_is_valid(current) and vim.api.nvim_win_get_buf(current) == self.handle then
+		return current
+	end
+	local windows = vim.fn.win_findbuf(self.handle)
+	return windows[1]
+end
+
 ---Get current cursor position
 ---@return number[] position Line and column (1-indexed)
 function Buffer:get_cursor()
-	local windows = vim.fn.win_findbuf(self.handle)
-	if #windows > 0 then
-		return vim.api.nvim_win_get_cursor(windows[1])
+	local win = self:_window()
+	if win then
+		return vim.api.nvim_win_get_cursor(win)
 	end
 	return { 1, 0 }
 end
@@ -286,9 +307,9 @@ end
 ---@param line number Line number (1-indexed)
 ---@param col number Column number (0-indexed)
 function Buffer:set_cursor(line, col)
-	local windows = vim.fn.win_findbuf(self.handle)
-	if #windows > 0 then
-		vim.api.nvim_win_set_cursor(windows[1], { line, col })
+	local win = self:_window()
+	if win then
+		vim.api.nvim_win_set_cursor(win, { line, col })
 	end
 end
 
@@ -322,6 +343,9 @@ end
 
 ---Refresh the buffer content
 function Buffer:refresh()
+	if not self:is_valid() then
+		return
+	end
 	if #self.components > 0 then
 		self:render(self.components)
 	end

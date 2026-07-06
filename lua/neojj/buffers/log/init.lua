@@ -119,6 +119,12 @@ function LogBuffer.new(repo, options)
 		after = function()
 			-- Additional setup after buffer is displayed
 		end,
+		-- Drop the module-level instance when the buffer is wiped so a later
+		-- LogBuffer.new for the same repo rebuilds a fresh instance instead of
+		-- handing back one whose underlying buffer is gone.
+		on_detach = function()
+			instances[repo_key] = nil
+		end,
 	})
 
 	new_instance.buffer = buffer

@@ -5,6 +5,37 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change pqrnypts)*
+
+# [x] Cursor handling and render robustness fixes
+
+A cluster of small verified correctness fixes:
+
+- `toggle_file_diff` cursor restore (`status/init.lua:409-427`) can match an
+  interactive *diff line* (same `path`, see `status/ui.lua:374-379`) and call
+  `set_cursor` past the end of the shortened buffer after collapse → "Cursor
+  position outside buffer" error at the user. Match only header components
+  (`get_item().line == nil`) and clamp to `nvim_buf_line_count`.
+- `expanded_files` is keyed by bare path shared between the Modified and
+  Conflicts sections (`status/init.lua:431-457`, `status/ui.lua:152-171`) —
+  toggling a file present in both toggles both. Namespace the key by section.
+- `Buffer:get_cursor`/`set_cursor` (`lua/neojj/lib/buffer.lua:230-246`) use
+  `win_findbuf(...)[1]` — an arbitrary window; with the buffer in two splits,
+  cursor actions act on the wrong item. Prefer `nvim_get_current_win()` when it
+  shows the buffer, falling back to `win_findbuf`.
+- Guard `Buffer:render`/`refresh` (`buffer.lua:166-179,277-281`) with
+  `self:is_valid()` — the 100 ms `vim.defer_fn` callbacks in `lua/neojj.lua`
+  can fire after a `bufhidden=wipe` buffer is gone, throwing "Invalid buffer
+  id".
+- Fix `Renderer.add_line`'s latent highlight off-by-one
+  (`lua/neojj/lib/ui/renderer.lua:34-47`): record the highlight at
+  `#context.lines - 1` after insertion so `add_line` and `add_text` share one
+  source of truth.
+- Prune stale entries from the `instances` maps (`status/init.lua:14-29` and
+  equivalents) when buffers are wiped, via `BufUnload`/`on_detach`.
+
+---
+
 *Archived: 2026-07-07 (change zptstnst)*
 
 # [x] Annotate robustness: cursor parsing, scroll alignment, help

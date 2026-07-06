@@ -158,6 +158,43 @@ T.test_close_replace_keeps_window = function()
 	]])
 end
 
+---Wiping a status buffer must prune its entry from the module-level `instances`
+---map (via the on_detach BufUnload hook) so stale instances don't linger.
+---@return nil
+T.test_status_instance_pruned_on_wipe = function()
+	child.lua([[
+		local StatusBuffer = require('neojj.buffers.status')
+
+		-- Reach the module-local `instances` upvalue for a white-box assertion.
+		local function get_instances()
+			local i = 1
+			while true do
+				local name, val = debug.getupvalue(StatusBuffer.new, i)
+				if not name then return nil end
+				if name == "instances" then return val end
+				i = i + 1
+			end
+		end
+
+		local dir = "/tmp/neojj-prune-repo"
+		local key = vim.fs.normalize(dir)
+		local repo = { dir = dir, get_root = function() return dir end }
+
+		local sb = StatusBuffer.new(repo)
+		local handle = sb:get_handle()
+
+		local instances = get_instances()
+		expect.no_equality(instances, nil)
+		expect.equality(instances[key] ~= nil, true)
+
+		-- Wiping the buffer fires BufUnload -> on_detach synchronously, which prunes
+		-- the map entry.
+		vim.api.nvim_buf_delete(handle, { force = true })
+
+		expect.equality(instances[key], nil)
+	]])
+end
+
 ---When no buffer with the given name exists, a new handle is created.
 ---@return nil
 T.test_creates_when_missing = function()

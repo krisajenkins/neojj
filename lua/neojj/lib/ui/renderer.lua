@@ -35,9 +35,12 @@ function Renderer.add_line(context, text, highlight)
 	table.insert(context.lines, text)
 
 	if highlight then
+		-- Record the highlight against the line we just inserted (0-indexed as
+		-- `#lines - 1`) rather than the stale `context.line_number`, so add_line and
+		-- add_text share one source of truth for the target line.
 		table.insert(context.highlights, {
 			group = highlight,
-			line = context.line_number,
+			line = #context.lines - 1,
 			col_start = 0,
 			col_end = #text,
 		})

@@ -7,7 +7,7 @@ local logger = require("neojj.logger")
 ---@field repo table Repository instance
 ---@field revision? string Optional revision to show (defaults to working copy)
 ---@field state table Current repository state
----@field expanded_files table<string, { diff: string[] }> Cached diff per expanded file, keyed by path (absent when collapsed)
+---@field expanded_files table<string, { diff: string[] }> Cached diff per expanded file, keyed by "<section>:<path>" (absent when collapsed)
 local StatusBuffer = {}
 StatusBuffer.__index = StatusBuffer
 
@@ -79,6 +79,12 @@ function StatusBuffer.new(repo, revision)
 		end,
 		after = function()
 			-- Additional setup after buffer is displayed
+		end,
+		-- Drop the module-level instance when the buffer is wiped so a later
+		-- StatusBuffer.new for the same repo rebuilds a fresh instance instead of
+		-- handing back one whose underlying buffer is gone.
+		on_detach = function()
+			instances[repo_key] = nil
 		end,
 	})
 
@@ -339,8 +345,12 @@ function StatusBuffer:refresh()
 		-- rendered diff stays in sync with the freshly-refreshed working copy.
 		-- We're already in the async context here, so these calls yield rather
 		-- than block the UI thread.
-		for path in pairs(self.expanded_files) do
-			self.expanded_files[path] = { diff = self:get_file_diff(path) }
+		for key in pairs(self.expanded_files) do
+			-- Keys are "<section>:<path>"; strip the section prefix to recover the
+			-- bare path get_file_diff expects. Section names never contain a colon,
+			-- so splitting on the first colon is unambiguous.
+			local path = key:match("^[^:]*:(.*)$") or key
+			self.expanded_files[key] = { diff = self:get_file_diff(path) }
 		end
 
 		-- Render the UI only if buffer is still valid
@@ -423,19 +433,27 @@ function StatusBuffer:toggle_file_diff()
 	end
 
 	local file_path = item.path
-	-- expanded_files maps a path to its cached diff ({ diff = string[] }) while
-	-- expanded, and holds nil while collapsed.
-	local was_expanded = self.expanded_files[file_path] ~= nil
+	-- expanded_files is keyed by "<section>:<path>" so a file that appears in both
+	-- the Modified and Conflicts sections toggles independently per section. The
+	-- section is stamped onto the item by StatusUI.create_file_item (and onto diff
+	-- line items too), so both header and diff-line items reconstruct the key.
+	local section = item.section or "modified"
+	local key = section .. ":" .. file_path
+	local was_expanded = self.expanded_files[key] ~= nil
 
 	if was_expanded then
 		-- Collapse: drop the cached diff and re-render immediately.
-		self.expanded_files[file_path] = nil
+		self.expanded_files[key] = nil
 
-		-- Find the line where this file item starts so we can restore the cursor
-		-- there after re-rendering. component_positions is 0-indexed.
+		-- Find the file's HEADER line so we can restore the cursor there after
+		-- re-rendering. Match only header components (item.line == nil): diff lines
+		-- carry the same path/section but an item.line, and their positions point
+		-- past the shortened buffer once the diff collapses. component_positions is
+		-- 0-indexed.
 		local target_line = nil
 		for line_idx, comp in pairs(self.buffer.component_positions) do
-			if comp:is_interactive() and comp:get_item() and comp:get_item().path == file_path then
+			local comp_item = comp:is_interactive() and comp:get_item()
+			if comp_item and comp_item.line == nil and comp_item.path == file_path and comp_item.section == section then
 				target_line = line_idx + 1
 				break
 			end
@@ -444,6 +462,12 @@ function StatusBuffer:toggle_file_diff()
 		self:render()
 
 		if target_line then
+			-- Clamp to the now-shorter buffer to avoid "Cursor position outside
+			-- buffer" if the target line fell past the end after collapsing.
+			local line_count = vim.api.nvim_buf_line_count(self.buffer.handle)
+			if target_line > line_count then
+				target_line = line_count
+			end
 			self.buffer:set_cursor(target_line, 0)
 		end
 	else
@@ -453,7 +477,7 @@ function StatusBuffer:toggle_file_diff()
 		async.run(function()
 			local diff_lines = self:get_file_diff(file_path)
 			vim.schedule(function()
-				self.expanded_files[file_path] = { diff = diff_lines }
+				self.expanded_files[key] = { diff = diff_lines }
 				if self.buffer and self.buffer:is_valid() then
 					self:render()
 				end
@@ -473,33 +497,34 @@ function StatusBuffer:toggle_all_file_diffs()
 		return
 	end
 
-	-- Expand all: gather every file path, then fetch and cache each diff off the
-	-- UI thread so the UI builder never runs jj during render.
-	local paths = {}
+	-- Expand all: gather every (section, path) pair, then fetch and cache each
+	-- diff off the UI thread so the UI builder never runs jj during render. Keys
+	-- are section-namespaced to match toggle_file_diff and the UI builder.
+	local entries = {}
 	if self.state.working_copy and self.state.working_copy.modified_files then
 		for _, file in ipairs(self.state.working_copy.modified_files) do
-			table.insert(paths, file.path)
+			table.insert(entries, { section = "modified", path = file.path })
 		end
 	end
 	if self.state.working_copy and self.state.working_copy.conflicts then
 		for _, file in ipairs(self.state.working_copy.conflicts) do
-			table.insert(paths, file.path)
+			table.insert(entries, { section = "conflicts", path = file.path })
 		end
 	end
 
-	if #paths == 0 then
+	if #entries == 0 then
 		return
 	end
 
 	local async = require("plenary.async")
 	async.run(function()
 		local cache = {}
-		for _, path in ipairs(paths) do
-			cache[path] = { diff = self:get_file_diff(path) }
+		for _, entry in ipairs(entries) do
+			cache[entry.section .. ":" .. entry.path] = { diff = self:get_file_diff(entry.path) }
 		end
 		vim.schedule(function()
-			for path, entry in pairs(cache) do
-				self.expanded_files[path] = entry
+			for key, value in pairs(cache) do
+				self.expanded_files[key] = value
 			end
 			if self.buffer and self.buffer:is_valid() then
 				self:render()

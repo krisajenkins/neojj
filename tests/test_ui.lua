@@ -376,7 +376,7 @@ T.test_diff_highlighting_screenshot = function()
 		-- Create status UI components with an expanded file. Diffs are cached on
 		-- the expanded_files map at toggle time, so the UI builder reads them from
 		-- there rather than calling jj during render.
-		local expanded_files = { ["example.lua"] = { diff = test_diff_lines } }
+		local expanded_files = { ["modified:example.lua"] = { diff = test_diff_lines } }
 		local mock_status_buffer = {
 			get_file_diff = function(file_path)
 				return test_diff_lines
@@ -385,7 +385,7 @@ T.test_diff_highlighting_screenshot = function()
 
 		-- Create a file item with diff expansion
 		local file_info = { status = "M", path = "example.lua" }
-		local file_component = StatusUI.create_file_item(file_info, expanded_files, mock_status_buffer)
+		local file_component = StatusUI.create_file_item(file_info, expanded_files, "modified", mock_status_buffer)
 
 		-- Create the full UI with header
 		local components = {
@@ -539,6 +539,34 @@ T.test_multiline_description_screenshot = function()
 
 	-- Take screenshot to verify visual rendering
 	expect.reference_screenshot(child.get_screenshot())
+end
+
+---The expanded_files map is namespaced by section ("<section>:<path>"), so a
+---file that appears in both the Modified and Conflicts sections toggles
+---independently: expanding it in one section must NOT expand it in the other.
+---@return nil
+T.test_expanded_files_key_is_section_namespaced = function()
+	child.lua([[
+		local StatusUI = require('neojj.buffers.status.ui')
+
+		-- Only the "conflicts" key is present in the expanded map.
+		local expanded = { ["conflicts:a.lua"] = { diff = { "+x" } } }
+
+		-- Under the "modified" section the file is NOT expanded (key
+		-- "modified:a.lua" is absent), so the item has only its header child.
+		local mod = StatusUI.create_file_item({ status = "M", path = "a.lua" }, expanded, "modified")
+		expect.equality(#mod:get_children(), 1)
+
+		-- Under the "conflicts" section the same path IS expanded, so a diff child
+		-- is appended alongside the header.
+		local con = StatusUI.create_file_item({ status = "!", path = "a.lua" }, expanded, "conflicts")
+		expect.equality(#con:get_children(), 2)
+
+		-- The section is stamped onto the item the component carries, so the toggle
+		-- handlers can reconstruct the same namespaced key.
+		local header = con:get_children()[1]
+		expect.equality(header:get_item().section, "conflicts")
+	]])
 end
 
 return T
