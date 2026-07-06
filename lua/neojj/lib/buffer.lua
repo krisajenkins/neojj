@@ -11,7 +11,7 @@ local Renderer = require("neojj.lib.ui.renderer")
 ---@field config table Buffer configuration
 ---@field owned_window? number Window this buffer created for itself (split/tab), closed by `Buffer:close`
 --- Extended fields populated by `Buffer.create` from a BufferCreateConfig:
----@field kind? string Display mode: "split", "vsplit", "tab", "floating", "replace", "auto"
+---@field kind? string Display mode: "split", "vsplit", "tab", "replace", "auto"
 ---@field initialize? function Pre-display setup callback
 ---@field render_fn? function Function that returns UI components to render
 ---@field after? function Post-display callback (buffer, window)
@@ -19,9 +19,6 @@ local Renderer = require("neojj.lib.ui.renderer")
 ---@field context_highlight? boolean Enable context-based highlighting
 ---@field active_item_highlight? boolean Enable active item highlighting
 ---@field foldmarkers? boolean Show fold markers in sign column
----@field header? string Optional header text
----@field scroll_header? boolean Whether header scrolls with content
----@field status_column? string Status column configuration
 ---@field cwd? string Working directory for the buffer
 local Buffer = {}
 Buffer.__index = Buffer
@@ -367,7 +364,7 @@ end
 
 ---Create a buffer using a unified configuration approach
 ---@class BufferCreateConfig : BufferConfig
----@field kind? string Display mode: "split", "vsplit", "tab", "floating", "replace", "auto"
+---@field kind? string Display mode: "split", "vsplit", "tab", "replace", "auto"
 ---@field initialize? function Pre-display setup callback
 ---@field render? function Function that returns UI components to render
 ---@field after? function Post-display callback (buffer, window)
@@ -375,9 +372,6 @@ end
 ---@field context_highlight? boolean Enable context-based highlighting
 ---@field active_item_highlight? boolean Enable active item highlighting
 ---@field foldmarkers? boolean Show fold markers in sign column
----@field header? string Optional header text
----@field scroll_header? boolean Whether header scrolls with content
----@field status_column? string Status column configuration
 ---@field disable_line_numbers? boolean Disable line numbers
 ---@field disable_relative_line_numbers? boolean Disable relative line numbers
 ---@field disable_signs? boolean Disable sign column
@@ -411,9 +405,6 @@ function Buffer.create(config)
 	buffer.context_highlight = config.context_highlight
 	buffer.active_item_highlight = config.active_item_highlight
 	buffer.foldmarkers = config.foldmarkers
-	buffer.header = config.header
-	buffer.scroll_header = config.scroll_header
-	buffer.status_column = config.status_column
 	buffer.cwd = config.cwd
 
 	-- Apply window-specific options
@@ -485,9 +476,6 @@ function Buffer:open(kind)
 			self:show_split("horizontal")
 		elseif kind == "replace" then
 			self:show()
-		elseif kind == "floating" then
-			-- TODO: Implement floating window support
-			self:show_split("horizontal")
 		elseif kind == "auto" then
 			-- Choose based on terminal width
 			if vim.o.columns > 120 then

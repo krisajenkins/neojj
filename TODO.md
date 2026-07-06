@@ -10,38 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Remove dead code and the unimplemented D binding
-
-Release hygiene — all verified unused or broken:
-
-- The `D` mapping prints "Diff display not yet implemented"
-  (`status/init.lua:520-523`, mapping at `:132-134`) yet is advertised in the
-  `?` help (`status/ui.lua:468`) and README. Remove mapping, stub, and help
-  line — the real diff view is on the daily-driver list.
-- Legacy `M.status()` (`lua/neojj.lua:152-190`): `print()`-based dump relying on
-  the accidental synchrony of `refresh()`. Delete.
-- `Cli:call_async` and unused builders `bookmark/operation/workspace/util/
-  debug/config/git` (`cli.lua:117-172`). Delete (they'll come back with the
-  features that need them).
-- `Highlights.group_exists` (`highlights.lua:108-119`) always throws
-  (`nvim_exec2` rejects `on_output`); unused. Delete. Also fix `NeoJJDiffFile`
-  linking to nonexistent group `DiffFile` (`highlights.lua:59`) — link to
-  `diffFile` or a real builtin.
-- `describe/ui.lua:78-171` (`parse_line`, `parse_keybinding_line`,
-  `parse_command_line`), `log/ui.lua:253-267` (`create_enhanced_graph`) and
-  `log/ui.lua:175-179` (no-op `highlight_graph`). Delete.
-- `ftdetect/neojj.vim`: augroup-less autocmd on every `BufRead,BufNewFile *`
-  whose condition can never be true at BufRead time. Delete (the filetype is
-  set programmatically).
-- Move `create_test_ui` fixtures (`status/ui.lua:478`, `log/ui.lua:311`) into
-  `tests/`.
-- Trim `Buffer.create`'s never-honoured config fields and the TODO
-  floating-window branch (`buffer.lua:418`); either wire up or remove the
-  unreachable section-folding path (`Ui.section` sets `foldable` but nothing
-  toggles `folded`; `renderer.lua:92-101`).
-
-Run `make` after each deletion batch.
-
 # [ ] Extract shared buffer helpers to stop copy-paste drift
 
 The describe-submit callback logic exists three times

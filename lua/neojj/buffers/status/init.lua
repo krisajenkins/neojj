@@ -141,10 +141,6 @@ function StatusBuffer:_setup_mappings()
 		self:describe_current_commit()
 	end, { desc = "Describe current commit" })
 
-	self.buffer:map("n", "D", function()
-		self:diff_file_at_cursor()
-	end, { desc = "Show diff" })
-
 	-- Create new change
 	self.buffer:map("n", "n", function()
 		self:create_new_change()
@@ -587,12 +583,6 @@ function StatusBuffer:open_file_at_cursor()
 	else
 		vim.cmd("edit " .. escaped_path)
 	end
-end
-
----Show diff for file at cursor
-function StatusBuffer:diff_file_at_cursor()
-	-- TODO: Implement diff display
-	print("Diff display not yet implemented")
 end
 
 ---Open describe buffer for current commit

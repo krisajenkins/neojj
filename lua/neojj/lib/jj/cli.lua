@@ -273,10 +273,6 @@ function M.log()
 	return new_builder("jj"):arg("log")
 end
 
-function M.bookmark()
-	return new_builder("jj"):arg("bookmark")
-end
-
 function M.show()
 	return new_builder("jj"):arg("show")
 end
@@ -285,32 +281,8 @@ function M.describe()
 	return new_builder("jj"):arg("describe")
 end
 
-function M.operation()
-	return new_builder("jj"):arg("operation")
-end
-
-function M.workspace()
-	return new_builder("jj"):arg("workspace")
-end
-
 function M.file()
 	return new_builder("jj"):arg("file")
-end
-
-function M.util()
-	return new_builder("jj"):arg("util")
-end
-
-function M.debug()
-	return new_builder("jj"):arg("debug")
-end
-
-function M.config()
-	return new_builder("jj"):arg("config")
-end
-
-function M.git()
-	return new_builder("jj"):arg("git")
 end
 
 function M.new()

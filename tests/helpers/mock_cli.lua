@@ -235,10 +235,6 @@ function MockCli.create_mock_module()
 		return create_mock_builder("log")
 	end
 
-	function M.bookmark()
-		return create_mock_builder("bookmark")
-	end
-
 	function M.show()
 		return create_mock_builder("show")
 	end
@@ -247,32 +243,8 @@ function MockCli.create_mock_module()
 		return create_mock_builder("describe")
 	end
 
-	function M.operation()
-		return create_mock_builder("operation")
-	end
-
-	function M.workspace()
-		return create_mock_builder("workspace")
-	end
-
 	function M.file()
 		return create_mock_builder("file")
-	end
-
-	function M.util()
-		return create_mock_builder("util")
-	end
-
-	function M.debug()
-		return create_mock_builder("debug")
-	end
-
-	function M.config()
-		return create_mock_builder("config")
-	end
-
-	function M.git()
-		return create_mock_builder("git")
 	end
 
 	function M.new()

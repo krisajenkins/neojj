@@ -31,9 +31,6 @@ T["Simple test"] = function()
 	local repo = M.get_repo(".")
 	expect.no_equality(repo, nil) -- Repo should be created
 	expect.equality(type(repo.get_root), "function") -- Should have get_root method
-
-	-- Test that status doesn't crash (it may or may not be a jj repo)
-	print(vim.inspect(M.status(".")))
 end
 
 return T

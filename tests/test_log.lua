@@ -113,22 +113,6 @@ T.test_log_ui_components = function()
 	]])
 end
 
----Test log graph highlighting
----@return nil
-T.test_log_graph_highlighting = function()
-	child.lua([[
-		local LogUI = require('neojj.buffers.log.ui')
-
-		-- Test graph character highlighting
-		expect.equality(LogUI.get_graph_highlight("@"), "NeoJJLogWorkingCopy")
-		expect.equality(LogUI.get_graph_highlight("○"), "NeoJJLogCommit")
-		expect.equality(LogUI.get_graph_highlight("◆"), "NeoJJLogImmutable")
-		expect.equality(LogUI.get_graph_highlight("│"), "NeoJJLogGraphLine")
-		expect.equality(LogUI.get_graph_highlight("├"), "NeoJJLogGraphLine")
-		expect.equality(LogUI.get_graph_highlight("x"), "NeoJJLogGraph") -- fallback
-	]])
-end
-
 ---Test log parsing
 ---@return nil
 T.test_log_parsing = function()

@@ -57,7 +57,7 @@ local default_highlights = {
 	NeoJJDiffDelete = { link = "DiffDelete" },
 	NeoJJDiffContext = { link = "Normal" },
 	NeoJJDiffHunk = { link = "DiffText" },
-	NeoJJDiffFile = { link = "DiffFile" },
+	NeoJJDiffFile = { link = "diffFile" },
 	NeoJJDiffIndex = { link = "Comment" },
 	NeoJJDiffOldFile = { link = "DiffDelete" },
 	NeoJJDiffNewFile = { link = "DiffAdd" },
@@ -101,22 +101,6 @@ function Highlights.get_file_status_highlight(status)
 	}
 
 	return status_map[status] or "NeoJJFileStatus"
-end
-
----Check if highlight group exists
----@param group string Highlight group name
----@return boolean exists True if group exists
-function Highlights.group_exists(group)
-	local exists = false
-	vim.api.nvim_exec2("silent! highlight " .. group, {
-		output = false,
-		on_output = function(_, data)
-			if data and data ~= "" then
-				exists = true
-			end
-		end,
-	})
-	return exists
 end
 
 ---Create a custom highlight group

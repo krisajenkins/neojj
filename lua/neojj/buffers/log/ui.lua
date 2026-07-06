@@ -88,7 +88,7 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 	local commit_components = LogUI.create_commit_text_components(commit_part, revision, commit_highlight)
 
 	-- Combine graph + commit text components
-	local row_children = { Ui.text(LogUI.highlight_graph(graph_part), { highlight = "NeoJJLogGraph" }) }
+	local row_children = { Ui.text(graph_part, { highlight = "NeoJJLogGraph" }) }
 	for _, comp in ipairs(commit_components) do
 		table.insert(row_children, comp)
 	end
@@ -170,18 +170,9 @@ function LogUI.create_graph_line(line, graph_prefix)
 	end
 
 	return Ui.row({
-		Ui.text(LogUI.highlight_graph(graph_part), { highlight = "NeoJJLogGraph" }),
+		Ui.text(graph_part, { highlight = "NeoJJLogGraph" }),
 		Ui.text(desc_part, { highlight = "NeoJJLogDescription" }),
 	})
-end
-
----Apply highlighting to graph characters
----@param graph_text string Graph portion of the line
----@return string highlighted_graph Graph text with highlighting hints
-function LogUI.highlight_graph(graph_text)
-	-- Keep graph text as-is but return with highlighting information
-	-- The actual highlighting will be applied by the renderer
-	return graph_text
 end
 
 ---Create highlighted text components for the commit info, with bookmarks highlighted
@@ -230,46 +221,6 @@ function LogUI.create_commit_text_components(commit_text, revision, base_highlig
 	table.insert(components, Ui.text(suffix, { highlight = base_highlight }))
 
 	return components
-end
-
----Get highlight group for graph characters
----@param char string Single graph character
----@return string highlight_group Highlight group name
-function LogUI.get_graph_highlight(char)
-	-- Map specific graph characters to highlight groups
-	local char_map = {
-		["@"] = "NeoJJLogWorkingCopy", -- Working copy marker
-		["○"] = "NeoJJLogCommit", -- Regular commit
-		["◆"] = "NeoJJLogImmutable", -- Immutable commit
-		["│"] = "NeoJJLogGraphLine", -- Vertical line
-		["├"] = "NeoJJLogGraphLine", -- Branch/merge
-		["└"] = "NeoJJLogGraphLine", -- Branch end
-		["┤"] = "NeoJJLogGraphLine", -- Branch join
-		["┬"] = "NeoJJLogGraphLine", -- Split
-		["┴"] = "NeoJJLogGraphLine", -- Join
-		["─"] = "NeoJJLogGraphLine", -- Horizontal line
-		["┌"] = "NeoJJLogGraphLine", -- Corner
-		["┐"] = "NeoJJLogGraphLine", -- Corner
-		["┘"] = "NeoJJLogGraphLine", -- Corner
-	}
-
-	return char_map[char] or "NeoJJLogGraph"
-end
-
----Create enhanced graph display with character-level highlighting
----@param graph_text string Graph portion of line
----@return table component Enhanced graph component
-function LogUI.create_enhanced_graph(graph_text)
-	-- Split graph text into individual characters for fine-grained highlighting
-	local graph_components = {}
-
-	for i = 1, #graph_text do
-		local char = graph_text:sub(i, i)
-		local highlight = LogUI.get_graph_highlight(char)
-		table.insert(graph_components, Ui.text(char, { highlight = highlight }))
-	end
-
-	return Ui.row(graph_components)
 end
 
 ---Create the empty state component
