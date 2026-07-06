@@ -259,6 +259,38 @@ T.test_ZQ_aborts_without_submit = function()
 	]])
 end
 
+--- Legitimate '#'-prefixed lines (Markdown headings, issue refs like '#123')
+--- must survive the buffer -> get_description_from_buffer() round-trip. Only our
+--- own 'JJ:'-prefixed help lines are stripped. (Regression: the filter used to
+--- drop every line starting with '#', silently deleting commit-message data.)
+T.test_hash_lines_survive_round_trip = function()
+	child.lua([[
+		expect = require('mini.test').expect
+
+		local mock_repo = { dir = '/fake/repo', is_jj_repo = function() return true end }
+		local DescribeBuffer = require('neojj.buffers.describe')
+		local db = DescribeBuffer.new(mock_repo, '@')
+
+		-- Put a description containing '#'-prefixed lines into the buffer,
+		-- followed by the kind of 'JJ:' help lines the UI appends.
+		vim.api.nvim_buf_set_lines(db.buffer.handle, 0, -1, false, {
+			'# Overview',
+			'',
+			'Closes #123 by rewriting the parser.',
+			'',
+			'JJ: Commands:',
+			'JJ:   :w or :wq    - Submit description',
+		})
+
+		local description = db:get_description_from_buffer()
+
+		-- The '#' lines are preserved verbatim...
+		expect.equality(description, '# Overview\n\nCloses #123 by rewriting the parser.')
+		-- ...and the 'JJ:' help lines are stripped.
+		expect.equality(description:find('JJ:'), nil)
+	]])
+end
+
 --- The re-entry guard in the real submit() must prevent a second concurrent
 --- job while one is in flight, and must clear once the job completes so a later
 --- legitimate submit still works. plenary.async is mocked to record job launches

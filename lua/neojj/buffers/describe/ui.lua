@@ -45,7 +45,7 @@ end
 ---@param text string Header text
 ---@return table component Section header component
 function DescribeUI.create_help_header()
-	return Ui.text("# Commands:", { highlight = "NeoJJDescribeSection" })
+	return Ui.text("JJ: Commands:", { highlight = "NeoJJDescribeSection" })
 end
 
 ---Create a help line for a command with proper highlighting
@@ -54,7 +54,7 @@ end
 ---@return table component Help command component
 function DescribeUI.create_help_command(command, description)
 	return Ui.row({
-		Ui.text("#   ", { highlight = "NeoJJDescribeComment" }),
+		Ui.text("JJ:   ", { highlight = "NeoJJDescribeComment" }),
 		Ui.text(command, { highlight = "NeoJJDescribeCommand" }),
 		Ui.text("    - " .. description, { highlight = "NeoJJDescribeComment" }),
 	})
@@ -66,7 +66,7 @@ end
 ---@return table component Help keybinding component
 function DescribeUI.create_help_keybinding(keybinding, description)
 	return Ui.row({
-		Ui.text("#   ", { highlight = "NeoJJDescribeComment" }),
+		Ui.text("JJ:   ", { highlight = "NeoJJDescribeComment" }),
 		Ui.text(keybinding, { highlight = "NeoJJDescribeKeybinding" }),
 		Ui.text("   - " .. description, { highlight = "NeoJJDescribeComment" }),
 	})
@@ -76,10 +76,10 @@ end
 ---@param line string Line of text to parse
 ---@return table component Parsed component with highlighting
 function DescribeUI.parse_line(line)
-	-- Check if it's a comment line
-	if line:match("^#") then
+	-- Check if it's a help comment line (JJ: prefix, matching jj's own convention)
+	if line:match("^JJ:") then
 		-- Check for different comment types
-		if line:match("^# [A-Z][a-z]*:$") then
+		if line:match("^JJ: [A-Z][a-z]*:$") then
 			-- Section header
 			return Ui.text(line, { highlight = "NeoJJDescribeSection" })
 		elseif line:match("<[^>]+>") then

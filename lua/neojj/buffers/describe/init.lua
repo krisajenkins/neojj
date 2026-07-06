@@ -348,8 +348,11 @@ function DescribeBuffer:get_description_from_buffer()
 	local description_lines = {}
 
 	for _, line in ipairs(lines) do
-		-- Skip help comments
-		if not line:match("^#") then
+		-- Skip help comments. We only strip our own "JJ:"-prefixed help lines
+		-- (matching jj's own editor convention) so legitimate description lines
+		-- such as Markdown headings ("# Overview") or issue refs ("#123 ...")
+		-- survive the round-trip intact.
+		if not line:match("^JJ:") then
 			table.insert(description_lines, line)
 		end
 	end

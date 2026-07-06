@@ -5,6 +5,22 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change srtroook)*
+
+# [x] Stop stripping legitimate '#' lines from commit descriptions
+
+`get_description_from_buffer()` (`lua/neojj/buffers/describe/init.lua:322-339`)
+drops **every** line starting with `#`, so a Markdown heading (`# Overview`) or
+an issue ref (`#123 ...`) in a commit message is silently deleted — data loss in
+a commit-message editor.
+
+Fix: change the help-comment convention to a distinctive prefix (e.g. `JJ:`,
+matching jj's own convention) in `describe/ui.lua`'s `create_help_section()`,
+and filter only that prefix in `get_description_from_buffer()`. Add a test whose
+description contains a `#`-prefixed line and assert it survives round-trip.
+
+---
+
 *Archived: 2026-07-06 (change wqruytor)*
 
 # [x] Fix describe buffer quit semantics and double-submit race

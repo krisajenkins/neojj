@@ -265,8 +265,9 @@ q                       Close with confirmation if modified
 :wq                     Submit description
 :q!                     Abort editing
 
-Note: Lines starting with '#' are treated as comments and will be excluded
-from the final description.
+Note: Only lines starting with 'JJ:' are treated as help comments and will be
+excluded from the final description. Ordinary lines starting with '#' (such as
+Markdown headings or issue references like '#123') are preserved.
 
 ==============================================================================
 8. CONFIGURATION                                          *neojj-configuration*
