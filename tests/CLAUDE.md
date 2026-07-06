@@ -2,6 +2,34 @@
 
 This file contains testing-specific guidance for Claude Code when working with the NeoJJ test suite.
 
+## Gotchas Learned the Hard Way
+
+### Testing `:w` / `:wq` / `:q` / `ZZ` / `ZQ` on a buffer
+
+- **`buftype` matters for `BufWriteCmd`.** A `nofile` buffer *refuses* `:w`
+  with `E382: Cannot write, 'buftype' option is set` and **never fires
+  `BufWriteCmd`**. For a "write to submit" buffer (git-commit style), the buffer
+  must use **`buftype = "acwrite"`**. `Buffer.create()` sets `nofile` for every
+  buffer, so buffers that need write handling override it to `acwrite`
+  themselves (see `buffers/describe/init.lua`).
+- **Open the buffer in a split before driving quit commands** in child Neovim.
+  If the target window is the last window, `:q!`/`:wq` will *exit the child
+  Neovim* and hang/kill the test. `DescribeBuffer:show()` opens a split, leaving
+  a second window so quitting the buffer window is safe.
+- **Assertions on external side effects need a seam.** `DescribeBuffer:submit()`
+  shells out to `jj describe --stdin` via `plenary.job` *directly* — NOT through
+  `tests/helpers/mock_cli.lua` — so the mock CLI cannot observe describe calls.
+  Tests instead replace `submit`/`abort` on the instance with invocation
+  counters (`function db.submit(self) self._submit_calls = ... end`) and assert
+  the counts. To test the re-entry guard without running `jj`, mock
+  `package.loaded['plenary.async'] = { run = function() ... end }` to *record*
+  job launches without executing them.
+- **Lua `ipairs` stops at the first `nil`.** A logging helper built with
+  `for _,v in ipairs({...})` silently truncates its output at the first `nil`
+  argument — surprisingly common when debugging (`log("ok:", ok, "err:", err)`
+  drops everything after a `nil` `err`). Use `select('#', ...)` / numeric loops
+  when args may be `nil`.
+
 ## Test Framework: MiniTest
 
 NeoJJ uses [mini.test](https://github.com/echasnovski/mini.test) for testing. Key patterns:

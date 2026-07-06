@@ -8,6 +8,7 @@ local logger = require("neojj.logger")
 ---@field revision? string Revision to describe (defaults to @)
 ---@field on_submit? function Callback when description is submitted
 ---@field on_abort? function Callback when description is aborted
+---@field submitting? boolean Re-entry guard while a submit job is in flight
 local DescribeBuffer = {}
 DescribeBuffer.__index = DescribeBuffer
 
@@ -65,6 +66,13 @@ function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 	instance.buffer = buffer
 	instance.description_loaded = false
 	instance.current_description = ""
+	instance.submitting = false
+
+	-- Buffer.create() gives every buffer 'buftype=nofile', but a 'nofile'
+	-- buffer refuses :w/:wq with E382 and never fires BufWriteCmd. Use
+	-- 'acwrite' so writes are routed through our BufWriteCmd handler, giving
+	-- this buffer git-commit-style "write to submit" behaviour.
+	vim.api.nvim_set_option_value("buftype", "acwrite", { buf = buffer.handle })
 
 	-- Add describe-specific key mappings
 	instance:_setup_mappings()
@@ -143,27 +151,30 @@ function DescribeBuffer:_setup_autocmds()
 		end,
 	})
 
-	-- Handle :w and :wq commands (like git commit messages)
+	-- Handle :w and :wq commands (like git commit messages).
+	-- Clear the 'modified' flag around submit() so that a following QuitPre
+	-- (e.g. from :wq) does not observe a modified buffer and fire a second,
+	-- racing submit path. submit() also guards against re-entry as a backstop.
 	vim.api.nvim_create_autocmd("BufWriteCmd", {
 		group = augroup,
 		buffer = self.buffer.handle,
 		callback = function()
 			self:submit()
+			if self.buffer and self.buffer:is_valid() then
+				vim.api.nvim_set_option_value("modified", false, { buf = self.buffer.handle })
+			end
 		end,
 	})
 
-	-- Handle :q! to abort
+	-- Handle quit commands (:q, :q!, ZQ, etc.).
+	-- Quitting never auto-submits: a user who quits is bailing out, and forcing
+	-- a submit on :q! would silently overwrite the commit description. We always
+	-- discard (abort). Submitting is only ever done explicitly via :w/:wq/ZZ/<C-s>.
 	vim.api.nvim_create_autocmd("QuitPre", {
 		group = augroup,
 		buffer = self.buffer.handle,
 		callback = function()
-			-- Check if this is a forced quit (:q!) vs normal quit (:q)
-			-- For now, we'll treat all quits as potential submits unless modified
-			if vim.api.nvim_get_option_value("modified", { buf = self.buffer.handle }) then
-				self:submit()
-			else
-				self:abort()
-			end
+			self:abort()
 		end,
 	})
 
@@ -179,6 +190,15 @@ end
 
 ---Submit the description
 function DescribeBuffer:submit()
+	-- Re-entry guard: :wq can fire both BufWriteCmd and QuitPre, and impatient
+	-- users can trigger multiple submits. Without this guard we would launch
+	-- several concurrent `jj describe --stdin` jobs racing each other.
+	if self.submitting then
+		logger.debug("Ignoring re-entrant submit for revision: " .. self.revision)
+		return
+	end
+	self.submitting = true
+
 	logger.info("Submitting description for revision: " .. self.revision)
 
 	-- Get the description text, filtering out help comments
@@ -211,6 +231,8 @@ function DescribeBuffer:submit()
 		if result.success then
 			logger.info("Description updated successfully")
 			vim.schedule(function()
+				-- Clear the guard so a later, legitimate submit can proceed.
+				self.submitting = false
 				vim.notify("Description updated", vim.log.levels.INFO)
 				-- Call the callback before closing the buffer
 				if self.on_submit then
@@ -228,6 +250,8 @@ function DescribeBuffer:submit()
 		else
 			logger.error("Failed to update description: " .. (result.stderr or ""))
 			vim.schedule(function()
+				-- Clear the guard so the user can retry after a failed submit.
+				self.submitting = false
 				vim.notify("Failed to update description: " .. (result.stderr or ""), vim.log.levels.ERROR)
 			end)
 		end
