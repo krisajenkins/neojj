@@ -49,11 +49,22 @@ end
 function JjRepo.instance(dir)
 	local cwd = dir or vim.fn.getcwd()
 
-	if not instances[cwd] then
-		instances[cwd] = JjRepo.new(cwd)
+	local repo = instances[cwd]
+	if not repo then
+		repo = JjRepo.new(cwd)
+		instances[cwd] = repo
+	elseif not repo:is_jj_repo() then
+		-- The cached instance was created before a jj repository existed at this
+		-- path (e.g. `jj git init` ran after the first :JJ call). Re-detect so a
+		-- freshly initialised repo is recognised without restarting Neovim, and
+		-- re-run setup_modules to register the status module now that detection
+		-- succeeds. register_module guards against double registration, so this
+		-- is safe/idempotent when detection still fails.
+		repo:detect_repository()
+		repo:setup_modules()
 	end
 
-	return instances[cwd]
+	return repo
 end
 
 function JjRepo:register_module(name, module)

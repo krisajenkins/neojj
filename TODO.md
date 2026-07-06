@@ -10,16 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Re-detect repositories initialised after first use
-
-`JjRepo.instance` memoises per cwd and `detect_repository` only runs in the
-constructor (`lua/neojj/lib/jj/repository.lua:49-57,127-137`). A repo created
-with `jj git init` *after* the first `:JJ` call is never recognised — every
-command reports "Not a jj repository" until Neovim restarts.
-
-Fix: in `JjRepo.instance` (or at the top of the `M.jj_*` entry points), re-run
-`detect_repository()` when the cached state has `jj_dir == ""`.
-
 # [ ] Close windows when closing NeoJJ views
 
 Closing the annotate view (`lua/neojj/buffers/annotate/init.lua:333-342`)
