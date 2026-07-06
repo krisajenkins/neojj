@@ -89,6 +89,7 @@ T["call fails gracefully when jj is not on PATH"] = function()
 
 	-- No raw error should reach the caller...
 	expect.equality(ok, true)
+	assert(result, "call() must return a failure table rather than nil")
 	-- ...instead the standard failure table with a string stderr.
 	expect.equality(result.success, false)
 	expect.equality(type(result.stderr), "string")

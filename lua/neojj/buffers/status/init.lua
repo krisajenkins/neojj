@@ -7,7 +7,7 @@ local logger = require("neojj.logger")
 ---@field repo table Repository instance
 ---@field revision? string Optional revision to show (defaults to working copy)
 ---@field state table Current repository state
----@field expanded_files table<string, boolean> Which file diffs are expanded, keyed by path
+---@field expanded_files table<string, { diff: string[] }> Cached diff per expanded file, keyed by path (absent when collapsed)
 local StatusBuffer = {}
 StatusBuffer.__index = StatusBuffer
 
@@ -161,7 +161,7 @@ function StatusBuffer:get_revision_data(revision)
 	local cli = require("neojj.lib.jj.cli")
 
 	-- Get commit details with jj show (includes metadata and diffs)
-	local result = cli.show():arg(revision):cwd(self.repo.dir):call()
+	local result = cli.show():arg(revision):cwd(self.repo.dir):call_async()
 
 	if not result.success then
 		logger.warn("Failed to get revision data: " .. tostring(result.stderr))
@@ -328,6 +328,14 @@ function StatusBuffer:refresh()
 			working_copy = working_copy,
 		}
 
+		-- Re-fetch cached diffs for any files that are currently expanded so the
+		-- rendered diff stays in sync with the freshly-refreshed working copy.
+		-- We're already in the async context here, so these calls yield rather
+		-- than block the UI thread.
+		for path in pairs(self.expanded_files) do
+			self.expanded_files[path] = { diff = self:get_file_diff(path) }
+		end
+
 		-- Render the UI only if buffer is still valid
 		vim.schedule(function()
 			if self.buffer and self.buffer:is_valid() then
@@ -408,59 +416,89 @@ function StatusBuffer:toggle_file_diff()
 	end
 
 	local file_path = item.path
-	local was_expanded = self.expanded_files[file_path] or false
-	self.expanded_files[file_path] = not was_expanded
+	-- expanded_files maps a path to its cached diff ({ diff = string[] }) while
+	-- expanded, and holds nil while collapsed.
+	local was_expanded = self.expanded_files[file_path] ~= nil
 
-	-- If we're collapsing, we need to find the line where this file item starts
-	-- so we can restore the cursor there after re-rendering
-	local target_line = nil
 	if was_expanded then
-		-- Find the line number of the file item component
-		-- The component_positions map uses 0-indexed line numbers
+		-- Collapse: drop the cached diff and re-render immediately.
+		self.expanded_files[file_path] = nil
+
+		-- Find the line where this file item starts so we can restore the cursor
+		-- there after re-rendering. component_positions is 0-indexed.
+		local target_line = nil
 		for line_idx, comp in pairs(self.buffer.component_positions) do
 			if comp:is_interactive() and comp:get_item() and comp:get_item().path == file_path then
-				-- Convert to 1-indexed for cursor positioning
 				target_line = line_idx + 1
 				break
 			end
 		end
-	end
 
-	self:render()
+		self:render()
 
-	-- Restore cursor to the file item line if we collapsed
-	if target_line then
-		self.buffer:set_cursor(target_line, 0)
+		if target_line then
+			self.buffer:set_cursor(target_line, 0)
+		end
+	else
+		-- Expand: fetch the diff off the UI thread, cache it, then render so the
+		-- UI builder only ever reads cached data.
+		local async = require("plenary.async")
+		async.run(function()
+			local diff_lines = self:get_file_diff(file_path)
+			vim.schedule(function()
+				self.expanded_files[file_path] = { diff = diff_lines }
+				if self.buffer and self.buffer:is_valid() then
+					self:render()
+				end
+			end)
+		end)
 	end
 end
 
 ---Toggle all file diffs
 function StatusBuffer:toggle_all_file_diffs()
-	local any_expanded = false
-	for _, expanded in pairs(self.expanded_files) do
-		if expanded then
-			any_expanded = true
-			break
-		end
+	local any_expanded = next(self.expanded_files) ~= nil
+
+	if any_expanded then
+		-- Collapse everything and re-render immediately.
+		self.expanded_files = {}
+		self:render()
+		return
 	end
 
-	-- If any are expanded, collapse all. Otherwise, expand all.
-	local new_state = not any_expanded
-
-	-- Get all file paths from the current state
+	-- Expand all: gather every file path, then fetch and cache each diff off the
+	-- UI thread so the UI builder never runs jj during render.
+	local paths = {}
 	if self.state.working_copy and self.state.working_copy.modified_files then
 		for _, file in ipairs(self.state.working_copy.modified_files) do
-			self.expanded_files[file.path] = new_state
+			table.insert(paths, file.path)
 		end
 	end
-
 	if self.state.working_copy and self.state.working_copy.conflicts then
 		for _, file in ipairs(self.state.working_copy.conflicts) do
-			self.expanded_files[file.path] = new_state
+			table.insert(paths, file.path)
 		end
 	end
 
-	self:render()
+	if #paths == 0 then
+		return
+	end
+
+	local async = require("plenary.async")
+	async.run(function()
+		local cache = {}
+		for _, path in ipairs(paths) do
+			cache[path] = { diff = self:get_file_diff(path) }
+		end
+		vim.schedule(function()
+			for path, entry in pairs(cache) do
+				self.expanded_files[path] = entry
+			end
+			if self.buffer and self.buffer:is_valid() then
+				self:render()
+			end
+		end)
+	end)
 end
 
 ---Get diff for a file
@@ -489,7 +527,7 @@ function StatusBuffer:get_file_diff(file_path)
 
 	builder:arg(file_path):cwd(self.repo.dir)
 
-	local result = builder:call()
+	local result = builder:call_async()
 
 	if not result.success then
 		logger.warn("Failed to get diff for file: " .. file_path .. " - " .. tostring(result.stderr))
@@ -619,7 +657,7 @@ function StatusBuffer:create_new_change()
 		if self.revision then
 			builder:arg(self.revision)
 		end
-		local result = builder:call()
+		local result = builder:call_async()
 
 		vim.schedule(function()
 			if result.success then

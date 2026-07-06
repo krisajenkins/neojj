@@ -99,16 +99,13 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 		interactive = true,
 	})
 
-	-- Check if this revision is expanded
-	local is_expanded = log_buffer
-		and log_buffer.expanded_revisions
-		and log_buffer.expanded_revisions[revision.change_id]
+	-- Read the cached details for this revision, if it's expanded. The details
+	-- are fetched and cached by the log buffer at toggle time (see
+	-- LogBuffer:toggle_revision_expanded), so this pure UI builder only reads
+	-- cached data and never runs jj during render.
+	local details = log_buffer and log_buffer.expanded_revisions and log_buffer.expanded_revisions[revision.change_id]
 
-	-- `and log_buffer` is implied by is_expanded, but restated so the type
-	-- checker knows the receiver below is non-nil.
-	if is_expanded and log_buffer then
-		-- Fetch and render expanded details
-		local details = log_buffer:get_revision_details(revision.change_id)
+	if type(details) == "table" then
 		local expanded_components = LogUI.create_expanded_details(details, graph_part)
 
 		return Ui.col({

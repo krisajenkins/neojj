@@ -178,11 +178,11 @@ end
 
 ---Create a file item with optional diff expansion
 ---@param file table File information {status, path}
----@param expanded_files table Expanded files state
----@param status_buffer? table Status buffer instance for diff access
+---@param expanded_files table Expanded files state (maps path to cached { diff } when expanded)
+---@param _status_buffer? table Unused; retained for signature/threading compatibility
 ---@param row_highlight? string Optional highlight applied to the whole row (e.g. conflicts)
 ---@return table component File item component
-function StatusUI.create_file_item(file, expanded_files, status_buffer, row_highlight)
+function StatusUI.create_file_item(file, expanded_files, _status_buffer, row_highlight)
 	local children = {
 		Ui.file_item(file.status, file.path, {
 			item = file,
@@ -191,10 +191,12 @@ function StatusUI.create_file_item(file, expanded_files, status_buffer, row_high
 		}),
 	}
 
-	-- Add diff content if file is expanded
-	if expanded_files[file.path] and status_buffer then
-		local diff_lines = status_buffer:get_file_diff(file.path)
-		local diff_components = StatusUI.create_diff_components(diff_lines, file.path)
+	-- Add diff content if file is expanded. The diff is fetched and cached by the
+	-- status buffer at toggle time (see StatusBuffer:toggle_file_diff), so this
+	-- pure UI builder only reads cached data and never runs jj during render.
+	local expanded = expanded_files[file.path]
+	if type(expanded) == "table" and expanded.diff then
+		local diff_components = StatusUI.create_diff_components(expanded.diff, file.path)
 
 		if #diff_components > 0 then
 			table.insert(children, Ui.col(diff_components))

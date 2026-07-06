@@ -10,26 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Make the CLI layer genuinely async and stop running jj during render
-
-Despite CLAUDE.md's description, the async architecture is not real: every jj
-call blocks the UI thread via `Job:sync()` (`cli.lua:80`); `Cli:call_async`
-(`cli.lua:117-122`) just delegates to the blocking call. `repo:refresh()`
-(`lua/neojj/lib/jj/repository.lua:65-88`) wraps its body in an un-awaited
-`async.void(...)()` with no completion signal — it only works "synchronously by
-accident". Worst, jj processes run synchronously *during render*:
-`status/init.lua:462-500` runs one `jj diff` per expanded file (`<S-Tab>`
-expand-all = N sequential blocking processes), and `log/init.lua:469-500` via
-`log/ui.lua:110` re-fetches revision details on every re-render.
-
-Fix: convert `Cli:call` to `Job:start` with an `on_exit` callback wrapped via
-plenary async so callers can genuinely await; make `refresh()` awaitable and
-awaited; cache diff/detail results in `expanded_files` / `expanded_revisions`
-state at toggle time instead of fetching inside UI builders. Keep the public
-`Cli` interface stable so `tests/helpers/mock_cli.lua` keeps working; run the
-full suite after. This is the largest item in the list — it can be split into
-(1) real async call, (2) awaited refresh, (3) cache-at-toggle if needed.
-
 # [ ] Pass --git to jj show so revision views work on stock config
 
 `get_revision_data` (`lua/neojj/buffers/status/init.lua:163`) runs `jj show

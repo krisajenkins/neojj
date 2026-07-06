@@ -373,8 +373,10 @@ T.test_diff_highlighting_screenshot = function()
 			"+end"
 		}
 
-		-- Create status UI components with expanded file
-		local expanded_files = { ["example.lua"] = true }
+		-- Create status UI components with an expanded file. Diffs are cached on
+		-- the expanded_files map at toggle time, so the UI builder reads them from
+		-- there rather than calling jj during render.
+		local expanded_files = { ["example.lua"] = { diff = test_diff_lines } }
 		local mock_status_buffer = {
 			get_file_diff = function(file_path)
 				return test_diff_lines

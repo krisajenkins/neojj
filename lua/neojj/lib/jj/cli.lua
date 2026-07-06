@@ -53,27 +53,70 @@ function Cli:cwd(dir)
 	return self
 end
 
+-- Resolve the command to an absolute path, failing loudly (rather than with a
+-- raw plenary stack trace) when jj isn't on PATH. Returns the resolved command
+-- on success, or (nil, failure_table) when jj is missing.
+local function resolve_command(cmd)
+	if cmd ~= "jj" then
+		return cmd
+	end
+
+	-- vim.fn.exepath takes a single {name} argument; LLS's bundled vim stub
+	-- mistypes it as zero-arg, so silence that false positive.
+	---@diagnostic disable-next-line: redundant-parameter
+	local jj_path = vim.fn.exepath("jj")
+	if jj_path == "" then
+		local msg = "jj executable not found on PATH"
+		logger.error(msg)
+		vim.notify("NeoJJ: " .. msg, vim.log.levels.ERROR)
+		return nil, {
+			success = false,
+			exit_code = -1,
+			stdout = nil,
+			stderr = msg,
+		}
+	end
+
+	return jj_path
+end
+
+-- Build the structured result table from a finished job. `stdout` may be passed
+-- in (the synchronous path gets it back from job:sync); otherwise it's read
+-- from the job's recorded stdout (the async path).
+local function build_result(job, stdout)
+	local exit_code = job.code
+	stdout = stdout or job:result() or {}
+	local stderr = job:stderr_result() or {}
+
+	local success = exit_code == 0
+	local stdout_str = type(stdout) == "table" and table.concat(stdout, "\n") or stdout
+	local stderr_str = type(stderr) == "table" and table.concat(stderr, "\n") or stderr
+
+	if not success then
+		local error_msg = "Command failed with exit code " .. tostring(exit_code)
+		if stderr_str and stderr_str ~= "" then
+			error_msg = error_msg .. ": " .. stderr_str
+		end
+		logger.error(error_msg)
+	end
+
+	return {
+		success = success,
+		exit_code = exit_code,
+		stdout = stdout_str,
+		stderr = stderr_str,
+	}
+end
+
 function Cli:call()
 	local cmd_args = vim.deepcopy(self.args)
 	local cwd = self.options.cwd or vim.fn.getcwd()
 
 	-- Resolve full path for jj command at call time, and fail loudly (rather
 	-- than with a raw plenary stack trace) when it isn't on PATH.
-	local command = self.cmd
-	if command == "jj" then
-		local jj_path = vim.fn.exepath("jj")
-		if jj_path == "" then
-			local msg = "jj executable not found on PATH"
-			logger.error(msg)
-			vim.notify("NeoJJ: " .. msg, vim.log.levels.ERROR)
-			return {
-				success = false,
-				exit_code = -1,
-				stdout = nil,
-				stderr = msg,
-			}
-		end
-		command = jj_path
+	local command, failure = resolve_command(self.cmd)
+	if not command then
+		return failure
 	end
 
 	logger.debug("Executing: " .. command .. " " .. table.concat(cmd_args, " ") .. " (cwd: " .. cwd .. ")")
@@ -117,35 +160,106 @@ function Cli:call()
 		}
 	end
 
-	local job = result.job
-	local exit_code = job.code
-	local stdout = result.stdout or {}
-	local stderr = job:stderr_result() or {}
-
-	local success = exit_code == 0
-	local stdout_str = type(stdout) == "table" and table.concat(stdout, "\n") or stdout
-	local stderr_str = type(stderr) == "table" and table.concat(stderr, "\n") or stderr
-
-	if not success then
-		local error_msg = "Command failed with exit code " .. exit_code
-		if stderr_str and stderr_str ~= "" then
-			error_msg = error_msg .. ": " .. stderr_str
-		end
-		logger.error(error_msg)
-	end
-
-	return {
-		success = success,
-		exit_code = exit_code,
-		stdout = stdout_str,
-		stderr = stderr_str,
-	}
+	return build_result(result.job, result.stdout)
 end
 
+-- Genuinely asynchronous variant of :call(). When invoked inside a plenary
+-- async context (async.run / async.void) it yields the coroutine until the jj
+-- process exits, so the UI thread is never blocked. Its public contract matches
+-- :call(): it returns the same structured result table.
 function Cli:call_async()
+	local cmd_args = vim.deepcopy(self.args)
+	local cwd = self.options.cwd or vim.fn.getcwd()
+	-- Snapshot the env guard before we leave the builder's method context.
+	local env = next(self._env) and self._env or nil
+
+	local command, failure = resolve_command(self.cmd)
+	if command then
+		logger.debug("Executing (async): " .. command .. " " .. table.concat(cmd_args, " ") .. " (cwd: " .. cwd .. ")")
+	end
+
 	return async.wrap(function(callback)
-		local result = self:call()
-		callback(result)
+		-- jj missing on PATH: resolve_command already notified, so hand back the
+		-- standard failure table.
+		if not command then
+			callback(failure)
+			return
+		end
+
+		local finished = false
+		---@type uv.uv_timer_t?
+		local timer = nil
+
+		local function close_timer()
+			if timer and not timer:is_closing() then
+				timer:stop()
+				timer:close()
+			end
+			timer = nil
+		end
+
+		-- Every path below is scheduled onto the main loop, so these callbacks
+		-- run serially and the `finished` guard is race-free. It also ensures we
+		-- only ever resume the coroutine once.
+		local function finish(result)
+			if finished then
+				return
+			end
+			finished = true
+			close_timer()
+			callback(result)
+		end
+
+		local job = Job:new({
+			command = command,
+			args = cmd_args,
+			cwd = cwd,
+			env = env,
+		})
+
+		job:add_on_exit_callback(vim.schedule_wrap(function()
+			finish(build_result(job))
+		end))
+
+		-- Match :call()'s timeout semantics with a one-shot timer, since an
+		-- async Job has no built-in sync timeout.
+		timer = vim.loop.new_timer()
+		if timer then
+			timer:start(
+				SYNC_TIMEOUT_MS,
+				0,
+				vim.schedule_wrap(function()
+					if finished then
+						return
+					end
+					logger.error("Command timed out after " .. SYNC_TIMEOUT_MS .. "ms")
+					vim.notify("NeoJJ: jj command timed out after " .. SYNC_TIMEOUT_MS .. "ms", vim.log.levels.WARN)
+					finish({
+						success = false,
+						exit_code = -1,
+						stdout = nil,
+						stderr = "jj command timed out after " .. SYNC_TIMEOUT_MS .. "ms",
+					})
+				end)
+			)
+		end
+
+		-- Job:start can raise on spawn failure; surface it as a failure table
+		-- rather than a stack trace.
+		local ok, err = pcall(function()
+			job:start()
+		end)
+		if not ok then
+			local msg = tostring(err)
+			logger.error("Command failed: " .. msg)
+			vim.notify("NeoJJ: failed to run jj: " .. msg, vim.log.levels.ERROR)
+			finish({
+				success = false,
+				exit_code = -1,
+				stdout = nil,
+				stderr = msg,
+			})
+		end
 	end, 1)()
 end
 

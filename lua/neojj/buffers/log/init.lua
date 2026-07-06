@@ -44,7 +44,7 @@ local LOG_TEMPLATE = table.concat({
 ---@field repo table Repository instance
 ---@field state table Current log state
 ---@field options table Log options (e.g. revset/limit) passed at construction
----@field expanded_revisions table<string, boolean> Which revisions are expanded, keyed by change id
+---@field expanded_revisions table<string, { description: string[], stats: string[] }> Cached details per expanded revision, keyed by change id (absent when collapsed)
 local LogBuffer = {}
 LogBuffer.__index = LogBuffer
 
@@ -211,6 +211,13 @@ function LogBuffer:refresh()
 			raw_lines = log_data.raw_lines,
 		}
 
+		-- Re-fetch cached details for any revisions that are currently expanded so
+		-- the rendered detail stays in sync with the refreshed log. We're already
+		-- in the async context here, so these calls yield rather than block.
+		for change_id in pairs(self.expanded_revisions) do
+			self.expanded_revisions[change_id] = self:get_revision_details(change_id)
+		end
+
 		-- Render the UI only if buffer is still valid
 		vim.schedule(function()
 			if self.buffer and self.buffer:is_valid() then
@@ -238,7 +245,7 @@ function LogBuffer:get_log_data()
 		:option("template", LOG_TEMPLATE)
 		:cwd(self.repo.dir)
 
-	local result = builder:call()
+	local result = builder:call_async()
 
 	logger.debug("Log command result - success: " .. tostring(result.success))
 	logger.debug("Log command stdout length: " .. (result.stdout and #result.stdout or 0))
@@ -450,7 +457,7 @@ function LogBuffer:create_new_change()
 	async.run(function()
 		-- Create new change after the selected revision
 		local builder = cli.new():arg(item.change_id):cwd(self.repo.dir)
-		local result = builder:call()
+		local result = builder:call_async()
 
 		vim.schedule(function()
 			if result.success then
@@ -484,37 +491,53 @@ function LogBuffer:toggle_revision_expanded()
 	end
 
 	local change_id = item.change_id
-	local was_expanded = self.expanded_revisions[change_id] or false
-	self.expanded_revisions[change_id] = not was_expanded
+	-- expanded_revisions maps a change id to its cached details
+	-- ({ description, stats }) while expanded, and holds nil while collapsed.
+	local was_expanded = self.expanded_revisions[change_id] ~= nil
 
-	-- Find the line number to restore cursor to when collapsing
-	local target_line = nil
 	if was_expanded then
+		-- Collapse: drop the cached details and re-render immediately.
+		self.expanded_revisions[change_id] = nil
+
+		-- Find the commit line so we can restore the cursor after collapsing.
+		local target_line = nil
 		for line_idx, comp in pairs(self.buffer.component_positions or {}) do
 			if comp:is_interactive() and comp:get_item() and comp:get_item().change_id == change_id then
 				target_line = line_idx + 1 -- Convert to 1-indexed
 				break
 			end
 		end
-	end
 
-	self:render()
+		self:render()
 
-	-- Restore cursor to the commit line if we collapsed
-	if target_line then
-		self.buffer:set_cursor(target_line, 0)
+		if target_line then
+			self.buffer:set_cursor(target_line, 0)
+		end
+	else
+		-- Expand: fetch the details off the UI thread, cache them, then render so
+		-- the UI builder only ever reads cached data.
+		local async = require("plenary.async")
+		async.run(function()
+			local details = self:get_revision_details(change_id)
+			vim.schedule(function()
+				self.expanded_revisions[change_id] = details
+				if self.buffer and self.buffer:is_valid() then
+					self:render()
+				end
+			end)
+		end)
 	end
 end
 
 ---Get detailed info for a revision (description + stats)
 ---@param change_id string The change ID to get details for
----@return table details Table with description and stats lines
+---@return { description: string[], stats: string[] } details Table with description and stats lines
 function LogBuffer:get_revision_details(change_id)
 	local cli = require("neojj.lib.jj.cli")
 
 	-- Get log with stats for this specific revision
 	local builder = cli.log():short_flag("r"):arg(change_id):flag("stat"):flag("no-graph"):cwd(self.repo.dir)
-	local result = builder:call()
+	local result = builder:call_async()
 
 	if not result.success then
 		logger.warn("Failed to get revision details: " .. tostring(result.stderr))
