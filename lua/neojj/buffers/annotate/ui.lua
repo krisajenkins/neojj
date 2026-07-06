@@ -52,48 +52,61 @@ function AnnotateUI.collapse_annotations(annotations)
 
 	while i <= #annotations do
 		local current = annotations[i]
-		local change_id = current.change_id
 
-		-- Find the range of consecutive identical change IDs
-		local start_idx = i
-		local end_idx = i
-
-		while end_idx < #annotations and annotations[end_idx + 1].change_id == change_id do
-			end_idx = end_idx + 1
-		end
-
-		-- If this is a single line (no repetition), just add it
-		if start_idx == end_idx then
-			table.insert(collapsed, {
-				type = "full",
-				change_id = current.change_id,
-				author = current.author,
-				date = current.date,
-			})
+		-- Placeholder lines (unparseable source lines) are emitted as-is so the
+		-- annotation column stays 1:1 with the source. Their nil change_id must
+		-- never merge into a neighbouring run.
+		if current.type == "placeholder" then
+			table.insert(collapsed, { type = "placeholder" })
+			i = i + 1
 		else
-			-- This is a run of identical change IDs
-			-- First line: show full info
-			table.insert(collapsed, {
-				type = "full",
-				change_id = current.change_id,
-				author = current.author,
-				date = current.date,
-			})
+			local change_id = current.change_id
 
-			-- Middle lines: show continuation character
-			for _ = start_idx + 1, end_idx - 1 do
+			-- Find the range of consecutive identical change IDs
+			local start_idx = i
+			local end_idx = i
+
+			while
+				end_idx < #annotations
+				and annotations[end_idx + 1].type ~= "placeholder"
+				and annotations[end_idx + 1].change_id == change_id
+			do
+				end_idx = end_idx + 1
+			end
+
+			-- If this is a single line (no repetition), just add it
+			if start_idx == end_idx then
 				table.insert(collapsed, {
-					type = "continuation",
+					type = "full",
+					change_id = current.change_id,
+					author = current.author,
+					date = current.date,
+				})
+			else
+				-- This is a run of identical change IDs
+				-- First line: show full info
+				table.insert(collapsed, {
+					type = "full",
+					change_id = current.change_id,
+					author = current.author,
+					date = current.date,
+				})
+
+				-- Middle lines: show continuation character
+				for _ = start_idx + 1, end_idx - 1 do
+					table.insert(collapsed, {
+						type = "continuation",
+					})
+				end
+
+				-- Last line: show end marker
+				table.insert(collapsed, {
+					type = "end_marker",
 				})
 			end
 
-			-- Last line: show end marker
-			table.insert(collapsed, {
-				type = "end_marker",
-			})
+			i = end_idx + 1
 		end
-
-		i = end_idx + 1
 	end
 
 	return collapsed
@@ -117,6 +130,8 @@ function AnnotateUI.format_annotation(annotation)
 		return "│"
 	elseif annotation.type == "end_marker" then
 		return "o"
+	elseif annotation.type == "placeholder" then
+		return ""
 	end
 
 	return ""
@@ -133,33 +148,60 @@ function AnnotateUI.create(annotate_output)
 		return components
 	end
 
-	-- Parse all lines
+	-- Parse all lines. Unparseable lines become placeholders rather than being
+	-- dropped, so the annotation column keeps a 1:1 line correspondence with the
+	-- source file (required for scroll alignment).
 	local annotations = {}
 	for line in annotate_output:gmatch("[^\r\n]+") do
 		local parsed = AnnotateUI.parse_annotate_line(line)
 		if parsed then
 			table.insert(annotations, parsed)
+		else
+			table.insert(annotations, { type = "placeholder" })
 		end
 	end
 
 	-- Collapse consecutive identical change IDs
 	local collapsed = AnnotateUI.collapse_annotations(annotations)
 
-	-- Create UI components
+	-- Create UI components. Only "full" rows carry a change id, so only they are
+	-- interactive; continuation/end_marker/placeholder rows resolve backwards to
+	-- their parent "full" row (or to nil) via the renderer's position tracking.
 	for _, annotation in ipairs(collapsed) do
 		local formatted = AnnotateUI.format_annotation(annotation)
-		local highlight = "Comment"
 
 		if annotation.type == "full" then
-			highlight = "Normal"
-		elseif annotation.type == "continuation" or annotation.type == "end_marker" then
-			highlight = "Comment"
+			table.insert(
+				components,
+				Ui.text(formatted, {
+					highlight = "Normal",
+					interactive = true,
+					item = { change_id = annotation.change_id },
+				})
+			)
+		else
+			table.insert(components, Ui.text(formatted, { highlight = "Comment" }))
 		end
-
-		table.insert(components, Ui.text(formatted, { highlight = highlight }))
 	end
 
 	return components
+end
+
+---Create help text component
+---@return table component Help text component
+function AnnotateUI.create_help()
+	return Ui.col({
+		Ui.text("NeoJJ Annotate Help", { highlight = "NeoJJTitle" }),
+		Ui.empty_line(),
+		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
+		Ui.text("  <Enter>   - Open change at cursor", { highlight = "NeoJJHelpText" }),
+		Ui.text("  y         - Copy change ID at cursor", { highlight = "NeoJJHelpText" }),
+		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  <Esc>     - Quit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  <C-c>     - Quit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  ?         - Show/hide this help", { highlight = "NeoJJHelpText" }),
+		Ui.empty_line(),
+	})
 end
 
 return AnnotateUI

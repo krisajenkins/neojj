@@ -10,23 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Annotate robustness: cursor parsing, scroll alignment, help
-
-Three fixes in `lua/neojj/buffers/annotate/`:
-
-- `get_change_id_at_cursor` (`init.lua:204-236`) returns the first word of any
-  line, so `<CR>` on the "No annotations available" line opens a status view for
-  revision `"No"`. Validate with the same pattern as
-  `AnnotateUI.parse_annotate_line`, or store change IDs as component items and
-  use `get_item_at_cursor`.
-- Scrollbind is enabled without `:syncbind` and before the async render lands,
-  and `AnnotateUI.create` drops unparseable output lines, so annotation rows can
-  be offset from source lines with no re-sync (`init.lua:125-148`). Call
-  `vim.cmd("syncbind")` after `render_components()` and emit a placeholder line
-  for unparseable annotate output to preserve 1:1 alignment.
-- Add a `?` help mapping for parity with status/log (annotate currently has
-  bindings but no help).
-
 # [ ] Cursor handling and render robustness fixes
 
 A cluster of small verified correctness fixes:

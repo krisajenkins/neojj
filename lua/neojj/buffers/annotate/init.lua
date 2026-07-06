@@ -25,6 +25,7 @@ function AnnotateBuffer.new(repo, filepath, source_bufnr)
 		source_bufnr = source_bufnr,
 		source_winnr = vim.fn.bufwinid(source_bufnr),
 		annotations_loaded = false,
+		show_help = false,
 	}, AnnotateBuffer)
 
 	-- Create buffer with unified factory method
@@ -93,6 +94,17 @@ function AnnotateBuffer:_setup_mappings()
 	self.buffer:map("n", "y", function()
 		self:copy_change_id_at_cursor()
 	end, { desc = "Copy change ID" })
+
+	-- Toggle help
+	self.buffer:map("n", "?", function()
+		self:toggle_help()
+	end, { desc = "Toggle help" })
+end
+
+---Toggle help display
+function AnnotateBuffer:toggle_help()
+	self.show_help = not self.show_help
+	self:render_components()
 end
 
 ---Setup autocmds for the annotation buffer
@@ -178,6 +190,9 @@ end
 ---Create UI components for the annotation buffer
 ---@return table[] components UI components
 function AnnotateBuffer:create_ui_components()
+	if self.show_help then
+		return { AnnotateUI.create_help() }
+	end
 	return AnnotateUI.create(self.annotate_output or "")
 end
 
@@ -189,47 +204,29 @@ function AnnotateBuffer:render_components()
 
 	local components = self:create_ui_components()
 	self.buffer:render(components)
-end
 
----Check if a line is a continuation marker (│ or o)
----@param line string Line content
----@return boolean is_continuation True if line is a continuation marker
-local function is_continuation_line(line)
-	local trimmed = vim.trim(line)
-	return trimmed == "│" or trimmed == "o"
+	-- Re-align the scrollbound source window now that the annotation content has
+	-- landed. setup_scrollbind runs once before the async annotate returns, so
+	-- the two windows can drift until we force a sync here.
+	local annotation_winnr = vim.fn.bufwinid(self.buffer.handle)
+	if annotation_winnr ~= -1 and vim.api.nvim_win_is_valid(annotation_winnr) then
+		vim.api.nvim_win_call(annotation_winnr, function()
+			vim.cmd("syncbind")
+		end)
+	end
 end
 
 ---Get the change ID at the current cursor position
 ---@return string|nil change_id Change ID at cursor or nil
 function AnnotateBuffer:get_change_id_at_cursor()
-	local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-	local lines = vim.api.nvim_buf_get_lines(self.buffer.handle, cursor_line - 1, cursor_line, false)
-
-	if #lines == 0 then
-		return nil
-	end
-
-	local line = lines[1]
-
-	-- Check if it's a continuation marker
-	if is_continuation_line(line) then
-		-- Search backwards for the full annotation
-		for i = cursor_line - 1, 1, -1 do
-			local prev_lines = vim.api.nvim_buf_get_lines(self.buffer.handle, i - 1, i, false)
-			if #prev_lines > 0 then
-				local prev_line = prev_lines[1]
-				-- Check if this is a full annotation line (not a continuation)
-				if not is_continuation_line(prev_line) then
-					-- Extract change ID (first word)
-					local change_id = prev_line:match("^(%S+)")
-					return change_id
-				end
-			end
-		end
-	else
-		-- Extract change ID from the current line (first word)
-		local change_id = line:match("^(%S+)")
-		return change_id
+	-- Interactive "full" annotation rows carry the untruncated change id as their
+	-- item. get_item_at_cursor searches backwards to the nearest interactive
+	-- component, so a cursor on a continuation/end-marker line resolves to its
+	-- parent "full" row, while the "No annotations available" line (which is not
+	-- interactive) correctly yields nil.
+	local item = self.buffer:get_item_at_cursor()
+	if item and item.change_id then
+		return item.change_id
 	end
 
 	return nil

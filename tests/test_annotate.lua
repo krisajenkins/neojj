@@ -1,5 +1,6 @@
 local T = MiniTest.new_set()
 local expect = MiniTest.expect
+local child = MiniTest.new_child_neovim()
 
 -- Test suite for annotation buffer
 T["AnnotateUI"] = MiniTest.new_set()
@@ -160,6 +161,74 @@ abcdefgh testuser 2025-07-12 10:00:00    3: line 3
 	-- Second should be end marker (since there are 2 kznzoynu lines)
 	-- Third should be for abcdefgh
 	expect.equality(#components, 3)
+end
+
+-- Cursor parsing tests need a real buffer/window so component position tracking
+-- and cursor movement are exercised, so they run in a child Neovim.
+T["cursor"] = MiniTest.new_set({
+	hooks = {
+		pre_case = function()
+			child.restart({ "-u", "scripts/minimal_init.lua" })
+			child.bo.readonly = false
+			child.cmd([[ set rtp+=deps/plenary.nvim ]])
+			child.lua([[ expect = require('mini.test').expect ]])
+			-- Helper: render annotate output into a real buffer wrapped in a
+			-- minimal AnnotateBuffer, then return its change id at a given line.
+			child.lua([[
+				local AnnotateUI = require('neojj.buffers.annotate.ui')
+				local AnnotateBuffer = require('neojj.buffers.annotate')
+				local Buffer = require('neojj.lib.buffer')
+
+				_G.change_id_at = function(output, line)
+					local buffer = Buffer.create({
+						name = "Test Annotate",
+						filetype = "neojj-annotate-test",
+						kind = "split",
+						modifiable = false,
+						readonly = true,
+					})
+					buffer:open()
+					buffer:render(AnnotateUI.create(output))
+
+					local ab = setmetatable({ buffer = buffer }, AnnotateBuffer)
+					buffer:set_cursor(line, 0)
+					local id = ab:get_change_id_at_cursor()
+					buffer:close()
+					return id
+				end
+			]])
+		end,
+		post_once = child.stop,
+	},
+})
+
+T["cursor"]["no annotations line yields no change id"] = function()
+	local id = child.lua_get([[change_id_at("", 1)]])
+	expect.equality(id, vim.NIL)
+end
+
+T["cursor"]["full line yields untruncated change id"] = function()
+	-- change_id is 12 chars; the display form is truncated to 8 but the item
+	-- must carry the full id.
+	local output = "kznzoynuvwxy krisajen 2025-07-11 09:21:52    1: line 1\n"
+	local id = child.lua_get(string.format("change_id_at(%q, 1)", output))
+	expect.equality(id, "kznzoynuvwxy")
+end
+
+T["cursor"]["continuation and end-marker lines resolve to parent change id"] = function()
+	-- Three consecutive identical change ids collapse to full/continuation/
+	-- end_marker rows. The cursor on any of those rows should resolve to the
+	-- same parent change id.
+	local output = table.concat({
+		"abcdefghijkl user 2025-01-01 00:00:00    1: a",
+		"abcdefghijkl user 2025-01-01 00:00:00    2: b",
+		"abcdefghijkl user 2025-01-01 00:00:00    3: c",
+		"",
+	}, "\n")
+
+	expect.equality(child.lua_get(string.format("change_id_at(%q, 1)", output)), "abcdefghijkl")
+	expect.equality(child.lua_get(string.format("change_id_at(%q, 2)", output)), "abcdefghijkl")
+	expect.equality(child.lua_get(string.format("change_id_at(%q, 3)", output)), "abcdefghijkl")
 end
 
 return T
