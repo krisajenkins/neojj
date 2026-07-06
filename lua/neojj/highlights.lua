@@ -35,6 +35,7 @@ local default_highlights = {
 	NeoJJFileModified = { link = "DiffChange" },
 	NeoJJFileDeleted = { link = "DiffDelete" },
 	NeoJJFileRenamed = { link = "DiffText" },
+	NeoJJFileCopied = { link = "DiffText" },
 	NeoJJFileUntracked = { link = "Comment" },
 
 	-- Interactive elements
@@ -96,7 +97,7 @@ function Highlights.get_file_status_highlight(status)
 		D = "NeoJJFileDeleted",
 		R = "NeoJJFileRenamed",
 		["?"] = "NeoJJFileUntracked",
-		C = "NeoJJConflict",
+		C = "NeoJJFileCopied",
 	}
 
 	return status_map[status] or "NeoJJFileStatus"

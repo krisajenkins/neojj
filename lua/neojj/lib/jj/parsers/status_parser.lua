@@ -21,8 +21,37 @@ function M.parse_working_copy_info(lines)
 		is_empty = true,
 	}
 
+	-- jj emits an "unresolved conflicts" warning block on stdout, e.g.:
+	--   Warning: There are unresolved conflicts at these paths:
+	--   src/config.lua    2-sided conflict
+	-- We track whether we're inside that block so the annotated path lines are
+	-- parsed as conflicts rather than falling through to the file-status branches.
+	local in_conflicts = false
+
 	for _, line in ipairs(lines) do
-		if line:match("^Working copy ") then
+		if in_conflicts then
+			-- "<path><spaces>N-sided conflict"
+			local conflict_path, sides = line:match("^(.-)%s%s+(%d+)%-sided conflict%s*$")
+			if conflict_path and conflict_path ~= "" then
+				---@type Conflict
+				local conflict = {
+					path = conflict_path,
+					sides = tonumber(sides),
+					annotation = sides .. "-sided conflict",
+				}
+				table.insert(working_copy.conflicts, conflict)
+				working_copy.is_empty = false
+				goto continue
+			else
+				-- Anything that isn't a conflict path line ends the block; fall
+				-- through so the current line is processed normally.
+				in_conflicts = false
+			end
+		end
+
+		if line:match("^Warning: There are unresolved conflicts") then
+			in_conflicts = true
+		elseif line:match("^Working copy ") then
 			-- Handle both formats:
 			-- "Working copy : qpvuntsm ..."
 			-- "Working copy  (@) : wwqvwtzo ..."
@@ -94,15 +123,48 @@ function M.parse_working_copy_info(lines)
 				working_copy.is_empty = false
 			end
 		elseif line:match("^C ") then
-			local file = line:match("^C (.+)")
+			-- "C" under "Working copy changes:" is a COPIED file (not a conflict).
+			-- jj formats it like a rename: "C {source => dest}" (with an optional
+			-- suffix after the braces), or occasionally as a bare path.
+			local copy_info = line:match("^C (.+)")
+			if copy_info then
+				local old_prefix, new_prefix, suffix = copy_info:match("^{(.-)%s*=>%s*(.-)}(.+)$")
+				local old_path, new_path
+				if old_prefix and new_prefix and suffix then
+					old_path = old_prefix .. suffix
+					new_path = new_prefix .. suffix
+				else
+					old_path, new_path = copy_info:match("^{(.-)%s*=>%s*(.-)}$")
+				end
+				if not new_path then
+					-- Bare path form: "C path"
+					new_path = copy_info
+					old_path = nil
+				end
+				---@type ModifiedFile
+				local modified_file = {
+					status = "C",
+					path = new_path,
+					old_path = old_path,
+				}
+				table.insert(working_copy.modified_files, modified_file)
+				working_copy.is_empty = false
+			end
+		elseif line:match("^%? ") then
+			-- Untracked path under "Untracked paths:"
+			local file = line:match("^%? (.+)")
 			if file then
-				---@type Conflict
-				local conflict = {
+				---@type ModifiedFile
+				local modified_file = {
+					status = "?",
 					path = file,
 				}
-				table.insert(working_copy.conflicts, conflict)
+				table.insert(working_copy.modified_files, modified_file)
+				working_copy.is_empty = false
 			end
 		end
+
+		::continue::
 	end
 
 	return working_copy

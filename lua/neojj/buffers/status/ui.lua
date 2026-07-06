@@ -157,12 +157,18 @@ function StatusUI.create_conflicts_section(conflicts, expanded_files, status_buf
 	expanded_files = expanded_files or {}
 	local conflict_items = {}
 	for _, conflict in ipairs(conflicts) do
-		-- Create conflict file item with "C" status
+		-- Conflicts render with a "!" marker in the dedicated Conflicts section
+		-- and are highlighted with the conflict (error) colour.
 		local conflict_file = {
-			status = "C",
+			status = "!",
 			path = conflict.path,
+			sides = conflict.sides,
+			annotation = conflict.annotation,
 		}
-		table.insert(conflict_items, StatusUI.create_file_item(conflict_file, expanded_files, status_buffer))
+		table.insert(
+			conflict_items,
+			StatusUI.create_file_item(conflict_file, expanded_files, status_buffer, "NeoJJConflict")
+		)
 	end
 
 	return Ui.section("Conflicts", conflict_items, {
@@ -174,13 +180,14 @@ end
 ---@param file table File information {status, path}
 ---@param expanded_files table Expanded files state
 ---@param status_buffer? table Status buffer instance for diff access
+---@param row_highlight? string Optional highlight applied to the whole row (e.g. conflicts)
 ---@return table component File item component
-function StatusUI.create_file_item(file, expanded_files, status_buffer)
+function StatusUI.create_file_item(file, expanded_files, status_buffer, row_highlight)
 	local children = {
 		Ui.file_item(file.status, file.path, {
 			item = file,
 			interactive = true,
-			highlight = file.status == "C" and "NeoJJConflict" or nil,
+			highlight = row_highlight,
 		}),
 	}
 

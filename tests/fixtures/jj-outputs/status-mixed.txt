@@ -1,0 +1,13 @@
+Working copy changes:
+M src/app.lua
+A src/feature.lua
+D src/old.lua
+R {lib/util.lua => lib/helpers.lua}
+C {README.md => docs/README.md}
+Untracked paths:
+? scratch.txt
+Working copy  (@) : qpvuntsm 230dd059 (conflict) big change
+Parent commit (@-): rlvkpnrz 2443ea76 base
+Warning: There are unresolved conflicts at these paths:
+src/app.lua    2-sided conflict
+config/settings.toml    3-sided conflict

@@ -7,12 +7,15 @@
 
 ---A modified file in the working copy
 ---@class ModifiedFile
----@field status string File status: "M" (modified), "A" (added), "D" (deleted)
+---@field status string File status: "M" (modified), "A" (added), "D" (deleted), "R" (renamed), "C" (copied), "?" (untracked)
 ---@field path string File path relative to repository root
+---@field old_path? string Original path for renamed/copied files
 
 ---A conflicted file
 ---@class Conflict
 ---@field path string File path relative to repository root
+---@field sides? integer Number of conflict sides (e.g. 2 for a 2-sided conflict)
+---@field annotation? string Human-readable conflict annotation (e.g. "2-sided conflict")
 
 ---Working copy information from jj status
 ---@class WorkingCopy

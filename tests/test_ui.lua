@@ -177,7 +177,10 @@ T.test_highlights = function()
 		expect.equality(hl2, "NeoJJFileAdded")
 
 		local hl3 = Highlights.get_file_status_highlight("C")
-		expect.equality(hl3, "NeoJJConflict")
+		expect.equality(hl3, "NeoJJFileCopied")
+
+		local hl4 = Highlights.get_file_status_highlight("?")
+		expect.equality(hl4, "NeoJJFileUntracked")
 	]])
 end
 

@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change uytlyqwo)*
+
+# [x] Fix status parser: conflicts, copied files, untracked paths
+
+`lua/neojj/lib/jj/parsers/status_parser.lua:96-105` detects conflicts by
+parsing `C <path>` lines — a format jj never emits (verified on jj 0.43: real
+output is a `Warning: There are unresolved conflicts at these paths:` block with
+`<path>    2-sided conflict` lines). So `working_copy.conflicts` is always empty
+and the status buffer's Conflicts section never populates. Worse, `C` in
+"Working copy changes" means *copied*, so copied files would be shown as
+conflicts. Untracked files (`? <path>` under "Untracked paths:") are ignored
+entirely.
+
+Fix: parse the conflicts warning block statefully (path + N-sided annotation);
+treat `^C ` as a copied file in `modified_files`; add a `^? ` branch producing
+`status = "?"` entries (`highlights.lua:98` already maps `?`). Update the
+fixture-driven tests in `tests/test_status_parser.lua` with real jj output.
+
+---
+
 *Archived: 2026-07-06 (change qptmtmks)*
 
 # [x] Rewrite the log parser to use an explicit jj template

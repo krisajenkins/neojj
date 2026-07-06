@@ -59,15 +59,95 @@ T["parse_working_copy_info"]["parses conflicts"] = function()
 	local lines = vim.split(output, "\n")
 	local result = status_parser.parse_working_copy_info(lines)
 
-	expect.equality(result.change_id, "qpvuntsm")
+	expect.equality(result.change_id, "myrmppvl")
 	expect.equality(#result.parent_ids, 2)
-	expect.equality(result.parent_ids[1], "rlvkpnrz")
-	expect.equality(result.parent_ids[2], "tknwxqrs")
-	expect.equality(#result.modified_files, 2)
+	expect.equality(result.parent_ids[1], "nzqnkovr")
+	expect.equality(result.parent_ids[2], "qluzpwwq")
+
+	-- The conflict comes from the "unresolved conflicts" warning block, not a
+	-- file-status line, so there are no modified files here.
+	expect.equality(#result.modified_files, 0)
 	expect.equality(#result.conflicts, 1)
 
-	-- Check conflict
-	expect.equality(result.conflicts[1].path, "config/settings.lua")
+	-- Check conflict path and annotation
+	expect.equality(result.conflicts[1].path, "src/config.lua")
+	expect.equality(result.conflicts[1].sides, 2)
+	expect.equality(result.conflicts[1].annotation, "2-sided conflict")
+
+	-- Presence of conflicts means the working copy is not "clean"
+	expect.equality(result.is_empty, false)
+end
+
+T["parse_working_copy_info"]["parses copied files"] = function()
+	local output = read_fixture("status-copy.txt")
+	local lines = vim.split(output, "\n")
+	local result = status_parser.parse_working_copy_info(lines)
+
+	expect.equality(result.change_id, "rlvkpnrz")
+	expect.equality(#result.modified_files, 3)
+	expect.equality(#result.conflicts, 0)
+	expect.equality(result.is_empty, false)
+
+	-- The copied file should be a modified file with status "C" (NOT a conflict)
+	local copied = nil
+	for _, file in ipairs(result.modified_files) do
+		if file.status == "C" then
+			copied = file
+		end
+	end
+	expect.no_equality(copied, nil)
+	assert(copied)
+	expect.equality(copied.path, "src/config_backup.lua")
+	expect.equality(copied.old_path, "src/config.lua")
+end
+
+T["parse_working_copy_info"]["parses untracked files"] = function()
+	local output = read_fixture("status-untracked.txt")
+	local lines = vim.split(output, "\n")
+	local result = status_parser.parse_working_copy_info(lines)
+
+	expect.equality(result.change_id, "lpovlvly")
+	-- 2 tracked changes (M, A) + 2 untracked (?) = 4 entries
+	expect.equality(#result.modified_files, 4)
+	expect.equality(result.is_empty, false)
+
+	local untracked = {}
+	for _, file in ipairs(result.modified_files) do
+		if file.status == "?" then
+			table.insert(untracked, file.path)
+		end
+	end
+	expect.equality(#untracked, 2)
+	expect.equality(untracked[1], "notes.txt")
+	expect.equality(untracked[2], "build/output.log")
+end
+
+T["parse_working_copy_info"]["parses a mix of statuses"] = function()
+	local output = read_fixture("status-mixed.txt")
+	local lines = vim.split(output, "\n")
+	local result = status_parser.parse_working_copy_info(lines)
+
+	expect.equality(result.change_id, "qpvuntsm")
+	expect.equality(result.is_empty, false)
+
+	-- Count each status in modified_files
+	local counts = {}
+	for _, file in ipairs(result.modified_files) do
+		counts[file.status] = (counts[file.status] or 0) + 1
+	end
+	expect.equality(counts["M"], 1)
+	expect.equality(counts["A"], 1)
+	expect.equality(counts["D"], 1)
+	expect.equality(counts["R"], 1)
+	expect.equality(counts["C"], 1)
+	expect.equality(counts["?"], 1)
+
+	-- Two conflicts from the warning block, with their side counts
+	expect.equality(#result.conflicts, 2)
+	expect.equality(result.conflicts[1].path, "src/app.lua")
+	expect.equality(result.conflicts[1].sides, 2)
+	expect.equality(result.conflicts[2].path, "config/settings.toml")
+	expect.equality(result.conflicts[2].sides, 3)
 end
 
 T["parse_working_copy_info"]["parses merge with multiple parents"] = function()

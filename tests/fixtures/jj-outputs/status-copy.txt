@@ -1,0 +1,6 @@
+Working copy changes:
+A README.md
+C {src/config.lua => src/config_backup.lua}
+M src/main.lua
+Working copy  (@) : rlvkpnrz 2443ea76 backup config
+Parent commit (@-): okpkknwl 9fed18e4 base

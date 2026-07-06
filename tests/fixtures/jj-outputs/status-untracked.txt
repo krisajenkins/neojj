@@ -1,0 +1,8 @@
+Working copy changes:
+M src/main.lua
+A src/new.lua
+Untracked paths:
+? notes.txt
+? build/output.log
+Working copy  (@) : lpovlvly 05a59952 wip
+Parent commit (@-): ztzwlyrw df5bc05e base | base
