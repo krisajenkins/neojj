@@ -1,109 +1,136 @@
----Parser for jj log command output (with ASCII graph)
+---Parser for jj log command output produced by NeoJJ's explicit template.
 ---
----This module provides pure parsing functions for jj log graph output.
----All functions take string input and return structured data with no side effects.
+---This module provides pure parsing functions for jj log graph output. It does
+---NOT parse jj's human-facing default format; instead the log buffer requests a
+---machine-oriented template (see `neojj.buffers.log.init`) built around two
+---ASCII control characters:
+---
+---  * RECORD SEPARATOR  (0x1e, "\30") marks the boundary between the graph
+---    gutter that `jj log` draws on the left and the templated payload. Because
+---    jj never emits this byte as part of the graph, splitting on it is
+---    unambiguous: any glyph can appear in the gutter (`@`, `○`, `◆`, `×`,
+---    `├`, `─`, `╮`, `╯`, `╭`, `╰`, …) without confusing commit detection.
+---  * UNIT SEPARATOR    (0x1f, "\31") separates the fields inside a commit
+---    header payload.
+---
+---Each commit occupies two templated lines:
+---
+---  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>
+---  <gutter>\30<description first line>
+---
+---A line is recognised as a commit header purely by the presence of a payload
+---containing unit separators, never by matching a fixed set of graph glyphs.
+---Graph-only connector lines (e.g. `├─╮`) carry no record separator and are
+---preserved as gutter for rendering.
 
 local M = {}
 
----Parse jj log output with ASCII graph visualization
+local RECORD_SEP = "\30" -- 0x1e, separates graph gutter from templated payload
+local UNIT_SEP = "\31" -- 0x1f, separates fields within a header payload
+
+---Split a raw log line into its graph gutter and templated payload.
+---@param line string A single line of jj log output
+---@return string gutter The graph characters drawn to the left of the payload
+---@return string|nil payload The templated payload, or nil if the line is graph-only
+local function split_gutter(line)
+	local gutter, payload = line:match("^(.-)" .. RECORD_SEP .. "(.*)$")
+	if gutter == nil then
+		-- No record separator: this is a pure graph/connector line.
+		return line, nil
+	end
+	return gutter, payload
+end
+
+---Parse jj log output produced by the NeoJJ log template.
 ---@param output string Raw output from jj log command
----@return ParsedLog Parsed log with revisions, graph data, and raw lines
+---@return ParsedLog parsed Parsed log with revisions, graph data, and raw lines
 function M.parse_log_output(output)
-	local lines = vim.split(output, "\n")
 	---@type LogRevision[]
 	local revisions = {}
 	---@type table<integer, GraphData>
 	local graph_data = {}
+	---@type string[]
+	local raw_lines = {}
 
 	---@type LogRevision|nil
 	local current_revision = nil
 
+	local lines = vim.split(output, "\n")
+
 	for i, line in ipairs(lines) do
 		if line == "" then
-			-- Skip empty lines
+			-- Preserve blank lines positionally so the UI can render them.
+			raw_lines[i] = ""
 			goto continue
 		end
 
-		-- Check if this is a commit line (starts with @ or ○ and contains commit info)
-		local graph_part, commit_info = line:match("^([│@○◆%s├└┤┬┴─┌┐┘]*)(.*)")
+		local gutter, payload = split_gutter(line)
 
-		-- Check if this line has commit data (change_id, author, timestamp, commit_id)
-		local change_id, author, date_part, time_part, rest = nil, nil, nil, nil, nil
-		if commit_info and commit_info ~= "" then
-			change_id, author, date_part, time_part, rest =
-				commit_info:match("^%s*(%S+)%s+(%S+@%S+)%s+(%d%d%d%d%-%d%d%-%d%d)%s+(%d%d:%d%d:%d%d)%s+(.*)")
+		if payload == nil then
+			-- Graph-only connector line (e.g. "├─╮"): no payload to parse.
+			raw_lines[i] = gutter
+			graph_data[i] = { graph = gutter, revision = nil }
+			goto continue
 		end
 
-		if change_id and author and date_part and time_part and rest then
-			-- Parse the rest: everything before the last word is bookmarks, last word is commit_id
-			local words = vim.split(rest, "%s+", { trimempty = true })
-			local commit_id = words[#words]
-			local bookmarks = {}
-			for w = 1, #words - 1 do
-				table.insert(bookmarks, words[w])
-			end
+		if payload:find(UNIT_SEP, 1, true) then
+			-- Commit header line: fields are unit-separated.
+			local fields = vim.split(payload, UNIT_SEP, { plain = true })
+			local change_id = fields[1] or ""
+			local author = fields[2] or ""
+			local timestamp = fields[3] or ""
+			local bookmarks_field = fields[4] or ""
+			local commit_id = fields[5] or ""
+			local conflict = (fields[6] or "") == "conflict"
 
-			-- This is a commit header line with actual commit data
-			if current_revision then
-				-- Save previous revision
-				table.insert(revisions, current_revision)
-			end
+			local bookmarks = vim.split(bookmarks_field, "%s+", { trimempty = true })
 
 			---@type LogRevision
 			current_revision = {
 				change_id = change_id,
 				author = author,
-				timestamp = date_part .. " " .. time_part,
+				timestamp = timestamp,
 				commit_id = commit_id,
 				bookmarks = bookmarks,
+				conflict = conflict,
 				description = "",
-				graph = graph_part,
+				graph = gutter,
 				line_number = i,
 			}
+			table.insert(revisions, current_revision)
 
-			-- Store graph information
-			---@type GraphData
-			graph_data[i] = {
-				graph = graph_part,
-				revision = current_revision,
-			}
+			-- Rebuild a clean, control-character-free line for display. The
+			-- order (change_id author timestamp [bookmarks] commit_id) keeps
+			-- the bookmark-highlighting logic in log/ui.lua working, which
+			-- locates bookmarks between the timestamp and commit_id substrings.
+			local display = gutter .. change_id .. " " .. author .. " " .. timestamp
+			if bookmarks_field ~= "" then
+				display = display .. " " .. bookmarks_field
+			end
+			display = display .. " " .. commit_id
+			if conflict then
+				display = display .. " (conflict)"
+			end
+			raw_lines[i] = display
+
+			graph_data[i] = { graph = gutter, revision = current_revision }
 		else
-			-- This is a description line or graph continuation
-			if current_revision then
-				local desc_part = line:match("^[│@○◆%s├└┤┬┴─┌┐┘╮╯╭╰]*(.+)")
-				if desc_part and desc_part ~= "" then
-					-- Only capture the first line of description for metadata
-					-- The UI will render all lines from raw_lines anyway
-					if current_revision.description == "" then
-						current_revision.description = desc_part
-					end
-					-- Don't concatenate with \n - let UI handle multiline from raw_lines
-				end
+			-- Description continuation line: payload is the description text.
+			if current_revision and current_revision.description == "" then
+				current_revision.description = payload
 			end
-
-			-- Store graph line even if no commit info
-			if graph_part then
-				---@type GraphData
-				graph_data[i] = {
-					graph = graph_part,
-					revision = nil,
-				}
-			end
+			raw_lines[i] = gutter .. payload
+			graph_data[i] = { graph = gutter, revision = nil }
 		end
 
 		::continue::
-	end
-
-	-- Don't forget the last revision
-	if current_revision then
-		table.insert(revisions, current_revision)
 	end
 
 	---@type ParsedLog
 	return {
 		revisions = revisions,
 		graph_data = graph_data,
-		raw_lines = lines,
+		raw_lines = raw_lines,
 	}
 end
 

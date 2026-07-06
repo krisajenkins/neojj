@@ -3,6 +3,35 @@ local LogUI = require("neojj.buffers.log.ui")
 local logger = require("neojj.logger")
 local log_parser = require("neojj.lib.jj.parsers.log_parser")
 
+-- Explicit machine-oriented template for `jj log`. Rather than parse jj's
+-- fragile human-facing output, we ask for an unambiguous layout keyed on two
+-- ASCII control characters (see neojj.lib.jj.parsers.log_parser for the full
+-- contract):
+--   "\x1e" (RECORD SEPARATOR) marks the boundary between jj's graph gutter and
+--          our payload. jj never emits this byte in the graph, so splitting on
+--          it is unambiguous for any node glyph (@, ○, ◆, ×, curved corners …).
+--   "\x1f" (UNIT SEPARATOR) separates the fields within a commit header.
+-- Each commit spans two lines: a header record and a description record. The
+-- graph (`--graph`) gutter is kept so the gutter still renders.
+local LOG_TEMPLATE = table.concat({
+	'"\\x1e"',
+	"change_id.short(8)",
+	'"\\x1f"',
+	"author.email()",
+	'"\\x1f"',
+	'committer.timestamp().local().format("%Y-%m-%d %H:%M:%S")',
+	'"\\x1f"',
+	'bookmarks.map(|b| b.name()).join(" ")',
+	'"\\x1f"',
+	"commit_id.short(8)",
+	'"\\x1f"',
+	'if(conflict, "conflict", "")',
+	'"\\n"',
+	'"\\x1e"',
+	'if(description.first_line() == "", "(no description set)", description.first_line())',
+	'"\\n"',
+}, " ++ ")
+
 ---@class LogBuffer
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
@@ -195,7 +224,12 @@ function LogBuffer:get_log_data()
 	local limit = self.options.limit or 10
 	local revisions = self.options.revisions or "::"
 
-	local builder = cli.log():short_flag("r"):arg(revisions):option("limit", tostring(limit)):cwd(self.repo.dir)
+	local builder = cli.log()
+		:short_flag("r")
+		:arg(revisions)
+		:option("limit", tostring(limit))
+		:option("template", LOG_TEMPLATE)
+		:cwd(self.repo.dir)
 
 	local result = builder:call()
 

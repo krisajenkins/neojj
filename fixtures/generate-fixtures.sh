@@ -14,6 +14,12 @@ export JJ_USER="Test User"
 export JJ_EMAIL="test@example.com"
 export JJ_TIMESTAMP="2024-01-01T12:00:00Z"
 
+# Machine-oriented template that NeoJJ's log buffer requests. Must stay in sync
+# with LOG_TEMPLATE in lua/neojj/buffers/log/init.lua and the parser contract in
+# lua/neojj/lib/jj/parsers/log_parser.lua. "\x1e" separates the graph gutter from
+# the payload; "\x1f" separates the header fields.
+LOG_TEMPLATE='"\x1e" ++ change_id.short(8) ++ "\x1f" ++ author.email() ++ "\x1f" ++ committer.timestamp().local().format("%Y-%m-%d %H:%M:%S") ++ "\x1f" ++ bookmarks.map(|b| b.name()).join(" ") ++ "\x1f" ++ commit_id.short(8) ++ "\x1f" ++ if(conflict, "conflict", "") ++ "\n" ++ "\x1e" ++ if(description.first_line() == "", "(no description set)", description.first_line()) ++ "\n"'
+
 # Ensure demo repo exists
 if [ ! -d "$REPO_DIR/.jj" ]; then
     echo "Demo repository not found. Creating it first..."
@@ -70,7 +76,7 @@ capture "initial" "status" \
     jj --color never status
 
 capture "initial" "log" \
-    jj --color never log --limit 10
+    jj --color never log --limit 10 -T "$LOG_TEMPLATE"
 
 capture_json "initial" "log-json" \
     jj --color never log -r @ --template "json(self)" --no-graph
@@ -88,7 +94,7 @@ capture "feature-start" "status" \
     jj --color never status
 
 capture "feature-start" "log" \
-    jj --color never log --limit 10
+    jj --color never log --limit 10 -T "$LOG_TEMPLATE"
 
 capture_json "feature-start" "log-json" \
     jj --color never log -r @ --template "json(self)" --no-graph
@@ -109,7 +115,7 @@ capture "multiple-changes" "status" \
     jj --color never status
 
 capture "multiple-changes" "log" \
-    jj --color never log --limit 10
+    jj --color never log --limit 10 -T "$LOG_TEMPLATE"
 
 capture_json "multiple-changes" "log-json" \
     jj --color never log -r @ --template "json(self)" --no-graph
@@ -130,7 +136,7 @@ capture "conflict-state" "status" \
     jj --color never status
 
 capture "conflict-state" "log" \
-    jj --color never log --limit 10
+    jj --color never log --limit 10 -T "$LOG_TEMPLATE"
 
 capture_json "conflict-state" "log-json" \
     jj --color never log -r @ --template "json(self)" --no-graph
@@ -148,7 +154,7 @@ capture "merge-state" "status" \
     jj --color never status
 
 capture "merge-state" "log" \
-    jj --color never log --limit 10
+    jj --color never log --limit 10 -T "$LOG_TEMPLATE"
 
 capture_json "merge-state" "log-json" \
     jj --color never log -r @ --template "json(self)" --no-graph

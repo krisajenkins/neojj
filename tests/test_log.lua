@@ -106,11 +106,13 @@ T.test_log_parsing = function()
 	child.lua([[
 		local log_parser = require('neojj.lib.jj.parsers.log_parser')
 
-		-- Test parsing sample log output
-		local sample_output = "@  sqmvkywl user@example.com 2025-07-14 21:06:06 f35b8f36\n" ..
-			"│  Adding jj log support.\n" ..
-			"○  knsrwpnn user@example.com 2025-07-14 20:58:50 1e062938\n" ..
-			"│  Implementing status functions.\n"
+		-- Test parsing sample log output in the NeoJJ template format.
+		-- "\30" is the record separator (graph|payload); "\31" separates fields.
+		local sample_output =
+			"@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\n" ..
+			"│  \030Adding jj log support.\n" ..
+			"○  \030knsrwpnn\031user@example.com\0312025-07-14 20:58:50\031\0311e062938\031\n" ..
+			"│  \030Implementing status functions.\n"
 
 		local parsed = log_parser.parse_log_output(sample_output)
 		expect.equality(type(parsed), "table")

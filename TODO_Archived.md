@@ -5,6 +5,33 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change qptmtmks)*
+
+# [x] Rewrite the log parser to use an explicit jj template
+
+`lua/neojj/lib/jj/parsers/log_parser.lua` parses jj's default *human* output,
+which is fragile and demonstrably wrong today (verified empirically on jj 0.43
+against `fixtures/demo-repo`: 9 commits, 7 parsed):
+
+- The graph character classes (lines 28 and 73) omit the `×` conflict node and
+  curved corners `╭╮╯╰`, so **conflicted commits are silently dropped** from the
+  log view — in a repo with conflicts (jj's headline feature) you cannot select
+  or act on them.
+- The commit regex requires an `author@email` token, so the root commit is
+  dropped too.
+- A trailing `(conflict)` suffix makes `words[#words]` capture `"(conflict)"` as
+  the commit_id and shifts the real commit_id into bookmarks.
+- Any user with a configured `templates.log` gets a garbled/empty view.
+
+Fix: in `lua/neojj/buffers/log/init.lua`, fetch with an explicit
+machine-oriented `--template` (a field list with an unambiguous separator, or
+`json(self)`), keeping `--graph` for the gutter; rewrite `log_parser.lua` to
+split the graph prefix from the templated payload and delete the human-format
+regexes. Update `tests/test_log_parser.lua` and fixtures; add cases for
+conflicted, empty, divergent, and root commits.
+
+---
+
 *Archived: 2026-07-06 (change srtroook)*
 
 # [x] Stop stripping legitimate '#' lines from commit descriptions

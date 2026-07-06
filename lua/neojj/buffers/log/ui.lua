@@ -58,7 +58,8 @@ function LogUI.create_log_components(log_state, log_buffer)
 				table.insert(components, LogUI.create_commit_line(line, revision, log_buffer))
 			else
 				-- This is a description line or graph continuation
-				table.insert(components, LogUI.create_graph_line(line))
+				local graph_prefix = graph_info and graph_info.graph
+				table.insert(components, LogUI.create_graph_line(line, graph_prefix))
 			end
 		end
 	end
@@ -72,14 +73,12 @@ end
 ---@param log_buffer? table Log buffer instance
 ---@return table component Commit line component
 function LogUI.create_commit_line(line, revision, log_buffer)
-	-- Parse the line to separate graph and commit info
-	local graph_part, commit_part = line:match("^([│@○◆%s├└┤┬┴─┌┐┘]*)(.*)")
-
-	if not graph_part or not commit_part then
-		-- Fallback: treat whole line as commit info
-		graph_part = ""
-		commit_part = line
-	end
+	-- Separate the graph gutter from the commit info. The parser records the
+	-- exact gutter on the revision, so split there deterministically rather
+	-- than matching a fixed set of graph glyphs (which drops conflict `×`
+	-- nodes and curved corners).
+	local graph_part = revision.graph or ""
+	local commit_part = line:sub(#graph_part + 1)
 
 	-- Check if this is the working copy (current head) by looking for @ in the graph
 	local is_current_head = revision.graph and revision.graph:match("@") ~= nil
@@ -155,14 +154,22 @@ end
 
 ---Create a graph line component (non-interactive)
 ---@param line string The raw line content
+---@param graph_prefix? string The graph gutter recorded by the parser
 ---@return table component Graph line component
-function LogUI.create_graph_line(line)
-	-- Parse the line to separate graph and description
-	local graph_part, desc_part = line:match("^([│%s]*)(.*)")
-
-	if not graph_part then
-		graph_part = ""
-		desc_part = line
+function LogUI.create_graph_line(line, graph_prefix)
+	local graph_part, desc_part
+	if graph_prefix ~= nil then
+		-- The parser recorded the exact gutter; split there so any graph glyph
+		-- (curved corners, conflict markers, …) is treated as graph, not text.
+		graph_part = graph_prefix
+		desc_part = line:sub(#graph_part + 1)
+	else
+		-- Fallback for callers without recorded gutter data.
+		graph_part, desc_part = line:match("^([│%s]*)(.*)")
+		if not graph_part then
+			graph_part = ""
+			desc_part = line
+		end
 	end
 
 	return Ui.row({
@@ -332,6 +339,9 @@ function LogUI.create_test_ui()
 					timestamp = "2025-07-14 21:06:06",
 					commit_id = "f35b8f36",
 					description = "Adding jj log support.",
+					bookmarks = {},
+					conflict = false,
+					graph = "@  ",
 					line_number = 1,
 				},
 			},
@@ -344,6 +354,9 @@ function LogUI.create_test_ui()
 					timestamp = "2025-07-14 20:58:50",
 					commit_id = "1e062938",
 					description = "Implementing more status page functions - help/fold/reverse fold.",
+					bookmarks = {},
+					conflict = false,
+					graph = "○  ",
 					line_number = 3,
 				},
 			},
@@ -356,6 +369,9 @@ function LogUI.create_test_ui()
 					timestamp = "2025-07-14 14:46:13",
 					commit_id = "9ff01605",
 					description = 'Adding "open file" handling from the status page, and fixing a warning message.',
+					bookmarks = {},
+					conflict = false,
+					graph = "○  ",
 					line_number = 5,
 				},
 			},
@@ -368,6 +384,9 @@ function LogUI.create_test_ui()
 					timestamp = "2025-07-14 14:46:02",
 					commit_id = "d4818d0b",
 					description = "Reorganising the markdown docs we're gathering.",
+					bookmarks = {},
+					conflict = false,
+					graph = "○  ",
 					line_number = 7,
 				},
 			},

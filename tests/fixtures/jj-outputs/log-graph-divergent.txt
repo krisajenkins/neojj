@@ -1,0 +1,6 @@
+○  mmmmmmmmjane@example.com2024-03-15 10:30:42aaaa1111
+│  Divergent change A
+○  mmmmmmmmjane@example.com2024-03-15 10:30:42bbbb2222
+│  Divergent change B
+◆  zzzzzzzzroot@example.com1970-01-01 00:00:0000000000
+   Initial commit

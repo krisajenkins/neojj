@@ -28,9 +28,11 @@ T["parse_log_output"]["parses simple linear history"] = function()
 	local rev1 = result.revisions[1]
 	expect.equality(rev1.change_id, "qpvuntsm")
 	expect.equality(rev1.author, "jane@example.com")
+	expect.equality(rev1.timestamp, "2024-03-15 10:30:42")
 	expect.equality(rev1.commit_id, "230dd059")
 	expect.equality(rev1.description, "Update README with examples")
 	expect.equality(rev1.graph, "@  ")
+	expect.equality(rev1.conflict, false)
 	expect.equality(#rev1.bookmarks, 0)
 
 	-- Check second revision
@@ -44,6 +46,19 @@ T["parse_log_output"]["parses simple linear history"] = function()
 	expect.equality(type(result.graph_data), "table")
 	-- The first line should have graph data with the revision
 	expect.equality(result.graph_data[1].revision, rev1)
+end
+
+T["parse_log_output"]["parses the root commit"] = function()
+	local output = read_fixture("log-graph-simple.txt")
+	local result = log_parser.parse_log_output(output)
+
+	-- The root commit has an all-zero change/commit id and must not be dropped.
+	local root = result.revisions[4]
+	expect.equality(root.change_id, "zzzzzzzz")
+	expect.equality(root.commit_id, "00000000")
+	expect.equality(root.author, "root@example.com")
+	expect.equality(root.graph, "◆  ")
+	expect.equality(root.description, "Initial commit")
 end
 
 T["parse_log_output"]["parses bookmarks from commit lines"] = function()
@@ -106,13 +121,80 @@ T["parse_log_output"]["parses merge commits with complex graph"] = function()
 	expect.equality(bugfix.description, "Fix critical bug in parser")
 end
 
-T["parse_log_output"]["preserves raw lines"] = function()
+T["parse_log_output"]["parses conflicted commits (× node)"] = function()
+	local output = read_fixture("log-graph-conflict.txt")
+	local result = log_parser.parse_log_output(output)
+
+	-- All three commits must be parsed, including the conflicted merge whose
+	-- node glyph is `×` (previously silently dropped by the glyph allowlist).
+	expect.equality(#result.revisions, 3)
+
+	local conflicted = result.revisions[1]
+	expect.equality(conflicted.change_id, "myrmppvl")
+	expect.equality(conflicted.commit_id, "1ce52fde")
+	expect.equality(conflicted.conflict, true)
+	-- The `×` glyph is preserved in the gutter, not swallowed into the id, and
+	-- the trailing "(conflict)" suffix does not corrupt commit_id/bookmarks.
+	expect.equality(conflicted.graph:match("×"), "×")
+	expect.equality(#conflicted.bookmarks, 1)
+	expect.equality(conflicted.bookmarks[1], "conflict-state")
+
+	-- Non-conflicted parents are still parsed correctly.
+	expect.equality(result.revisions[2].change_id, "qluzpwwq")
+	expect.equality(result.revisions[2].conflict, false)
+	expect.equality(result.revisions[3].change_id, "nzqnkovr")
+	expect.equality(result.revisions[3].conflict, false)
+end
+
+T["parse_log_output"]["parses divergent changes sharing a change id"] = function()
+	local output = read_fixture("log-graph-divergent.txt")
+	local result = log_parser.parse_log_output(output)
+
+	expect.equality(#result.revisions, 3)
+
+	-- Two visible commits share the same change_id but differ by commit_id;
+	-- both must survive parsing.
+	local a = result.revisions[1]
+	local b = result.revisions[2]
+	expect.equality(a.change_id, "mmmmmmmm")
+	expect.equality(b.change_id, "mmmmmmmm")
+	expect.equality(a.commit_id, "aaaa1111")
+	expect.equality(b.commit_id, "bbbb2222")
+	expect.equality(a.description, "Divergent change A")
+	expect.equality(b.description, "Divergent change B")
+end
+
+T["parse_log_output"]["parses a lone root commit with empty fields"] = function()
+	local output = read_fixture("log-graph-root.txt")
+	local result = log_parser.parse_log_output(output)
+
+	expect.equality(#result.revisions, 1)
+
+	local root = result.revisions[1]
+	expect.equality(root.change_id, "zzzzzzzz")
+	expect.equality(root.commit_id, "00000000")
+	expect.equality(root.author, "")
+	expect.equality(#root.bookmarks, 0)
+	expect.equality(root.conflict, false)
+	expect.equality(root.description, "(no description set)")
+end
+
+T["parse_log_output"]["preserves raw lines free of control characters"] = function()
 	local output = read_fixture("log-graph-simple.txt")
 	local result = log_parser.parse_log_output(output)
 
 	-- Should preserve all non-empty lines
 	expect.equality(type(result.raw_lines), "table")
 	expect.equality(#result.raw_lines > 0, true)
+
+	-- Reconstructed lines must not leak the template's control characters.
+	for _, line in ipairs(result.raw_lines) do
+		expect.equality(line:find("\30"), nil)
+		expect.equality(line:find("\31"), nil)
+	end
+
+	-- The first line renders the header fields in a stable, human order.
+	expect.equality(result.raw_lines[1], "@  qpvuntsm jane@example.com 2024-03-15 10:30:42 230dd059")
 end
 
 T["parse_log_output"]["handles empty input"] = function()
