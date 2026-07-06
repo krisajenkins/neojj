@@ -59,6 +59,35 @@ T.test_log_buffer_creation = function()
 	]])
 end
 
+---Test that reusing a log buffer merges options rather than replacing them.
+---@return nil
+T.test_log_buffer_merges_options_on_reuse = function()
+	child.lua([[
+		local LogBuffer = require('neojj.buffers.log')
+
+		local mock_repo = {
+			dir = vim.fn.getcwd(),
+			is_jj_repo = function() return true end
+		}
+
+		-- First construction configures a limit and revset.
+		local first = LogBuffer.new(mock_repo, { limit = 50, revisions = "@" })
+		expect.equality(first.options.limit, 50)
+		expect.equality(first.options.revisions, "@")
+
+		-- Reuse with no options must keep the previously configured values.
+		local second = LogBuffer.new(mock_repo)
+		expect.equality(first, second)
+		expect.equality(second.options.limit, 50)
+		expect.equality(second.options.revisions, "@")
+
+		-- Reuse with a new value overrides only that key.
+		local third = LogBuffer.new(mock_repo, { limit = 200 })
+		expect.equality(third.options.limit, 200)
+		expect.equality(third.options.revisions, "@")
+	]])
+end
+
 ---Test log UI components
 ---@return nil
 T.test_log_ui_components = function()

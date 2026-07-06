@@ -5,6 +5,25 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change oytumqzq)*
+
+# [x] Raise the log limit and preserve log options
+
+The log view is silently capped at 10 revisions (`options.limit or 10`,
+`lua/neojj/buffers/log/init.lua:193-196`) with no way to see more, and
+`LogBuffer.new` resets `instance.options = options` on every reuse
+(`log/init.lua:20-27`), discarding previously configured options.
+
+Fix: raise the default to ~100 (make it a `setup()` option), merge rather than
+replace options on instance reuse, and accept a count argument to `:JJ log`.
+(Revset filtering UI is a daily-driver feature, not this item.)
+
+> Note: added `M.config.log_limit` (default 100, settable via setup, validated);
+> reuse merges options via tbl_extend; `:JJ log [split] [count]` parses a
+> positional count. Documented in doc/neojj.txt.
+
+---
+
 *Archived: 2026-07-07 (change qlvzzqok)*
 
 # [x] Keybinding and help consistency pass

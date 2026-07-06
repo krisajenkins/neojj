@@ -10,17 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Raise the log limit and preserve log options
-
-The log view is silently capped at 10 revisions (`options.limit or 10`,
-`lua/neojj/buffers/log/init.lua:193-196`) with no way to see more, and
-`LogBuffer.new` resets `instance.options = options` on every reuse
-(`log/init.lua:20-27`), discarding previously configured options.
-
-Fix: raise the default to ~100 (make it a `setup()` option), merge rather than
-replace options on instance reuse, and accept a count argument to `:JJ log`.
-(Revset filtering UI is a daily-driver feature, not this item.)
-
 # [ ] Remove dead code and the unimplemented D binding
 
 Release hygiene — all verified unused or broken:

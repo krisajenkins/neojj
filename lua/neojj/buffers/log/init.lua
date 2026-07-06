@@ -64,8 +64,10 @@ function LogBuffer.new(repo, options)
 
 	-- Return existing instance if available for this repo
 	if instances[repo_key] and instances[repo_key]:is_valid() then
-		-- Update options on existing instance
-		instances[repo_key].options = options
+		-- Merge (rather than replace) options on the existing instance so that a
+		-- reuse which omits a previously-configured limit/revset keeps the old
+		-- value instead of silently discarding it.
+		instances[repo_key].options = vim.tbl_extend("force", instances[repo_key].options or {}, options or {})
 		return instances[repo_key]
 	end
 
@@ -237,8 +239,10 @@ end
 function LogBuffer:get_log_data()
 	local cli = require("neojj.lib.jj.cli")
 
-	-- Get log with default template, no color, limited to reasonable amount
-	local limit = self.options.limit or 10
+	-- Get log with default template, no color. The limit normally flows from
+	-- setup()'s configured log_limit; the literal here is only a final safety
+	-- net for direct LogBuffer.new callers that pass no options.
+	local limit = self.options.limit or 100
 	local revisions = self.options.revisions or "::"
 
 	local builder = cli.log()

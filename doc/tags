@@ -29,6 +29,7 @@ neojj-log-actions	neojj.txt	/*neojj-log-actions*
 neojj-log-close	neojj.txt	/*neojj-log-close*
 neojj-log-display	neojj.txt	/*neojj-log-display*
 neojj-log-level	neojj.txt	/*neojj-log-level*
+neojj-log-limit	neojj.txt	/*neojj-log-limit*
 neojj-log-mappings	neojj.txt	/*neojj-log-mappings*
 neojj-log-navigation	neojj.txt	/*neojj-log-navigation*
 neojj-log-refresh	neojj.txt	/*neojj-log-refresh*

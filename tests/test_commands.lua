@@ -62,6 +62,88 @@ T.test_setup_validates_options = function()
 	]])
 end
 
+---Test that setup() seeds and overrides the configurable log_limit.
+---@return nil
+T.test_setup_configures_log_limit = function()
+	child.lua([[
+		-- The default is a high cap, not the old hardcoded 10.
+		expect.equality(M.config.log_limit, 100)
+
+		-- A non-numeric log_limit is rejected up front.
+		local ok, err = pcall(M.setup, { log_limit = "lots" })
+		expect.equality(ok, false)
+		expect.equality(err:find("log_limit") ~= nil, true)
+
+		-- A numeric log_limit is stored on the runtime config.
+		M.setup({ log_limit = 250 })
+		expect.equality(M.config.log_limit, 250)
+	]])
+end
+
+---Test that :JJ log parses an optional split and revision count in either order.
+---@return nil
+T.test_jj_log_command_arguments = function()
+	child.lua([[
+		M.setup()
+
+		local calls = {}
+		M.jj_log = function(dir, split, limit)
+			table.insert(calls, { dir = dir, split = split, limit = limit })
+		end
+
+		vim.cmd('JJ log')
+		expect.equality(calls[1].split, nil)
+		expect.equality(calls[1].limit, nil)
+
+		vim.cmd('JJ log vertical')
+		expect.equality(calls[2].split, 'vertical')
+		expect.equality(calls[2].limit, nil)
+
+		vim.cmd('JJ log 50')
+		expect.equality(calls[3].split, nil)
+		expect.equality(calls[3].limit, 50)
+
+		vim.cmd('JJ log vertical 25')
+		expect.equality(calls[4].split, 'vertical')
+		expect.equality(calls[4].limit, 25)
+	]])
+end
+
+---Test that jj_log wires the configured log_limit through to LogBuffer options.
+---@return nil
+T.test_jj_log_passes_configured_limit = function()
+	child.lua([[
+		-- Reload neojj with a stubbed LogBuffer so we can observe the options it
+		-- is constructed with, without shelling out to jj.
+		package.loaded['neojj'] = nil
+		local captured
+		package.loaded['neojj.buffers.log'] = {
+			new = function(_repo, options)
+				captured = options
+				return {
+					show = function() end,
+					show_split = function() end,
+					show_tab = function() end,
+				}
+			end,
+		}
+
+		local M2 = require('neojj')
+		M2.get_repo = function() return { is_jj_repo = function() return true end } end
+
+		-- With no explicit limit, the configured default (100) flows through.
+		M2.jj_log(nil, nil, nil)
+		expect.equality(captured.limit, 100)
+
+		-- An explicit limit takes precedence over the default.
+		M2.jj_log(nil, nil, 7)
+		expect.equality(captured.limit, 7)
+
+		package.loaded['neojj.buffers.log'] = nil
+		package.loaded['neojj'] = nil
+	]])
+end
+
 ---Test JJ command completion
 ---@return nil
 T.test_jj_command_completion = function()

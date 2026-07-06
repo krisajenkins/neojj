@@ -105,14 +105,18 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 <
 
                                                                       *:JJ-log*
-:JJ log [split]
+:JJ log [split] [count]
                 Open the log buffer showing commit history.
 
-                Optional split argument (same as status).
+                Optional split argument (same as status) and an optional
+                revision count that overrides the configured `log_limit` for
+                this view. Either order is accepted.
 
                 Examples: >
                     :JJ log
                     :JJ log vertical
+                    :JJ log 50
+                    :JJ log vertical 200
 <
 
                                                                  *:JJ-describe*
@@ -279,6 +283,7 @@ SETUP OPTIONS                                          *neojj-setup-options*
 >lua
     require("neojj").setup({
       log_level = vim.log.levels.INFO,  -- Set log level
+      log_limit = 100,                  -- Default revisions shown in the log
     })
 <
 
@@ -288,6 +293,11 @@ log_level               Set the logging level for NeoJJ. Available levels:
                         • vim.log.levels.INFO (default)
                         • vim.log.levels.WARN
                         • vim.log.levels.ERROR
+
+                                                            *neojj-log-limit*
+log_limit               Default number of revisions shown in the log view
+                        (default: 100). Override per invocation with the
+                        count argument to |:JJ-log| (e.g. `:JJ log 50`).
 
 CUSTOM KEYBINDINGS                                      *neojj-keybindings*
 
@@ -379,10 +389,12 @@ neojj.setup({opts})
                 Parameters: ~
                     {opts}  (table|nil) Configuration options
                             • log_level: Log verbosity level
+                            • log_limit: Default revisions shown in the log
 
                 Example: >lua
                     require("neojj").setup({
                       log_level = vim.log.levels.INFO,
+                      log_limit = 100,
                     })
 <
 
@@ -398,10 +410,14 @@ neojj.jj_status({dir}, {revision}, {split})                *neojj.jj_status()*
                     {split}    (string|nil) Split type: "horizontal", "vertical",
                                "tab", or nil for replace
 
-neojj.jj_log({dir}, {split})                                  *neojj.jj_log()*
+neojj.jj_log({dir}, {split}, {limit})                         *neojj.jj_log()*
                 Open the log buffer.
 
-                Parameters: same as |neojj.jj_status()|
+                Parameters: ~
+                    {dir}   (string|nil) Directory path (default: cwd)
+                    {split} (string|nil) Split type
+                    {limit} (number|nil) Revisions to show (default: the
+                            configured |neojj-log-limit|)
 
 neojj.jj_describe({dir}, {revision}, {split})            *neojj.jj_describe()*
                 Open the describe buffer to edit a commit description.

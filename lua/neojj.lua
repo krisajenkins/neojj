@@ -8,6 +8,7 @@ local Highlights = require("neojj.highlights")
 
 ---@class NeoJJSetupOptions
 ---@field log_level? number Log level for the logger
+---@field log_limit? number Default number of revisions shown in the log view
 
 ---@class JjRepo
 ---@field dir string
@@ -26,6 +27,13 @@ local Highlights = require("neojj.highlights")
 
 local M = {}
 
+-- Runtime configuration, seeded with defaults and overridden by setup(). The
+-- log view reads log_limit here so a high cap flows through without callers
+-- having to pass it every time.
+M.config = {
+	log_limit = 100,
+}
+
 ---Setup NeoJJ with the given options
 ---@param opts? NeoJJSetupOptions Configuration options
 function M.setup(opts)
@@ -35,9 +43,14 @@ function M.setup(opts)
 	-- which silently breaks the logger's numeric comparisons) fails loudly.
 	vim.validate("opts", opts, "table")
 	vim.validate("log_level", opts.log_level, "number", true)
+	vim.validate("log_limit", opts.log_limit, "number", true)
 
 	if opts.log_level then
 		logger.set_level(opts.log_level)
+	end
+
+	if opts.log_limit then
+		M.config.log_limit = opts.log_limit
 	end
 
 	-- Setup highlight groups
@@ -83,8 +96,20 @@ function M.create_commands()
 			local split = rest_args[2]
 			M.jj_describe(nil, revision, split)
 		elseif subcommand == "log" then
-			local split = rest_args[1]
-			M.jj_log(nil, split)
+			-- Accept an optional split type and an optional positional revision
+			-- count, in either order: `:JJ log`, `:JJ log 50`,
+			-- `:JJ log vertical` or `:JJ log vertical 50`.
+			local arg1 = rest_args[1]
+			local arg2 = rest_args[2]
+			local log_split_types = { "horizontal", "vertical", "tab" }
+			local split, limit
+			if arg1 and vim.tbl_contains(log_split_types, arg1) then
+				split = arg1
+				limit = tonumber(arg2)
+			else
+				limit = tonumber(arg1)
+			end
+			M.jj_log(nil, split, limit)
 		elseif subcommand == "new" then
 			local revision = rest_args[1]
 			M.jj_new(nil, revision)
@@ -300,14 +325,15 @@ end
 ---Open the JJ log buffer UI
 ---@param dir? string Directory path (defaults to current working directory)
 ---@param split? string Split type ("horizontal", "vertical", "tab")
-function M.jj_log(dir, split)
+---@param limit? number Number of revisions to show (defaults to configured log_limit)
+function M.jj_log(dir, split, limit)
 	local repo = M.get_repo(dir)
 	if not repo:is_jj_repo() then
 		vim.notify("Not a jj repository", vim.log.levels.ERROR)
 		return
 	end
 
-	local log_buffer = LogBuffer.new(repo)
+	local log_buffer = LogBuffer.new(repo, { limit = limit or M.config.log_limit })
 
 	if split == "horizontal" then
 		log_buffer:show_split("horizontal")
