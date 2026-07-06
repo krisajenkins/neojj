@@ -17,6 +17,10 @@ local Highlights = require("neojj.highlights")
 ---@field refresh function
 ---@field is_jj_repo function
 ---@field get_working_copy function
+---@field get_root function
+---@field get_jj_dir function
+---@field get_bookmarks function
+---@field get_revisions function
 
 -- WorkingCopy is defined canonically in lua/neojj/lib/jj/types.lua
 
@@ -325,11 +329,12 @@ function M.jj_new(dir, revision)
 		local result = builder:call()
 
 		vim.schedule(function()
-			if result.success then
+			if result and result.success then
 				vim.notify("Created new change", vim.log.levels.INFO)
 				-- Note: Buffers will auto-refresh when user navigates back to them
 			else
-				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+				local stderr = result and result.stderr or "Unknown error"
+				vim.notify("Failed to create new change: " .. stderr, vim.log.levels.ERROR)
 			end
 		end)
 	end)
@@ -345,6 +350,12 @@ function M.jj_annotate(dir, filepath)
 		return
 	end
 
+	-- Use the true repository root, not repo.dir (which is Neovim's cwd at first
+	-- use and may sit above/below the actual root). Normalise via fs_realpath so
+	-- symlinked paths (e.g. /tmp vs /private/tmp on macOS) compare equal.
+	local root = repo:get_root() or repo.dir
+	root = vim.loop.fs_realpath(root) or root
+
 	-- If no filepath provided, use the current buffer's file
 	if not filepath or filepath == "" then
 		local current_file = vim.api.nvim_buf_get_name(0)
@@ -352,11 +363,13 @@ function M.jj_annotate(dir, filepath)
 			vim.notify("No file to annotate. Provide a filename or open a file.", vim.log.levels.ERROR)
 			return
 		end
+		current_file = vim.loop.fs_realpath(current_file) or current_file
 
-		-- Make filepath relative to repo root
-		local repo_dir = repo.dir
-		if current_file:sub(1, #repo_dir) == repo_dir then
-			filepath = current_file:sub(#repo_dir + 2) -- +2 to skip the directory separator
+		-- Make filepath relative to the repo root, anchoring the prefix test with
+		-- a trailing separator so /a/bc does not match a root of /a/b.
+		local root_prefix = root .. "/"
+		if current_file:sub(1, #root_prefix) == root_prefix then
+			filepath = current_file:sub(#root_prefix + 1)
 		else
 			vim.notify("Current file is not in the repository", vim.log.levels.ERROR)
 			return
@@ -366,7 +379,7 @@ function M.jj_annotate(dir, filepath)
 	local source_bufnr = vim.api.nvim_get_current_buf()
 
 	-- If the source file is not already open, open it
-	local full_path = repo.dir .. "/" .. filepath
+	local full_path = root .. "/" .. filepath
 	if vim.api.nvim_buf_get_name(source_bufnr) ~= full_path then
 		-- Find or create buffer for the file
 		local existing_bufs = vim.tbl_filter(function(buf)
@@ -396,14 +409,18 @@ function M.jj_split(dir, revision)
 		return
 	end
 
-	local cmd = "jj split"
+	local args = { "jj", "split" }
 	if revision and revision ~= "" then
-		cmd = cmd .. " -r " .. revision
+		table.insert(args, "-r")
+		table.insert(args, revision)
 	end
 
-	-- Open terminal in the repo directory
-	vim.cmd("lcd " .. vim.fn.fnameescape(repo.dir))
-	vim.cmd("terminal " .. cmd)
+	-- Launch the terminal rooted at the repo root via cwd, rather than mutating
+	-- the window's local directory with :lcd (which was never restored). The
+	-- argv form also avoids shell-quoting the revset. enew gives jobstart a fresh
+	-- buffer to convert into the terminal, mirroring the old :terminal behaviour.
+	vim.cmd("enew")
+	vim.fn.jobstart(args, { cwd = repo:get_root() or repo.dir, term = true })
 	vim.cmd("startinsert")
 end
 

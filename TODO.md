@@ -10,29 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Use the repo root, not the cwd, for all path handling
-
-`repo.dir` is just Neovim's cwd at first use, not the repo root
-(`repository.lua:38`), and three features confuse the two:
-
-- `jj_annotate` (`lua/neojj.lua:348-394`) prefix-checks and joins file paths
-  against `repo.dir` → false "Current file is not in the repository" errors when
-  cwd is a subdirectory; the unanchored `sub(1, #dir)` check also matches
-  sibling dirs (`/a/bc` vs `/a/b`) and fails across macOS symlinks
-  (`/tmp` vs `/private/tmp`).
-- `StatusBuffer:open_file_at_cursor` (`status/init.lua:503-517`) runs `:edit
-  <relative path>` against whatever the current cwd is — opens a nonexistent new
-  file if the user has `:cd`-ed.
-- `M.jj_split` (`neojj.lua:399-415`) permanently changes the window's `lcd` as a
-  side effect **and** interpolates the revision unescaped into a `:terminal`
-  command — revsets routinely contain spaces and parens.
-
-Fix: use `repo:get_root()` normalised via `vim.loop.fs_realpath` with a
-trailing-`/`-anchored prefix comparison in `jj_annotate`; open files by absolute
-path in `open_file_at_cursor`; in `jj_split`, drop the `lcd` and launch via
-`vim.fn.jobstart({...}, {cwd = root, term = true})` (or `shellescape` the
-revision and restore the previous `lcd`).
-
 # [ ] Match NeoJJ buffers by exact name
 
 `Buffer.from_name` (`lua/neojj/lib/buffer.lua:27-34`) uses `vim.fn.bufnr(name)`,

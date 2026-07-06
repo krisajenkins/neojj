@@ -553,8 +553,13 @@ function StatusBuffer:open_file_at_cursor()
 		return
 	end
 
+	-- item.path is relative to the repo root; resolve it against the true root
+	-- rather than the ambient cwd (which may differ from where jj lives).
+	local root = self.repo:get_root() or self.repo.dir
+	local abs_path = root .. "/" .. item.path
+
 	-- Open the file in the current window
-	local escaped_path = vim.fn.fnameescape(item.path)
+	local escaped_path = vim.fn.fnameescape(abs_path)
 	if item.line then
 		-- Jump to specific line (from diff position)
 		vim.cmd("edit +" .. item.line .. " " .. escaped_path)
