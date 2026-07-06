@@ -20,20 +20,45 @@ local T = MiniTest.new_set({
 	},
 })
 
----Test that JJ command is created after setup
+---Test that the :JJ command exists after plugin load, without any setup() call.
+---The child Neovim sources plugin/neojj.lua (no --noplugin), which registers
+---the command, so users who install without calling setup() still get :JJ.
+---@return nil
+T.test_jj_command_available_without_setup = function()
+	child.lua([[
+		-- Plugin was sourced on startup; command must exist with no setup() call.
+		local exists = vim.fn.exists(':JJ') == 2
+		expect.equality(exists, true)
+	]])
+end
+
+---Test that setup() re-registers the :JJ command (idempotent).
 ---@return nil
 T.test_jj_command_creation = function()
 	child.lua([[
-		-- Command should not exist before setup (test runs with --noplugin)
-		local exists_before = vim.fn.exists(':JJ') == 2
-		expect.equality(exists_before, false)
-
 		-- Run setup
 		M.setup()
 
 		-- Command should exist after setup
 		local exists_after = vim.fn.exists(':JJ') == 2
 		expect.equality(exists_after, true)
+	]])
+end
+
+---Test that setup() validates options and rejects a non-numeric log_level.
+---@return nil
+T.test_setup_validates_options = function()
+	child.lua([[
+		-- A string log_level silently breaks the logger's numeric comparisons,
+		-- so setup() must reject it with a clear error.
+		local ok, err = pcall(M.setup, { log_level = "debug" })
+		expect.equality(ok, false)
+		expect.equality(err:find("log_level") ~= nil, true)
+
+		-- A numeric log_level is accepted.
+		expect.no_error(function()
+			M.setup({ log_level = vim.log.levels.DEBUG })
+		end)
 	]])
 end
 

@@ -31,6 +31,11 @@ local M = {}
 function M.setup(opts)
 	opts = opts or {}
 
+	-- Validate options up front so misconfiguration (e.g. a string log_level,
+	-- which silently breaks the logger's numeric comparisons) fails loudly.
+	vim.validate("opts", opts, "table")
+	vim.validate("log_level", opts.log_level, "number", true)
+
 	if opts.log_level then
 		logger.set_level(opts.log_level)
 	end
@@ -38,6 +43,16 @@ function M.setup(opts)
 	-- Setup highlight groups
 	Highlights.setup()
 
+	-- Register the :JJ command. Idempotent: nvim_create_user_command overwrites,
+	-- so calling setup() after plugin load is harmless.
+	M.create_commands()
+end
+
+---Create NeoJJ user commands.
+---
+---Registered from plugin/neojj.lua on load so the :JJ command works without a
+---setup() call, and re-run by setup() for backwards compatibility.
+function M.create_commands()
 	-- Create unified :JJ command with subcommands
 	vim.api.nvim_create_user_command("JJ", function(args)
 		local subcommand = args.fargs[1]

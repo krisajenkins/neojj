@@ -5,6 +5,25 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change kpvyurpz)*
+
+# [x] Make the plugin work without setup() and validate options
+
+The `:JJ` command is only created inside `M.setup()`, which `plugin/neojj.lua`
+never calls — a user who installs the plugin without a `setup()` call gets
+highlights but no command. `setup()` also performs no option validation
+(`log_level = "debug"` as a string would silently break the logger's numeric
+comparisons) (`lua/neojj.lua:34-39`).
+
+Fix: create the `:JJ` user command idempotently from `plugin/neojj.lua`;
+validate `opts` (e.g. `vim.validate`) in `M.setup`.
+
+> Note: extracted the command block into `M.create_commands()` (called from the
+> plugin load-once guard and by setup); setup validates opts/log_level via the
+> 0.11+ `vim.validate` signature.
+
+---
+
 *Archived: 2026-07-07 (change rrozzwvu)*
 
 # [x] Close windows when closing NeoJJ views

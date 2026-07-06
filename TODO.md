@@ -10,17 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Make the plugin work without setup() and validate options
-
-The `:JJ` command is only created inside `M.setup()`, which `plugin/neojj.lua`
-never calls — a user who installs the plugin without a `setup()` call gets
-highlights but no command. `setup()` also performs no option validation
-(`log_level = "debug"` as a string would silently break the logger's numeric
-comparisons) (`lua/neojj.lua:34-39`).
-
-Fix: create the `:JJ` user command idempotently from `plugin/neojj.lua`;
-validate `opts` (e.g. `vim.validate`) in `M.setup`.
-
 # [ ] Describe buffer: don't wipe user input on async load
 
 The describe buffer opens empty, schedules `startinsert`, and the async
