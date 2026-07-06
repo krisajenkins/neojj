@@ -7,6 +7,8 @@ local M = {}
 
 ---Refresh repository status
 ---@param repo table Repository instance
+---@return boolean success True when the status refresh succeeded
+---@return string? error Error message when the status refresh failed
 function M.refresh(repo)
 	logger.debug("Refreshing status for repository: " .. repo.dir)
 
@@ -14,8 +16,9 @@ function M.refresh(repo)
 	local result = cli.status():cwd(repo.dir):call()
 
 	if not result.success then
-		logger.error("Failed to get status: " .. tostring(result.stderr))
-		return
+		local err = "Failed to get status: " .. tostring(result.stderr)
+		logger.error(err)
+		return false, err
 	end
 
 	local lines = vim.split(result.stdout, "\n")
@@ -45,6 +48,7 @@ function M.refresh(repo)
 	end
 
 	logger.debug("Status refresh completed")
+	return true
 end
 
 function M.setup(repo)

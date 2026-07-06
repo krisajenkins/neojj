@@ -30,18 +30,6 @@ state at toggle time instead of fetching inside UI builders. Keep the public
 full suite after. This is the largest item in the list — it can be split into
 (1) real async call, (2) awaited refresh, (3) cache-at-toggle if needed.
 
-# [ ] Surface jj failures in the status buffer instead of rendering empty
-
-If `jj status` fails mid-refresh (jj missing, repo locked, version mismatch),
-`repo:refresh()` only logs and `get_working_copy()` returns nil/stale — the
-status buffer silently renders just the "JJ Status" header with no files and no
-error (`lua/neojj/buffers/status/init.lua:312-331`).
-
-Fix: have `JjRepo:refresh()` return success/error and make
-`StatusBuffer:refresh()` call `self:render_error(...)` on failure, mirroring the
-revision path at `status/init.lua:306-311`. Assert the error rendering with the
-mock CLI returning `success=false`.
-
 # [ ] jj log bug
 
 The log view for the current repo shows:

@@ -9,6 +9,10 @@ MockCli._state = "initial"
 -- Fixtures directory path
 MockCli._fixtures_dir = nil
 
+-- Map of command name -> stderr for commands that should report a failure.
+-- Lets tests simulate `jj status` (etc.) failing without running real jj.
+MockCli._failures = {}
+
 --- Read a fixture file
 ---@param filename string
 ---@return string|nil
@@ -39,6 +43,18 @@ end
 ---@return string
 function MockCli.get_state()
 	return MockCli._state
+end
+
+--- Make a given command report a failure on its next call(s).
+---@param command string Command name (e.g. "status")
+---@param stderr? string Error text returned in the failure result
+function MockCli.set_failure(command, stderr)
+	MockCli._failures[command] = stderr or "mock failure"
+end
+
+--- Clear all configured command failures.
+function MockCli.clear_failures()
+	MockCli._failures = {}
 end
 
 --- Create a mock builder that returns fixture content
@@ -94,6 +110,17 @@ local function create_mock_builder(command)
 		local state = MockCli._state
 		local cmd = self._command
 		local args = self._args
+
+		-- Simulate a failing jj command when configured for this command.
+		local failure_stderr = MockCli._failures[cmd]
+		if failure_stderr ~= nil then
+			return {
+				success = false,
+				exit_code = 1,
+				stdout = "",
+				stderr = failure_stderr,
+			}
+		end
 
 		-- Determine which fixture to load based on command pattern
 		local fixture_name = nil

@@ -63,29 +63,49 @@ function JjRepo:register_module(name, module)
 	self.modules[name] = module
 end
 
+---Refresh repository state by running every registered module refresher.
+---Must be called from within a plenary async context (it acquires an async
+---semaphore). Returns a success/error signal so callers (e.g. the status
+---buffer) can surface failures instead of silently rendering stale state.
+---@return boolean success True when every module refreshed successfully
+---@return string? error Error message describing the first failure
 function JjRepo:refresh()
-	return async.void(function()
-		local permit = self.refresh_lock:acquire()
+	local permit = self.refresh_lock:acquire()
 
-		local success, err = pcall(function()
-			logger.debug("Refreshing repository state for: " .. self.dir)
+	-- pcall returns: ok, then whatever the inner function returned. The inner
+	-- function returns `true` on success or `false, err` on a module failure.
+	local ok, success, err = pcall(function()
+		logger.debug("Refreshing repository state for: " .. self.dir)
 
-			for name, module in pairs(self.modules) do
-				if module.refresh then
-					logger.debug("Refreshing module: " .. name)
-					module.refresh(self)
+		for name, module in pairs(self.modules) do
+			if module.refresh then
+				logger.debug("Refreshing module: " .. name)
+				local module_ok, module_err = module.refresh(self)
+				if module_ok == false then
+					return false, module_err
 				end
 			end
-
-			logger.debug("Repository refresh completed")
-		end)
-
-		permit:forget()
-
-		if not success then
-			logger.error("Repository refresh failed: " .. tostring(err))
 		end
-	end)()
+
+		logger.debug("Repository refresh completed")
+		return true
+	end)
+
+	permit:forget()
+
+	if not ok then
+		-- pcall caught a runtime error; `success` holds the error message.
+		local err_msg = tostring(success)
+		logger.error("Repository refresh failed: " .. err_msg)
+		return false, err_msg
+	end
+
+	if not success then
+		-- The failing module already logged the specifics; just propagate.
+		return false, err
+	end
+
+	return true
 end
 
 function JjRepo:get_root()

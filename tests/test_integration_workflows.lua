@@ -265,4 +265,58 @@ T.test_workflow_conflict_status = function()
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+---Test that a failing `jj status` surfaces an error in the status buffer
+---instead of rendering an empty status.
+---@return nil
+T.test_workflow_status_refresh_failure = function()
+	child.lua([[
+		switch_to_state("initial")
+		-- Make `jj status` fail mid-refresh (e.g. repo locked / version mismatch).
+		_G.MockCli.set_failure("status", "jj: internal error: the working copy is locked")
+		-- The failure is also surfaced via `vim.notify` at ERROR level, which the
+		-- test RPC would otherwise re-raise out of `nvim_exec2`; capture it instead.
+		_G.saved_notify = vim.notify
+		vim.notify = function() end
+		vim.cmd("JJ status")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	local text = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+	]])
+
+	-- Restore notify and clear the simulated failure for later tests.
+	child.lua([[
+		vim.notify = _G.saved_notify
+		_G.MockCli.clear_failures()
+	]])
+
+	-- The buffer must show the rendered error, not a bare "JJ Status" header.
+	expect.equality(text:find("Error:", 1, true) ~= nil, true)
+	expect.equality(text:find("locked", 1, true) ~= nil, true)
+end
+
+---Test that a successful refresh still renders working-copy files.
+---@return nil
+T.test_workflow_status_refresh_success_renders_files = function()
+	child.lua([[
+		switch_to_state("multiple-changes")
+		_G.MockCli.clear_failures()
+		vim.cmd("JJ status")
+	]])
+
+	-- Wait for async operations to complete
+	child.lua([[ vim.wait(500) ]])
+
+	local text = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+	]])
+
+	-- Normal render: the header is present and no error banner is shown.
+	expect.equality(text:find("JJ Status", 1, true) ~= nil, true)
+	expect.equality(text:find("Error:", 1, true) == nil, true)
+end
+
 return T

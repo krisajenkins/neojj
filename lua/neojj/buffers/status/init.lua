@@ -312,7 +312,13 @@ function StatusBuffer:refresh()
 			end
 		else
 			-- Refresh repository state for working copy
-			self.repo:refresh()
+			local ok, err = self.repo:refresh()
+			if not ok then
+				vim.schedule(function()
+					self:render_error("Failed to refresh status: " .. tostring(err))
+				end)
+				return
+			end
 
 			-- Get current state
 			working_copy = self.repo:get_working_copy()
