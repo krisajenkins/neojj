@@ -5,6 +5,28 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change uonomuxv)*
+
+# [x] Match NeoJJ buffers by exact name
+
+`Buffer.from_name` (`lua/neojj/lib/buffer.lua:27-34`) uses `vim.fn.bufnr(name)`,
+which does file-pattern *partial* matching (verified: with `"NeoJJ Status:
+abc12345"` open, `bufnr("NeoJJ Status")` returns it). Opening plain `:JJ status`
+hijacks and renames the revision buffer, leaving two StatusBuffer instances
+sharing one handle with mixed keymaps; a user file whose path matches the
+pattern could even be converted to a wipeable `nofile` scratch buffer. Names
+with pattern chars (`JJ Annotate: <path>` containing `[`/`*`) are also affected.
+
+Fix: iterate `vim.api.nvim_list_bufs()` comparing `nvim_buf_get_name()` for
+exact equality (mind the cwd prefix on unnamed-path buffers) instead of
+`bufnr(name)`. Add a regression test.
+
+> Note: `nvim_buf_get_name` absolutizes synthetic names, so the comparison also
+> matches against `fnamemodify(name, ":p")` to reuse an existing buffer while
+> still rejecting prefixes.
+
+---
+
 *Archived: 2026-07-06 (change vyysrrrt)*
 
 # [x] Use the repo root, not the cwd, for all path handling

@@ -36,14 +36,26 @@ Buffer.__index = Buffer
 ---@field scratch? boolean Whether buffer is scratch
 
 ---Get existing buffer by name or create new one
+---
+---Matches by EXACT name rather than `vim.fn.bufnr()`, whose file-pattern
+---partial matching would hijack a buffer named e.g. "NeoJJ Status: abc12345"
+---when asked for "NeoJJ Status" (and mis-handles names containing pattern
+---characters like `[` or `*`).
 ---@param name string Buffer name
 ---@return number buffer_handle Buffer handle
 function Buffer.from_name(name)
-	local buffer_handle = vim.fn.bufnr(name)
-	if buffer_handle == -1 then
-		buffer_handle = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_name(buffer_handle, name)
+	-- `nvim_buf_get_name` returns an absolute path, so compare against the
+	-- resolved form of the requested name to find an exact match.
+	local resolved = vim.fn.fnamemodify(name, ":p")
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		local buf_name = vim.api.nvim_buf_get_name(buf)
+		if buf_name == name or buf_name == resolved then
+			return buf
+		end
 	end
+
+	local buffer_handle = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_name(buffer_handle, name)
 	return buffer_handle
 end
 
