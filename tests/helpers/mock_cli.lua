@@ -81,7 +81,7 @@ local function create_mock_builder(command)
 		return self
 	end
 
-	function builder:env(key, value)
+	function builder:env(_key, _value)
 		return self
 	end
 

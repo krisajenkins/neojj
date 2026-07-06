@@ -132,7 +132,7 @@ T["parse_log_output"]["extracts graph characters correctly"] = function()
 	expect.equality(merge.graph:match("@"), "@")
 
 	-- Check that graph data contains expected characters
-	for line_num, graph_info in pairs(result.graph_data) do
+	for _, graph_info in pairs(result.graph_data) do
 		expect.equality(type(graph_info.graph), "string")
 	end
 end

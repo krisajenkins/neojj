@@ -196,7 +196,7 @@ function StatusBuffer:parse_show_output(output)
 	local current_file = nil
 	local current_file_diff = {}
 
-	for i, line in ipairs(lines) do
+	for _, line in ipairs(lines) do
 		-- Parse commit metadata (before diff starts)
 		if not in_diff then
 			-- Skip empty lines only before we've started collecting description

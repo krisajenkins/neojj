@@ -38,7 +38,7 @@ end
 ---@param options? table Component options
 ---@return table component Text component
 function Ui.text(value, options)
-	return Component.new(function(props)
+	return Component.new(function()
 		-- Sanitize value to remove any newlines that could cause rendering issues
 		local sanitized_value = (value or ""):gsub("\n", " "):gsub("\r", "")
 		return {

@@ -81,7 +81,7 @@ function AnnotateUI.collapse_annotations(annotations)
 			})
 
 			-- Middle lines: show continuation character
-			for j = start_idx + 1, end_idx - 1 do
+			for _ = start_idx + 1, end_idx - 1 do
 				table.insert(collapsed, {
 					type = "continuation",
 				})

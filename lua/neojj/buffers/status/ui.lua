@@ -199,9 +199,9 @@ end
 
 ---Get highlight group for a diff line
 ---@param line string Diff line content
----@param file_path? string File path for syntax-aware highlighting
+---@param _file_path? string Reserved for future syntax-aware highlighting
 ---@return string|nil highlight Highlight group name or nil
-function StatusUI.get_diff_highlight(line, file_path)
+function StatusUI.get_diff_highlight(line, _file_path)
 	-- Empty lines
 	if line == "" then
 		return nil
