@@ -97,6 +97,38 @@ T["parse_log_output"]["parses bookmarks from commit lines"] = function()
 	expect.equality(rev4.bookmarks[1], "release-v1.0")
 end
 
+T["parse_log_output"]["preserves tracking decorations on bookmarks"] = function()
+	-- The log template uses jj's `bookmarks` keyword, so bookmarks carry jj's
+	-- native tracking decorations: `name*` when a local bookmark is ahead of or
+	-- differs from its remote, and `name@remote` for a remote-tracking bookmark
+	-- shown on the commit it points to. The parser must preserve these intact,
+	-- never stripping the `*` or `@remote`.
+	local output = read_fixture("log-graph-tracked-bookmarks.txt")
+	local result = log_parser.parse_log_output(output)
+
+	expect.equality(#result.revisions, 3)
+
+	-- Working copy: two local bookmarks, both ahead of their remotes.
+	local rev1 = result.revisions[1]
+	expect.equality(rev1.change_id, "kmtvxqpl")
+	expect.equality(#rev1.bookmarks, 2)
+	expect.equality(rev1.bookmarks[1], "feature*")
+	expect.equality(rev1.bookmarks[2], "main*")
+
+	-- The commit the remote points to shows the remote-tracking bookmark.
+	local rev2 = result.revisions[2]
+	expect.equality(rev2.change_id, "wzzywqlo")
+	expect.equality(#rev2.bookmarks, 1)
+	expect.equality(rev2.bookmarks[1], "main@origin")
+
+	-- Decorations survive into the reconstructed display line as well.
+	expect.equality(result.raw_lines[1]:find("feature* main*", 1, true) ~= nil, true)
+	expect.equality(result.raw_lines[3]:find("main@origin", 1, true) ~= nil, true)
+
+	-- No bookmark on the base commit.
+	expect.equality(#result.revisions[3].bookmarks, 0)
+end
+
 T["parse_log_output"]["parses merge commits with complex graph"] = function()
 	local output = read_fixture("log-graph-merge.txt")
 	local result = log_parser.parse_log_output(output)

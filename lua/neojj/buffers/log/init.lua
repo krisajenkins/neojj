@@ -21,7 +21,14 @@ local LOG_TEMPLATE = table.concat({
 	'"\\x1f"',
 	'committer.timestamp().local().format("%Y-%m-%d %H:%M:%S")',
 	'"\\x1f"',
-	'bookmarks.map(|b| b.name()).join(" ")',
+	-- Use the `bookmarks` keyword (not `local_bookmarks`) so jj applies its
+	-- native tracking decorations: a bookmark ahead of / differing from its
+	-- remote renders as `name*`, and a remote-tracking bookmark shown on the
+	-- commit it points to renders as `name@remote`. jj's default string form of
+	-- the `bookmarks` list joins entries with a single space, and bookmark and
+	-- remote names never contain spaces, so the parser can split the field on
+	-- whitespace without colliding with the `*` / `@` decoration characters.
+	"bookmarks",
 	'"\\x1f"',
 	"commit_id.short(8)",
 	'"\\x1f"',

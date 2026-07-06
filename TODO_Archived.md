@@ -5,6 +5,28 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change nyulpvut)*
+
+# [x] jj log bug
+
+The log view for the current repo shows:
+
+```
+@  uollykru krisajenkins@gmail.com 2026-07-06 17:41:57 de65b8a6
+│  (no description set)
+○  slpsoxow krisajenkins@gmail.com 2026-07-06 17:31:15 e153c5b3
+│  Handle missing jj binary and slow commands gracefully.
+○  lqvrnlpn krisajenkins@gmail.com 2026-07-06 15:43:51 main 8d520ed9
+│  Stop passing an empty environment to jj subprocesses.
+◆  uytlyqwo krisajenkins@gmail.com 2026-07-06 15:29:01 main 3c0aebc0
+│  Fix status parser: conflicts, copied files, untracked paths.
+◆  qptmtmks krisajenkins@gmail.com 2026-07-06 15:10:45 304a1f7c
+```
+
+In `jj log`, the first `main` would display as `main*`, to show it's ahead of its tracked remote, and the second would show as `main@origin` to show it's a tracking branch. They get this special presentation whenever there's a difference between the bookmark and remote it's tracking. We should follow suit.
+
+---
+
 *Archived: 2026-07-06 (change smooynwz)*
 
 # [x] Surface jj failures in the status buffer instead of rendering empty
