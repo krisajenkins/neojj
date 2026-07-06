@@ -10,19 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Stop passing an empty environment to jj subprocesses
-
-`lua/neojj/lib/jj/cli.lua:13` sets `builder.env = {}` and passes it to plenary's
-`Job:new`, which treats any non-nil table as the *entire* child environment
-(verified empirically) — every jj command NeoJJ runs is stripped of `PATH`,
-`SSH_AUTH_SOCK`, `JJ_CONFIG`, `EDITOR`, watchman helpers, and any
-env-conditional jj config.
-
-Fix: in `cli.lua:72-77`, only pass `env` when non-empty: `env = next(self.env)
-and self.env or nil`. Do this **after** the log-template rewrite above — with
-the env restored, user-configured log templates start loading, which the current
-parser can't survive.
-
 # [ ] Handle missing jj binary and slow commands gracefully
 
 In `Cli:call` (`lua/neojj/lib/jj/cli.lua:72-91`), `Job:new` sits *outside* the

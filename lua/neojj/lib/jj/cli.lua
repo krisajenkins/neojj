@@ -10,7 +10,7 @@ local function new_builder(cmd)
 	builder.cmd = cmd or "jj"
 	builder.args = { "--color", "never" }
 	builder.options = {}
-	builder.env = {}
+	builder._env = {}
 	return builder
 end
 
@@ -40,7 +40,7 @@ function Cli:short_flag(key)
 end
 
 function Cli:env(key, value)
-	self.env[key] = value
+	self._env[key] = value
 	return self
 end
 
@@ -68,7 +68,11 @@ function Cli:call()
 		command = command,
 		args = cmd_args,
 		cwd = cwd,
-		env = self.env,
+		-- Only pass env when the caller has actually set variables. plenary's
+		-- Job treats any non-nil env table as the *entire* child environment,
+		-- so an empty-but-non-nil table would strip PATH, SSH_AUTH_SOCK,
+		-- JJ_CONFIG, EDITOR, etc. Passing nil lets the child inherit ours.
+		env = next(self._env) and self._env or nil,
 	})
 
 	local ok, result = pcall(function()
