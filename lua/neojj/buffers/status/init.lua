@@ -160,8 +160,10 @@ end
 function StatusBuffer:get_revision_data(revision)
 	local cli = require("neojj.lib.jj.cli")
 
-	-- Get commit details with jj show (includes metadata and diffs)
-	local result = cli.show():arg(revision):cwd(self.repo.dir):call_async()
+	-- Get commit details with jj show (includes metadata and diffs).
+	-- Force git-format diffs so parse_show_output recognises the file headers
+	-- regardless of the user's configured default diff format (e.g. color-words).
+	local result = cli.show():arg(revision):flag("git"):cwd(self.repo.dir):call_async()
 
 	if not result.success then
 		logger.warn("Failed to get revision data: " .. tostring(result.stderr))

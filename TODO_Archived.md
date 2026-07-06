@@ -5,6 +5,23 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-06 (change zktrzkmn)*
+
+# [x] Pass --git to jj show so revision views work on stock config
+
+`get_revision_data` (`lua/neojj/buffers/status/init.lua:163`) runs `jj show
+<rev>` without `--git`, but `parse_show_output` (line 179+) only recognises
+`diff --git` headers. jj's default diff format is color-words, so on a stock jj
+config the revision view (reached via `<CR>` in log/annotate) shows **no
+modified files** and dumps the diff into the description text.
+
+Fix: add `:flag("git")` to the `cli.show()` builder call. Then unit-test
+`parse_show_output` directly against the existing
+`tests/fixtures/jj-outputs/*-show-at.txt` fixtures (metadata fields, per-file
+diff splitting, `is_empty`) — it is a 110-line parser with zero direct tests.
+
+---
+
 *Archived: 2026-07-06 (change outpyzmz)*
 
 # [x] Make the CLI layer genuinely async and stop running jj during render
