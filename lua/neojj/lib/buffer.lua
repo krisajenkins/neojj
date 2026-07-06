@@ -9,6 +9,7 @@ local Renderer = require("neojj.lib.ui.renderer")
 ---@field components table[] UI components
 ---@field component_positions table Interactive component positions keyed by line
 ---@field config table Buffer configuration
+---@field owned_window? number Window this buffer created for itself (split/tab), closed by `Buffer:close`
 --- Extended fields populated by `Buffer.create` from a BufferCreateConfig:
 ---@field kind? string Display mode: "split", "vsplit", "tab", "floating", "replace", "auto"
 ---@field initialize? function Pre-display setup callback
@@ -218,16 +219,36 @@ function Buffer:show_split(split_type)
 		vim.cmd("split")
 	end
 	vim.api.nvim_set_current_buf(self.handle)
+	-- Remember the split we just created so `Buffer:close` can tear it down
+	-- instead of leaving an orphaned window (bufhidden="wipe" wipes the buffer
+	-- but Neovim keeps the window and backfills it).
+	self.owned_window = vim.api.nvim_get_current_win()
 end
 
 ---Show the buffer in a new tab
 function Buffer:show_tab()
 	vim.cmd("tabnew")
 	vim.api.nvim_set_current_buf(self.handle)
+	-- Remember the tab window we just created so `Buffer:close` can close it.
+	self.owned_window = vim.api.nvim_get_current_win()
 end
 
 ---Close the buffer
 function Buffer:close()
+	-- If we opened a dedicated window (split/tab) for this buffer, close that
+	-- window too so the view doesn't leave an orphaned split/tab behind. Closing
+	-- the window with bufhidden="wipe" also wipes the buffer, so the buf_delete
+	-- below becomes a no-op (guarded by the validity check). We never close the
+	-- last window, and only close a window still showing this buffer.
+	if
+		self.owned_window
+		and vim.api.nvim_win_is_valid(self.owned_window)
+		and vim.api.nvim_win_get_buf(self.owned_window) == self.handle
+		and #vim.api.nvim_list_wins() > 1
+	then
+		pcall(vim.api.nvim_win_close, self.owned_window, true)
+	end
+
 	if vim.api.nvim_buf_is_valid(self.handle) then
 		vim.api.nvim_buf_delete(self.handle, { force = true })
 	end

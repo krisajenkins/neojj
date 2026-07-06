@@ -111,6 +111,53 @@ T.test_log_buffers_namespaced_per_repo = function()
 	]])
 end
 
+---Closing a buffer that opened its own split must tear that window down rather
+---than leave it orphaned (bufhidden="wipe" wipes the buffer but Neovim keeps and
+---backfills the window otherwise).
+---@return nil
+T.test_close_removes_owned_split = function()
+	child.lua([[
+		local before_wins = #vim.api.nvim_list_wins()
+
+		local buffer = Buffer.create({ name = "NeoJJ Close Test", filetype = "neojj-test" })
+		buffer:open("vsplit")
+
+		-- The vsplit added exactly one window and is remembered as owned.
+		expect.equality(#vim.api.nvim_list_wins(), before_wins + 1)
+		expect.equality(type(buffer.owned_window), "number")
+		expect.equality(vim.api.nvim_win_is_valid(buffer.owned_window), true)
+
+		local handle = buffer:get_handle()
+		buffer:close()
+
+		-- The owned split is gone and the buffer was wiped with it.
+		expect.equality(#vim.api.nvim_list_wins(), before_wins)
+		expect.equality(vim.api.nvim_buf_is_valid(handle), false)
+	]])
+end
+
+---A replace-mode buffer reuses the current window and must NOT be tracked as an
+---owned window, so closing it only deletes the buffer and never closes a window
+---the view didn't create.
+---@return nil
+T.test_close_replace_keeps_window = function()
+	child.lua([[
+		local win = vim.api.nvim_get_current_win()
+		local before_wins = #vim.api.nvim_list_wins()
+
+		local buffer = Buffer.create({ name = "NeoJJ Replace Test", filetype = "neojj-test" })
+		buffer:open("replace")
+
+		expect.equality(buffer.owned_window, nil)
+
+		buffer:close()
+
+		-- No window was closed; the original window survives.
+		expect.equality(#vim.api.nvim_list_wins(), before_wins)
+		expect.equality(vim.api.nvim_win_is_valid(win), true)
+	]])
+end
+
 ---When no buffer with the given name exists, a new handle is created.
 ---@return nil
 T.test_creates_when_missing = function()

@@ -97,13 +97,6 @@ function LogBuffer.new(repo, options)
 		disable_relative_line_numbers = true,
 		disable_signs = false,
 		spell_check = false,
-		mappings = {
-			n = {
-				["q"] = "<cmd>bdelete<cr>",
-				["<c-c>"] = "<cmd>bdelete<cr>",
-				["<esc>"] = "<cmd>bdelete<cr>",
-			},
-		},
 		autocmds = {
 			{
 				event = "BufWinEnter",
@@ -141,6 +134,13 @@ end
 
 ---Setup log-specific key mappings
 function LogBuffer:_setup_mappings()
+	-- Close the log view (and its window/split/tab, if any)
+	for _, key in ipairs({ "q", "<c-c>", "<esc>" }) do
+		self.buffer:map("n", key, function()
+			self.buffer:close()
+		end, { desc = "Close log" })
+	end
+
 	-- Refresh mapping
 	self.buffer:map("n", "r", function()
 		self:refresh()

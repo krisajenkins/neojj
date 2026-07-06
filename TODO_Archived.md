@@ -5,6 +5,27 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change rrozzwvu)*
+
+# [x] Close windows when closing NeoJJ views
+
+Closing the annotate view (`lua/neojj/buffers/annotate/init.lua:333-342`)
+deletes the buffer but leaves its 30-column vsplit orphaned showing an arbitrary
+buffer — after *every single use*. Similarly, `q` in status/log is a bare
+`<cmd>bdelete<cr>` (`status/init.lua:57-59`, `log/init.lua:58-60`) that leaves
+splits/tabs open when the view was opened via `:JJ status vertical` etc.
+
+Fix: in each close path, find the view's window (`vim.fn.bufwinid`) and
+`nvim_win_close` it (unless it's the last window) before deleting the buffer;
+track the window created by `Buffer:open` so split-opened views clean up. Route
+the string mappings through `Buffer:map` so they carry `desc`s.
+
+> Note: implemented via an `owned_window` field set by show_split/show_tab/open
+> (not the replace/reuse paths) and closed in Buffer:close when valid and not the
+> last window; annotate needed no change since it routes through Buffer:open.
+
+---
+
 *Archived: 2026-07-07 (change pvkrmlmy)*
 
 # [x] Re-detect repositories initialised after first use
