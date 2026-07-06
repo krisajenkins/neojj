@@ -199,7 +199,6 @@ l                       Open log view
 
                                                            *neojj-status-close*
 q                       Close status buffer
-<Esc>                   Close status buffer
 <C-c>                   Close status buffer
 
 ==============================================================================
@@ -223,6 +222,7 @@ j                       Move cursor down
 k                       Move cursor up
 
                                                            *neojj-log-display*
+<Tab>                   Toggle expanded details for commit at cursor
 ?                       Toggle help text
 
                                                            *neojj-log-refresh*
@@ -231,13 +231,13 @@ r                       Refresh log buffer
 
                                                            *neojj-log-actions*
 <CR>                    Show commit details for commit at cursor
-d                       Show diff for commit at cursor
+d                       Describe commit at cursor (edit description)
 n                       Create new change after commit at cursor
 s                       Open status view
+y                       Yank change ID for commit at cursor
 
                                                              *neojj-log-close*
 q                       Close log buffer
-<Esc>                   Close log buffer
 <C-c>                   Close log buffer
 
 ==============================================================================

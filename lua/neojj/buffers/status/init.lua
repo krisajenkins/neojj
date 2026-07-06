@@ -102,7 +102,7 @@ end
 ---Setup status-specific key mappings
 function StatusBuffer:_setup_mappings()
 	-- Close the status view (and its window/split/tab, if any)
-	for _, key in ipairs({ "q", "<c-c>", "<esc>" }) do
+	for _, key in ipairs({ "q", "<c-c>" }) do
 		self.buffer:map("n", key, function()
 			self.buffer:close()
 		end, { desc = "Close status" })
@@ -154,15 +154,6 @@ function StatusBuffer:_setup_mappings()
 	self.buffer:map("n", "l", function()
 		self:open_log_buffer()
 	end, { desc = "Open log view" })
-
-	-- Navigation
-	self.buffer:map("n", "j", function()
-		self:move_cursor_down()
-	end, { desc = "Move cursor down" })
-
-	self.buffer:map("n", "k", function()
-		self:move_cursor_up()
-	end, { desc = "Move cursor up" })
 end
 
 ---Get commit data for a specific revision using jj show
@@ -639,25 +630,6 @@ function StatusBuffer:describe_current_commit()
 	local revision_to_describe = self.revision or "@"
 	local describe_buffer = DescribeBuffer.new(self.repo, revision_to_describe, on_submit, on_abort)
 	describe_buffer:show()
-end
-
----Move cursor down
-function StatusBuffer:move_cursor_down()
-	local line, col = unpack(self.buffer:get_cursor())
-	local line_count = vim.api.nvim_buf_line_count(self.buffer.handle)
-
-	if line < line_count then
-		self.buffer:set_cursor(line + 1, col)
-	end
-end
-
----Move cursor up
-function StatusBuffer:move_cursor_up()
-	local line, col = unpack(self.buffer:get_cursor())
-
-	if line > 1 then
-		self.buffer:set_cursor(line - 1, col)
-	end
 end
 
 ---Check if buffer is valid

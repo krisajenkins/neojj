@@ -5,6 +5,28 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change qlvzzqok)*
+
+# [x] Keybinding and help consistency pass
+
+- Remove the `j`/`k` remaps (`status/init.lua:147-153`,
+  `log/init.lua:136-142`) — they replicate default motion but drop count
+  support (`5j` moves one line).
+- Decide `<esc>` behaviour once: closing the whole view on a reflexive Esc is
+  surprising; either drop the binding or apply it consistently (describe has
+  none).
+- Fix help-text drift: log help (`log/ui.lua:282-307`) omits `y` and `<C-r>`;
+  status help (`status/ui.lua:455-474`) omits `<C-c>`.
+- Give the `q`/`<c-c>`/`<esc>` string mappings `desc`s by routing them through
+  `Buffer:map`.
+
+> Decision: dropped the reflexive `<Esc>`→close binding (kept `q`/`<c-c>`), for
+> consistency with describe. Removed the unused move_cursor_up/down methods and
+> corrected help drift in both `?` panels and doc/neojj.txt (log `d` was
+> mislabeled "Show diff"; it describes).
+
+---
+
 *Archived: 2026-07-07 (change pqrnypts)*
 
 # [x] Cursor handling and render robustness fixes

@@ -141,7 +141,7 @@ end
 ---Setup log-specific key mappings
 function LogBuffer:_setup_mappings()
 	-- Close the log view (and its window/split/tab, if any)
-	for _, key in ipairs({ "q", "<c-c>", "<esc>" }) do
+	for _, key in ipairs({ "q", "<c-c>" }) do
 		self.buffer:map("n", key, function()
 			self.buffer:close()
 		end, { desc = "Close log" })
@@ -181,15 +181,6 @@ function LogBuffer:_setup_mappings()
 	self.buffer:map("n", "n", function()
 		self:create_new_change()
 	end, { desc = "Create new change after cursor" })
-
-	-- Navigation
-	self.buffer:map("n", "j", function()
-		self:move_cursor_down()
-	end, { desc = "Move cursor down" })
-
-	self.buffer:map("n", "k", function()
-		self:move_cursor_up()
-	end, { desc = "Move cursor up" })
 
 	-- Yank change ID
 	self.buffer:map("n", "y", function()
@@ -411,25 +402,6 @@ function LogBuffer:describe_commit_at_cursor()
 
 	local describe_buffer = DescribeBuffer.new(self.repo, item.change_id, on_submit, on_abort)
 	describe_buffer:show()
-end
-
----Move cursor down
-function LogBuffer:move_cursor_down()
-	local line, col = unpack(self.buffer:get_cursor())
-	local line_count = vim.api.nvim_buf_line_count(self.buffer.handle)
-
-	if line < line_count then
-		self.buffer:set_cursor(line + 1, col)
-	end
-end
-
----Move cursor up
-function LogBuffer:move_cursor_up()
-	local line, col = unpack(self.buffer:get_cursor())
-
-	if line > 1 then
-		self.buffer:set_cursor(line - 1, col)
-	end
 end
 
 ---Check if buffer is valid

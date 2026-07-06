@@ -10,19 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Keybinding and help consistency pass
-
-- Remove the `j`/`k` remaps (`status/init.lua:147-153`,
-  `log/init.lua:136-142`) — they replicate default motion but drop count
-  support (`5j` moves one line).
-- Decide `<esc>` behaviour once: closing the whole view on a reflexive Esc is
-  surprising; either drop the binding or apply it consistently (describe has
-  none).
-- Fix help-text drift: log help (`log/ui.lua:282-307`) omits `y` and `<C-r>`;
-  status help (`status/ui.lua:455-474`) omits `<C-c>`.
-- Give the `q`/`<c-c>`/`<esc>` string mappings `desc`s by routing them through
-  `Buffer:map`.
-
 # [ ] Raise the log limit and preserve log options
 
 The log view is silently capped at 10 revisions (`options.limit or 10`,
