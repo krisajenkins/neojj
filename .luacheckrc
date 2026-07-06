@@ -1,4 +1,8 @@
 -- Luacheck configuration for NeoJJ
+
+-- Neovim's LuaJIT ships without Lua 5.2 compat, so table.unpack is nil at
+-- runtime and we use the global `unpack`. luacheck's "luajit" std is Lua
+-- 5.1-based and already recognises the global `unpack`.
 std = "luajit"
 
 -- Global variables that are allowed

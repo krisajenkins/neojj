@@ -6,8 +6,8 @@
   },
   "diagnostics": {
     "globals": ["vim", "MiniTest"],
-    "//": "Formatting is owned by stylua and linting overlaps with luacheck; keep lua_ls to the type-aware checks those tools can't do. codestyle-check is disabled so lua_ls's built-in formatter doesn't fight stylua.",
-    "disable": ["codestyle-check"],
+    "//": "Formatting is owned by stylua and linting overlaps with luacheck; keep lua_ls to the type-aware checks those tools can't do. codestyle-check is disabled so lua_ls's built-in formatter doesn't fight stylua. deprecated is disabled because Neovim's LuaJIT ships without Lua 5.2 compat (table.unpack is nil), so we use the global unpack, which lua_ls's 5.4-based meta marks deprecated.",
+    "disable": ["codestyle-check", "deprecated"],
     "severity": {
       "param-type-mismatch": "Error",
       "assign-type-mismatch": "Error",
