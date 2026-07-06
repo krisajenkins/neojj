@@ -105,7 +105,9 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 		and log_buffer.expanded_revisions
 		and log_buffer.expanded_revisions[revision.change_id]
 
-	if is_expanded then
+	-- `and log_buffer` is implied by is_expanded, but restated so the type
+	-- checker knows the receiver below is non-nil.
+	if is_expanded and log_buffer then
 		-- Fetch and render expanded details
 		local details = log_buffer:get_revision_details(revision.change_id)
 		local expanded_components = LogUI.create_expanded_details(details, graph_part)

@@ -20,6 +20,7 @@ T["parse_log_json"] = MiniTest.new_set()
 T["parse_log_json"]["parses valid JSON"] = function()
 	local json_str = read_fixture("log-json-working-copy.json")
 	local result, err = json_parser.parse_log_json(json_str)
+	assert(result, "expected a parsed result")
 
 	expect.equality(err, nil)
 	expect.equality(type(result), "table")
@@ -32,6 +33,7 @@ end
 T["parse_log_json"]["parses author information"] = function()
 	local json_str = read_fixture("log-json-working-copy.json")
 	local result, err = json_parser.parse_log_json(json_str)
+	assert(result, "expected a parsed result")
 
 	expect.equality(err, nil)
 	expect.equality(type(result.author), "table")
@@ -43,6 +45,7 @@ end
 T["parse_log_json"]["parses arrays"] = function()
 	local json_str = read_fixture("log-json-working-copy.json")
 	local result, err = json_parser.parse_log_json(json_str)
+	assert(result, "expected a parsed result")
 
 	expect.equality(err, nil)
 	expect.equality(type(result.parents), "table")
@@ -57,6 +60,7 @@ T["parse_log_json"]["handles invalid JSON"] = function()
 
 	expect.equality(result, nil)
 	expect.equality(type(err), "string")
+	assert(err)
 	expect.equality(err:match("Failed to parse JSON"), "Failed to parse JSON")
 end
 
@@ -65,6 +69,7 @@ T["parse_log_json"]["handles non-object JSON"] = function()
 
 	expect.equality(result, nil)
 	expect.equality(type(err), "string")
+	assert(err)
 	expect.equality(err:match("Expected JSON object"), "Expected JSON object")
 end
 
