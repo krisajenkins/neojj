@@ -10,13 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Vimdoc completeness
-
-Bring `doc/neojj.txt` in line with post-cleanup reality: every command
-(`:JJ status/log/describe/new/annotate/split`), every buffer's keybindings,
-setup options. Regenerate tags (`nvim --headless -c "helptags doc/" -c quit`)
-and commit `doc/tags` per the project convention.
-
 # [ ] Add :checkhealth support
 
 Create `lua/neojj/health.lua` with a `check()` that reports: jj binary on PATH

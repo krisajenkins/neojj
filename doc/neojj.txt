@@ -10,10 +10,11 @@ CONTENTS                                                       *neojj-contents*
 5. Status Buffer ..................... |neojj-status|
 6. Log Buffer ........................ |neojj-log|
 7. Describe Buffer ................... |neojj-describe|
-8. Configuration ..................... |neojj-configuration|
-9. Highlights ........................ |neojj-highlights|
-10. Lua API .......................... |neojj-api|
-11. About ............................ |neojj-about|
+8. Annotate Buffer ................... |neojj-annotate-buffer|
+9. Configuration ..................... |neojj-configuration|
+10. Highlights ....................... |neojj-highlights|
+11. Lua API .......................... |neojj-api|
+12. About ............................ |neojj-about|
 
 ==============================================================================
 1. INTRODUCTION                                            *neojj-introduction*
@@ -81,6 +82,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 • log
                 • describe
                 • new
+                • annotate
                 • split
 
                                                                    *:JJ-status*
@@ -146,6 +148,23 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ new qpvuntsm
 <
 
+                                                                 *:JJ-annotate*
+:JJ annotate [filepath]
+                Open the annotate buffer showing, for each line, the change
+                that last modified it (jj's line-level blame).
+
+                The annotation is displayed in a narrow vertical split to the
+                left of the file, scroll-bound to the source window.
+
+                Arguments:
+                • `filepath` - File to annotate, relative to the repository
+                               root (default: the current buffer's file)
+
+                Examples: >
+                    :JJ annotate              " Annotate the current file
+                    :JJ annotate src/main.rs  " Annotate a specific file
+<
+
                                                                     *:JJ-split*
 :JJ split [revision]
                 Interactively split a commit into two commits.
@@ -197,7 +216,6 @@ r                       Refresh status buffer
                                                          *neojj-status-actions*
 <CR>                    Open file at cursor
 d                       Describe current commit (edit description)
-D                       Show diff for file at cursor
 n                       Create new change from current commit
 l                       Open log view
 
@@ -274,7 +292,31 @@ excluded from the final description. Ordinary lines starting with '#' (such as
 Markdown headings or issue references like '#123') are preserved.
 
 ==============================================================================
-8. CONFIGURATION                                          *neojj-configuration*
+8. ANNOTATE BUFFER                                       *neojj-annotate-buffer*
+
+The annotate buffer shows line-level blame for a file: for every line of the
+source, it displays the change that last modified it. It opens as a narrow
+vertical split to the left of the file and is scroll-bound to the source
+window, so scrolling either side keeps the annotations aligned.
+
+Open it with |:JJ-annotate| or |neojj.jj_annotate()|.
+
+ANNOTATE MAPPINGS                                      *neojj-annotate-mappings*
+
+The following keybindings are available in the annotate buffer:
+
+                                                       *neojj-annotate-actions*
+<CR>                    Open the change at cursor in a status buffer
+y                       Copy the change ID at cursor to the system clipboard
+?                       Toggle help text
+
+                                                         *neojj-annotate-close*
+q                       Close annotate buffer
+<C-c>                   Close annotate buffer
+<Esc>                   Close annotate buffer
+
+==============================================================================
+9. CONFIGURATION                                          *neojj-configuration*
 
 NeoJJ can be configured by passing options to the setup function.
 
@@ -321,7 +363,7 @@ You can set up custom keybindings for NeoJJ commands:
 <
 
 ==============================================================================
-9. HIGHLIGHTS                                                 *neojj-highlights*
+10. HIGHLIGHTS                                                *neojj-highlights*
 
 NeoJJ defines the following highlight groups. They link to standard Neovim
 highlight groups by default but can be customized.
@@ -377,7 +419,7 @@ After calling setup, you can customize highlight groups:
 Note: Highlights are automatically reapplied when the colorscheme changes.
 
 ==============================================================================
-10. LUA API                                                          *neojj-api*
+11. LUA API                                                          *neojj-api*
 
 NeoJJ provides a Lua API for programmatic access to its functionality.
 
@@ -435,6 +477,14 @@ neojj.jj_new({dir}, {revision})                              *neojj.jj_new()*
                     {revision} (string|nil) Create new change after this
                                revision (optional)
 
+neojj.jj_annotate({dir}, {filepath})                    *neojj.jj_annotate()*
+                Open the annotate buffer showing line-level blame for a file.
+
+                Parameters: ~
+                    {dir}      (string|nil) Directory path (default: cwd)
+                    {filepath} (string|nil) File to annotate, relative to the
+                               repository root (default: the current file)
+
 neojj.jj_split({dir}, {revision})                          *neojj.jj_split()*
                 Open a terminal to interactively split a commit.
 
@@ -460,7 +510,7 @@ neojj.get_repo({dir})                                      *neojj.get_repo()*
                     • :get_working_copy() - Get working copy information
 
 ==============================================================================
-11. ABOUT                                                          *neojj-about*
+12. ABOUT                                                          *neojj-about*
 
 NeoJJ is inspired by Neogit and Magit, bringing a similar interactive
 experience to Jujutsu version control in Neovim.

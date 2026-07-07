@@ -5,6 +5,22 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change znmqrzvx)*
+
+# [x] Vimdoc completeness
+
+Bring `doc/neojj.txt` in line with post-cleanup reality: every command
+(`:JJ status/log/describe/new/annotate/split`), every buffer's keybindings,
+setup options. Regenerate tags (`nvim --headless -c "helptags doc/" -c quit`)
+and commit `doc/tags` per the project convention.
+
+> Note: added the annotate command section, a new Annotate Buffer section, and
+> the neojj.jj_annotate() API entry; removed the phantom `D` entry; regenerated
+> doc/tags. (Earlier commits had already added log <Tab>/y, log_limit, and the
+> :JJ log count form.)
+
+---
+
 *Archived: 2026-07-07 (change ooxumnmw)*
 
 # [x] README accuracy pass
