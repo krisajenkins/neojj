@@ -5,6 +5,24 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change poqnpsms)*
+
+# [x] Make the mock CLI fail loudly on unknown fixtures
+
+`tests/helpers/mock_cli.lua:181-188` returns `success = true, stdout = ""` when
+no fixture matches a command, silently masking drift — this is likely how the
+broken integration tests above got baselined green.
+
+Fix: `error()` (or return `success=false` with a loud stderr) on an unmatched
+command, then fix whatever fallout appears.
+
+> Note: chose success=false + a descriptive stderr (naming command/args/missing
+> fixture) so drift renders as the visible "Error:" banner. No fallout — after
+> the change all integration tests still pass, so no fixture currently masks an
+> unrouted path.
+
+---
+
 *Archived: 2026-07-07 (change mwlpklql)*
 
 # [x] Fix the two integration tests that pass without testing anything

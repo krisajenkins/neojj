@@ -204,15 +204,27 @@ local function create_mock_builder(command)
 				stdout = content,
 				stderr = "",
 			}
-		else
-			-- Return empty success if no fixture found
-			return {
-				success = true,
-				exit_code = 0,
-				stdout = "",
-				stderr = "",
-			}
 		end
+
+		-- No fixture matched: fail LOUDLY so drift surfaces instead of being
+		-- masked by a silent empty-success result. We prefer `success = false`
+		-- + a descriptive stderr over a raw `error()` because call() runs inside
+		-- plenary async jobs and the plugin's pcall/failure paths, where a bare
+		-- error() may be swallowed or destabilise the child-nvim RPC. A failing
+		-- result now renders a visible "Error:" banner in the status buffer.
+		local args_desc = #args > 0 and table.concat(args, " ") or "(no args)"
+		local fixture_desc = fixture_name and ("missing fixture file '" .. fixture_name .. "'") or "unrouted command"
+		return {
+			success = false,
+			exit_code = 1,
+			stdout = "",
+			stderr = string.format(
+				"mock_cli: no fixture for command '%s' [args: %s] (%s)",
+				cmd,
+				args_desc,
+				fixture_desc
+			),
+		}
 	end
 
 	function builder:call_async()

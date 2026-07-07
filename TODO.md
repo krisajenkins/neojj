@@ -10,15 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Make the mock CLI fail loudly on unknown fixtures
-
-`tests/helpers/mock_cli.lua:181-188` returns `success = true, stdout = ""` when
-no fixture matches a command, silently masking drift — this is likely how the
-broken integration tests above got baselined green.
-
-Fix: `error()` (or return `success=false` with a loud stderr) on an unmatched
-command, then fix whatever fallout appears.
-
 # [ ] Add cursor-interaction and keybinding tests
 
 The cursor-interaction system CLAUDE.md calls central has zero tests:
