@@ -25,12 +25,6 @@ it into its parent; a variant prompts for an `--into` target change ID.
 Confirm before executing, refresh after. Reuses
 `get_item_at_cursor().change_id` and the CLI builder — both already in place.
 
-# [ ] Edit (S)
-
-Wraps `jj edit <rev>`. In the log buffer, `e` on a revision makes it the
-working copy (jj's "checkout" for daily work), notify + refresh. Pairs
-naturally with the existing `n` (new).
-
 # [ ] Abandon (S)
 
 Wraps `jj abandon <rev>`. In the log buffer, `x` (or `a`) abandons the revision
@@ -43,26 +37,9 @@ working-copy change. Needs a `vim.fn.confirm` y/n since it's destructive-ish
 Wraps `jj undo`, `jj op log`, `jj op restore` — jj's universal safety net, and
 the thing that makes squash/abandon/rebase keys safe to press. `u` in
 status/log runs `jj undo` with a notification of what was undone. New
-`:JJ oplog` buffer cloning the log-buffer pattern (parser + ui + init) listing
+:JJ oplog` buffer cloning the log-buffer pattern (parser + ui + init) listing
 operations; `<cr>` or `r` on an operation runs `jj op restore` with
 confirmation.
-
-# [ ] Git push / fetch (M)
-
-Wraps `jj git push` (`--bookmark X`, `--change @`, all tracked) and
-`jj git fetch`. In status + log buffers: `P` push with a prompt among
-all-tracked / specific bookmark / `--change` at cursor; `f` fetch. Must be
-genuinely async (see TODO.md's async item) with progress notification, refresh
-on completion, and stderr surfaced on failure (auth errors, bookmark
-conflicts). Gated by bookmark management below.
-
-# [ ] Bookmark management (M)
-
-Wraps `jj bookmark create/move/delete/rename/track/untrack/list`. In the log
-buffer, `b` on a revision opens a small `vim.ui.select` menu: create bookmark
-here, move existing bookmark here, delete, rename, track remote. The log UI
-already parses and highlights bookmarks, so the display side exists — this adds
-the write operations. Without this you cannot prepare a push.
 
 ## Tier 2 — needed weekly, expected of a magit-alike
 
@@ -91,13 +68,6 @@ removed `D` stub promised: a proper diff buffer (filetype `diff`, `q` closes)
 for the file at cursor in the status buffer; `D` in the log buffer shows the
 whole revision's diff. The diff-fetching code already exists in
 `get_file_diff()` — this is mostly a presentation buffer.
-
-# [ ] Commit gesture: describe + new (S)
-
-Wraps `jj commit` semantics. In the status buffer, `c` opens the existing
-describe buffer; on submit, runs `jj commit -m <msg>` (describe + `jj new`) so
-the user lands on a fresh empty working copy — the canonical "finish this
-change" gesture. Reuses DescribeBuffer with a different submit action.
 
 # [ ] Log revsets and limit control (S/M)
 
