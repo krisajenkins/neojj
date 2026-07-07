@@ -103,9 +103,11 @@ nix develop --command make test
 ## Test Categories
 
 ### Unit Tests (`tests/test_unit.lua`)
-- Pure function testing
-- Component creation and validation
-- No external dependencies
+- Hermetic repository test against a throwaway jj repo in a temp dir
+- Shells out to the real `jj` binary (external dependency: `jj` on PATH)
+- Pins identity via `JJ_USER`/`JJ_EMAIL` so assertions are host-independent
+- Drives `repo:refresh()` inside a plenary async context and asserts on the
+  resulting working-copy `change_id` and `modified_files`
 
 ### Integration Tests (`tests/test_integration.lua`)
 - Full UI rendering pipeline

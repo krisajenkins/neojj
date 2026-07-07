@@ -78,7 +78,8 @@ T.test_describe_buffer_creation = function()
 		}
 
 		-- Load DescribeBuffer module
-		local DescribeBuffer = require('neojj.buffers.describe')expect.no_error(function()
+		local DescribeBuffer = require('neojj.buffers.describe')
+		expect.no_error(function()
 			local buffer = DescribeBuffer.new(mock_repo, '@')
 			expect.equality(type(buffer), 'table')
 			expect.equality(buffer.revision, '@')

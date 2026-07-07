@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change yulpztrk)*
+
+# [x] Replace the machine-dependent test and clean up the suite
+
+`tests/test_unit.lua:29-37` runs real `jj` against the developer's live checkout
+and `print()`s the result instead of asserting (output includes the local
+author). Replace with a hermetic temp-dir test making real assertions.
+Also: delete the duplicated component/highlight cases in `test_simple.lua` /
+`test_integration.lua` (covered better by `test_components.lua` /
+`test_ui.lua`), remove `print("✓ ...")` noise, fix the jammed statements at
+`test_describe.lua:79`, and correct `tests/CLAUDE.md`'s description of
+`test_unit.lua` (it claims "no external dependencies" — currently the opposite).
+
+> Note: test_unit.lua is now a hermetic temp-repo test (jj git init in a
+> tempname dir, pinned JJ_USER/JJ_EMAIL, asserts working-copy change_id +
+> modified_files). Deleted test_simple.lua and the 3 duplicated
+> test_integration.lua cases; corrected tests/CLAUDE.md.
+
+---
+
 *Archived: 2026-07-07 (change pzmvrnrl)*
 
 # [x] Add error-path tests

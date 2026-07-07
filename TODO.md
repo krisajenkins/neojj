@@ -10,17 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Replace the machine-dependent test and clean up the suite
-
-`tests/test_unit.lua:29-37` runs real `jj` against the developer's live checkout
-and `print()`s the result instead of asserting (output includes the local
-author). Replace with a hermetic temp-dir test making real assertions.
-Also: delete the duplicated component/highlight cases in `test_simple.lua` /
-`test_integration.lua` (covered better by `test_components.lua` /
-`test_ui.lua`), remove `print("✓ ...")` noise, fix the jammed statements at
-`test_describe.lua:79`, and correct `tests/CLAUDE.md`'s description of
-`test_unit.lua` (it claims "no external dependencies" — currently the opposite).
-
 # [ ] Fixture housekeeping
 
 `fixtures/demo-repo/` is untracked and nondeterministic:
