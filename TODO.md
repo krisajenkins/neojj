@@ -30,10 +30,6 @@ describe buffer; on submit, runs `jj commit -m <msg>` (describe + `jj new`) so
 the user lands on a fresh empty working copy — the canonical "finish this
 change" gesture. Reuses DescribeBuffer with a different submit action.
 
-# [ ] `jj tug` support
-
-This is currently an alias in `~/.config/jj/config.toml`, but I find it so very useful I'd like to make it a first-class feature.
-
 # [ ] Undo and operation-log view (M; undo alone is S)
 
 Wraps `jj undo`, `jj op log`, `jj op restore` — jj's universal safety net, and

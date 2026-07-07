@@ -137,6 +137,7 @@ The renderer tracks the position of interactive components to enable cursor-base
 - `q` / `<c-c>` / `<esc>`: Close buffer
 - `d`: Describe current commit
 - `x`: Run jj fix (format working copy `@`)
+- `t`: Tug (advance the closest bookmark up to `@`)
 - `j` / `k`: Navigate up/down (standard vim navigation also works)
 
 ## Testing with MiniTest

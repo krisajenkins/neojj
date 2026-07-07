@@ -259,6 +259,7 @@ r                       Refresh status buffer
 d                       Describe current commit (edit description)
 n                       Create new change from current commit
 x                       Run jj fix on the working copy (formats @)
+t                       Tug: advance the closest bookmark up to @
 l                       Open log view
 
                                                            *neojj-status-close*
@@ -300,6 +301,7 @@ r                       Refresh log buffer
 d                       Describe commit at cursor (edit description)
 n                       Create new change after commit at cursor
 x                       Run jj fix on the working copy (formats @)
+t                       Tug: advance the closest bookmark up to @
 s                       Open status view
 y                       Yank change ID for commit at cursor
 

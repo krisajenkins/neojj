@@ -293,6 +293,14 @@ function M.fix()
 	return new_builder("jj"):arg("fix")
 end
 
+function M.tug()
+	return new_builder("jj")
+		:arg("bookmark")
+		:arg("move")
+		:option("from", "heads(::@ & bookmarks())")
+		:option("to", 'heads(::@ & mutable() & ~description(exact:"") & (~empty() | merges()))')
+end
+
 function M.raw()
 	return new_builder("jj")
 end

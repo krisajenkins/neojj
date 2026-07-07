@@ -5,6 +5,20 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change nrmyrwoz)*
+
+# [x] `jj tug` support
+
+This was an alias in `~/.config/jj/config.toml`; now a first-class feature.
+Reimplemented natively (no dependency on the user's alias or revset-aliases):
+`t` in the status and log buffers runs a single `jj bookmark move` with both
+revsets inlined — `--from 'heads(::@ & bookmarks())'` up to the closest pushable
+revision `--to 'heads(::@ & mutable() & ~description(exact:"") & (~empty() |
+merges()))'` — then notifies and refreshes. Added `M.tug()` to the CLI builder
+and `LogBuffer:tug()` / `StatusBuffer:tug()` mirroring the `:fix()` pattern.
+
+---
+
 *Archived: 2026-07-07 (change xqtpwtmy)*
 
 # [x] `jj fix` support

@@ -483,6 +483,7 @@ function StatusUI.create_help()
 		Ui.text("  <Enter> - Open file at cursor", { highlight = "NeoJJHelpText" }),
 		Ui.text("  n       - Create new change from current commit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  x       - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
+		Ui.text("  t       - Tug bookmark to @", { highlight = "NeoJJHelpText" }),
 		Ui.text("  r       - Refresh status", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <C-r>   - Refresh status", { highlight = "NeoJJHelpText" }),
 		Ui.text("  d       - Describe current commit", { highlight = "NeoJJHelpText" }),

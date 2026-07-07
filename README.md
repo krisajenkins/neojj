@@ -178,6 +178,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `d`             | Describe current commit       |
 | `n`             | Create new change             |
 | `x`             | Run jj fix (format `@`)       |
+| `t`             | Tug closest bookmark to `@`   |
 | `l`             | Open log view                 |
 | `q` / `<C-c>`   | Quit                          |
 | `?`             | Show/hide help                |
@@ -192,6 +193,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `d`           | Describe commit         |
 | `n`           | Create new change       |
 | `x`           | Run jj fix (format `@`) |
+| `t`           | Tug bookmark to `@`     |
 | `y`           | Yank change ID          |
 | `r` / `<C-r>` | Refresh log             |
 | `s`           | Open status view        |

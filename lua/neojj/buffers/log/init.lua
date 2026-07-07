@@ -193,6 +193,11 @@ function LogBuffer:_setup_mappings()
 		self:fix()
 	end, { desc = "Run jj fix (format working copy)" })
 
+	-- Tug: advance the closest bookmark up to @
+	self.buffer:map("n", "t", function()
+		self:tug()
+	end, { desc = "Tug: advance closest bookmark to @" })
+
 	-- Yank change ID
 	self.buffer:map("n", "y", function()
 		self:yank_change_id_at_cursor()
@@ -493,6 +498,27 @@ function LogBuffer:fix()
 				self:refresh()
 			else
 				vim.notify("Failed to run jj fix: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+			end
+		end)
+	end)
+end
+
+---Advance ("tug") the closest bookmark that is an ancestor of `@` up to the
+---closest pushable revision at/under `@`. Both revsets are inlined so this works
+---regardless of the user's jj config or revset aliases.
+function LogBuffer:tug()
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	async.run(function()
+		local result = cli.tug():cwd(self.repo.dir):call_async()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Tugged bookmark to @", vim.log.levels.INFO)
+				self:refresh()
+			else
+				vim.notify("Failed to tug bookmark: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
 			end
 		end)
 	end)
