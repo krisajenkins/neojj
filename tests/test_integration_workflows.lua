@@ -366,4 +366,134 @@ T.test_workflow_status_refresh_success_renders_files = function()
 	expect.equality(text:find("Error:", 1, true) == nil, true)
 end
 
+---Test that <Tab> on a file row in the status buffer toggles its diff open.
+---@return nil
+T.test_keybinding_tab_toggles_file_diff = function()
+	-- Use the revision (commit) view so the diff is embedded from `jj show`
+	-- (parse_show_output) rather than fetched via a separate `jj diff` call.
+	child.lua([[
+		switch_to_state("multiple-changes")
+		vim.cmd("JJ status @")
+	]])
+
+	-- Wait for the src/main.lua file row to render (async jj show).
+	child.lua([[ wait_for_text("src/main.lua") ]])
+
+	-- Position the cursor on the `src/main.lua` file row. That row carries an
+	-- interactive component with `item.path`, which is what toggle_file_diff
+	-- requires (it early-returns otherwise).
+	child.lua([[
+		local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+		for i, line in ipairs(lines) do
+			if line:find("src/main.lua", 1, true) then
+				vim.api.nvim_win_set_cursor(0, { i, 0 })
+				break
+			end
+		end
+	]])
+
+	local before = child.lua_get([[ vim.api.nvim_buf_line_count(0) ]])
+
+	-- Press <Tab> to expand the diff. type_keys routes through the buffer-local
+	-- `<tab>` mapping (→ StatusBuffer:toggle_file_diff); `normal! <Tab>` would not.
+	child.type_keys("<Tab>")
+
+	-- Wait for the diff hunk header to render (async jj diff for src/main.lua).
+	child.lua([[ wait_for_text("@@") ]])
+
+	local after = child.lua_get([[ vim.api.nvim_buf_line_count(0) ]])
+	local text = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+	]])
+
+	-- Expanding the diff adds lines and surfaces a hunk marker.
+	expect.equality(after > before, true)
+	expect.equality(text:find("@@", 1, true) ~= nil, true)
+end
+
+---Test that `y` in the log buffer yanks the change ID at the cursor.
+---@return nil
+T.test_keybinding_y_yanks_change_id = function()
+	child.lua([[
+		switch_to_state("multiple-changes")
+		vim.cmd("JJ log")
+	]])
+
+	-- Wait for the log to render its commit lines (async jj log).
+	child.lua([[ wait_for_text("test@example.com") ]])
+
+	-- Position the cursor on the working-copy `@` line. In the multiple-changes
+	-- fixture that node's change_id is `ttokvzsn` (see multiple-changes-log.txt).
+	child.lua([[
+		local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+		for i, line in ipairs(lines) do
+			if line:match("^@") then
+				vim.api.nvim_win_set_cursor(0, { i, 0 })
+				break
+			end
+		end
+	]])
+
+	-- Press y to yank. type_keys routes through the buffer-local `y` mapping
+	-- (→ LogBuffer:yank_change_id_at_cursor), which writes to the `+` register.
+	child.type_keys("y")
+
+	local reg = child.lua_get([[ vim.fn.getreg("+") ]])
+	expect.equality(reg, "ttokvzsn")
+end
+
+---Test that `q` closes the status view (its buffer is wiped).
+---@return nil
+T.test_keybinding_q_closes_status = function()
+	child.lua([[
+		switch_to_state("multiple-changes")
+		vim.cmd("JJ status")
+	]])
+
+	-- Wait for the status view to finish rendering (async jj status).
+	child.lua([[ wait_for_text("JJ Status") ]])
+
+	local handle = child.lua_get([[ vim.api.nvim_get_current_buf() ]])
+
+	-- Press q. type_keys routes through the buffer-local `q` mapping
+	-- (→ Buffer:close), which wipes the bufhidden="wipe" status buffer.
+	child.type_keys("q")
+
+	local valid = child.lua_get(("vim.api.nvim_buf_is_valid(%d)"):format(handle))
+	expect.equality(valid, false)
+end
+
+---Test that `r` refreshes the status buffer, picking up new working-copy state.
+---@return nil
+T.test_keybinding_r_refreshes_status = function()
+	child.lua([[
+		switch_to_state("initial")
+		vim.cmd("JJ status")
+	]])
+
+	-- Wait for the initial status view to render (async jj status).
+	child.lua([[ wait_for_text("JJ Status") ]])
+
+	-- The initial state has no src/main.lua change; multiple-changes does.
+	local before = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+	]])
+	expect.equality(before:find("src/main.lua", 1, true) == nil, true)
+
+	-- Switch the underlying repo state, then refresh.
+	child.lua([[ switch_to_state("multiple-changes") ]])
+
+	-- Press r. type_keys routes through the buffer-local `r` mapping
+	-- (→ StatusBuffer:refresh), which re-runs jj status against the new state.
+	child.type_keys("r")
+
+	-- Wait for the new working-copy file to appear (async refresh).
+	child.lua([[ wait_for_text("src/main.lua") ]])
+
+	local after = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+	]])
+	expect.equality(after:find("src/main.lua", 1, true) ~= nil, true)
+end
+
 return T

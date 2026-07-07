@@ -10,20 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Add cursor-interaction and keybinding tests
-
-The cursor-interaction system CLAUDE.md calls central has zero tests:
-
-- `Buffer:get_component_at_cursor` / `get_item_at_cursor`
-  (`lua/neojj/lib/buffer.lua:250-276`): child-nvim tests rendering
-  `StatusUI.create_test_ui()`, with the cursor on a file row, above the first
-  interactive row, on the last line, and in an empty buffer — assert the
-  returned item's `path`.
-- Keybinding-driven tests via `child.type_keys`: `<tab>` on a file toggles diff
-  lines into the status buffer; `y` in the log buffer yanks the change ID
-  (assert `getreg`); `q` closes the view; `r` refreshes after
-  `MockCli.set_state` switches fixtures and the new content appears.
-
 # [ ] Add error-path tests
 
 With the mock CLI returning `success=false, stderr=...`: drive `:JJ status` /

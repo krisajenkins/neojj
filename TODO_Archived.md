@@ -5,6 +5,29 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change rtmvonzx)*
+
+# [x] Add cursor-interaction and keybinding tests
+
+The cursor-interaction system CLAUDE.md calls central has zero tests:
+
+- `Buffer:get_component_at_cursor` / `get_item_at_cursor`
+  (`lua/neojj/lib/buffer.lua:250-276`): child-nvim tests rendering
+  `StatusUI.create_test_ui()`, with the cursor on a file row, above the first
+  interactive row, on the last line, and in an empty buffer — assert the
+  returned item's `path`.
+- Keybinding-driven tests via `child.type_keys`: `<tab>` on a file toggles diff
+  lines into the status buffer; `y` in the log buffer yanks the change ID
+  (assert `getreg`); `q` closes the view; `r` refreshes after
+  `MockCli.set_state` switches fixtures and the new content appears.
+
+> Note: added tests/test_cursor.lua (6 cursor cases) and 4 keybinding tests in
+> test_integration_workflows.lua. The <Tab> test drives the revision view
+> because the mock names diff fixtures from the file path and no fixture exists
+> for the working-copy files' paths.
+
+---
+
 *Archived: 2026-07-07 (change poqnpsms)*
 
 # [x] Make the mock CLI fail loudly on unknown fixtures
