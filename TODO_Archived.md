@@ -5,6 +5,18 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change vz)*
+
+# [x] Edit (S)
+
+Wraps `jj edit <rev>`. In the log buffer, `e` on a revision makes it the
+working copy (jj's "checkout" for daily work), notify + refresh. Pairs
+naturally with the existing `n` (new). Added `M.edit()` to the CLI builder and
+`LogBuffer:edit_change()` mirroring the `create_new_change()` async pattern, plus
+help-text/README/`doc/neojj.txt` keybinding entries.
+
+---
+
 *Archived: 2026-07-07 (change nrmyrwoz)*
 
 # [x] `jj tug` support

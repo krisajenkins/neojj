@@ -192,6 +192,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `<Tab>`       | Toggle revision details |
 | `d`           | Describe commit         |
 | `n`           | Create new change       |
+| `e`           | Edit change (checkout)  |
 | `x`           | Run jj fix (format `@`) |
 | `t`           | Tug bookmark to `@`     |
 | `y`           | Yank change ID          |

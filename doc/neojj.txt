@@ -300,6 +300,7 @@ r                       Refresh log buffer
 <CR>                    Show commit details for commit at cursor
 d                       Describe commit at cursor (edit description)
 n                       Create new change after commit at cursor
+e                       Edit change at cursor (make it the working copy)
 x                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
 s                       Open status view

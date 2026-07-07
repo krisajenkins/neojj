@@ -289,6 +289,10 @@ function M.new()
 	return new_builder("jj"):arg("new")
 end
 
+function M.edit()
+	return new_builder("jj"):arg("edit")
+end
+
 function M.fix()
 	return new_builder("jj"):arg("fix")
 end

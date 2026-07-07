@@ -1,11 +1,5 @@
 # TODO
 
-# [ ] Edit (S)
-
-Wraps `jj edit <rev>`. In the log buffer, `e` on a revision makes it the
-working copy (jj's "checkout" for daily work), notify + refresh. Pairs
-naturally with the existing `n` (new).
-
 # [ ] Git push / fetch (M)
 
 Wraps `jj git push` (`--bookmark X`, `--change @`, all tracked) and
