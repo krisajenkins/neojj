@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change wtxvuwmn)*
+
+# [x] Git push / fetch (M)
+
+Wraps `jj git push` (`--bookmark X`, `--change @`, all tracked) and
+`jj git fetch`. In status + log buffers: `P` push with a prompt among
+all-tracked / specific bookmark / `--change` at cursor; `f` fetch. Must be
+genuinely async (see TODO.md's async item) with progress notification, refresh
+on completion, and stderr surfaced on failure (auth errors, bookmark
+conflicts). Gated by bookmark management below.
+
+Added `M.git_push()` / `M.git_fetch()` to the CLI builder and `push()`/`fetch()`
+methods to both the status and log buffers, mirroring the existing async
+notify/refresh pattern (`tug`/`fix`/`edit`). `P` pushes via `vim.ui.select` (all
+tracked / specific bookmark via `vim.ui.input` / `--change` at cursor or `@`);
+`p` pulls (`jj git fetch`). Stderr is surfaced with `vim.log.levels.ERROR`. Help
+panels, `doc/neojj.txt`, `README.md` and `tests/test_cli.lua` updated.
+
+---
+
 *Archived: 2026-07-07 (change vz)*
 
 # [x] Edit (S)

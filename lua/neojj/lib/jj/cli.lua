@@ -297,6 +297,14 @@ function M.fix()
 	return new_builder("jj"):arg("fix")
 end
 
+function M.git_push()
+	return new_builder("jj"):arg("git"):arg("push")
+end
+
+function M.git_fetch()
+	return new_builder("jj"):arg("git"):arg("fetch")
+end
+
 function M.tug()
 	return new_builder("jj")
 		:arg("bookmark")

@@ -1,14 +1,5 @@
 # TODO
 
-# [ ] Git push / fetch (M)
-
-Wraps `jj git push` (`--bookmark X`, `--change @`, all tracked) and
-`jj git fetch`. In status + log buffers: `P` push with a prompt among
-all-tracked / specific bookmark / `--change` at cursor; `f` fetch. Must be
-genuinely async (see TODO.md's async item) with progress notification, refresh
-on completion, and stderr surfaced on failure (auth errors, bookmark
-conflicts). Gated by bookmark management below.
-
 # [ ] Bookmark management (M)
 
 Wraps `jj bookmark create/move/delete/rename/track/untrack/list`. In the log

@@ -113,6 +113,46 @@ T["describe builder carries the revision argument"] = function()
 	restore()
 end
 
+T["git_push builder emits the git push subcommand"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.git_push():call()
+
+	expect_args(captured.opts.args, { "--color", "never", "git", "push" })
+
+	restore()
+end
+
+T["git_push builder carries a --bookmark option"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.git_push():option("bookmark", "main"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "git", "push", "--bookmark", "main" })
+
+	restore()
+end
+
+T["git_push builder carries a --change option"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.git_push():option("change", "@"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "git", "push", "--change", "@" })
+
+	restore()
+end
+
+T["git_fetch builder emits the git fetch subcommand"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.git_fetch():call()
+
+	expect_args(captured.opts.args, { "--color", "never", "git", "fetch" })
+
+	restore()
+end
+
 T["cwd sets the job's working directory"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 

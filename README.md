@@ -34,6 +34,7 @@ Feel free to use it. What it does, it does well. It doesn't cover every `jj` fea
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
 - **Commit Details** - View detailed commit information and diffs
 - **Working-copy Actions** - `jj fix`, `jj tug`, `jj edit`, and `jj new` from the buffers
+- **Git Sync** - Push (`jj git push`) and pull (`jj git fetch`) from the status and log buffers
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
 - **Split Support** - Open buffers in horizontal/vertical splits or tabs
 - **Health Check** - `:checkhealth neojj` verifies your setup
@@ -199,6 +200,8 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `n`             | Create new change             |
 | `x`             | Run jj fix (format `@`)       |
 | `t`             | Tug closest bookmark to `@`   |
+| `P`             | Push to remote (`jj git push`) |
+| `p`             | Pull from remote (`jj git fetch`) |
 | `l`             | Open log view                 |
 | `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
 | `?`             | Show/hide help                |
@@ -215,6 +218,8 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `e`           | Edit change (make working copy) |
 | `x`           | Run jj fix (format `@`) |
 | `t`           | Tug bookmark to `@`     |
+| `P`           | Push to remote (`jj git push`) |
+| `p`           | Pull from remote (`jj git fetch`) |
 | `y`           | Yank change ID          |
 | `r` / `<C-r>` | Refresh log             |
 | `s`           | Open status view        |

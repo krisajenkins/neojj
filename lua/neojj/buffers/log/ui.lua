@@ -251,6 +251,8 @@ function LogUI.create_help()
 		Ui.text("  e         - Edit change at cursor (make it working copy)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  x         - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  t         - Tug bookmark to @", { highlight = "NeoJJHelpText" }),
+		Ui.text("  P         - Push to remote (jj git push)", { highlight = "NeoJJHelpText" }),
+		Ui.text("  p         - Pull from remote (jj git fetch)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  y         - Yank change ID", { highlight = "NeoJJHelpText" }),
 		Ui.text("  r         - Refresh log", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <C-r>     - Refresh log", { highlight = "NeoJJHelpText" }),

@@ -203,6 +203,16 @@ function LogBuffer:_setup_mappings()
 		self:tug()
 	end, { desc = "Tug: advance closest bookmark to @" })
 
+	-- Push to the remote (jj git push)
+	self.buffer:map("n", "P", function()
+		self:push()
+	end, { desc = "Push to remote (jj git push)" })
+
+	-- Pull (fetch) from the remote (jj git fetch)
+	self.buffer:map("n", "p", function()
+		self:fetch()
+	end, { desc = "Pull from remote (jj git fetch)" })
+
 	-- Yank change ID
 	self.buffer:map("n", "y", function()
 		self:yank_change_id_at_cursor()
@@ -552,6 +562,94 @@ function LogBuffer:tug()
 				self:refresh()
 			else
 				vim.notify("Failed to tug bookmark: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+			end
+		end)
+	end)
+end
+
+---Run `jj git push` with the given options, asynchronously. `opts.bookmark`
+---pushes a single named bookmark; `opts.change` pushes/creates a bookmark for a
+---revision (`--change`); neither pushes all tracked bookmarks. Notifies on
+---start, refreshes on success and surfaces stderr (auth errors, bookmark
+---conflicts) on failure.
+---@param opts { bookmark?: string, change?: string }
+function LogBuffer:_run_push(opts)
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	vim.notify("Pushing to remote...", vim.log.levels.INFO)
+
+	async.run(function()
+		local builder = cli.git_push():cwd(self.repo.dir)
+		if opts.bookmark then
+			builder:option("bookmark", opts.bookmark)
+		elseif opts.change then
+			builder:option("change", opts.change)
+		end
+		local result = builder:call_async()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Pushed to remote", vim.log.levels.INFO)
+				self:refresh()
+			else
+				vim.notify("Failed to push: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+			end
+		end)
+	end)
+end
+
+---Push to the remote. Prompts for what to push: all tracked bookmarks, a
+---specific bookmark by name, or a bookmark for the change at the cursor
+---(`--change`).
+function LogBuffer:push()
+	local choices = {
+		"All tracked bookmarks",
+		"A specific bookmark...",
+		"Change at cursor (--change)",
+	}
+
+	vim.ui.select(choices, { prompt = "jj git push:" }, function(_, idx)
+		if not idx then
+			return
+		end
+		if idx == 1 then
+			self:_run_push({})
+		elseif idx == 2 then
+			vim.ui.input({ prompt = "Bookmark name: " }, function(name)
+				if not name or name == "" then
+					return
+				end
+				self:_run_push({ bookmark = name })
+			end)
+		elseif idx == 3 then
+			local item = self.buffer:get_item_at_cursor()
+			if not item or not item.change_id then
+				vim.notify("No commit at cursor", vim.log.levels.WARN)
+				return
+			end
+			self:_run_push({ change = item.change_id })
+		end
+	end)
+end
+
+---Fetch from the remote (`jj git fetch`), asynchronously. Notifies on start,
+---refreshes on success and surfaces stderr on failure.
+function LogBuffer:fetch()
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	vim.notify("Fetching from remote...", vim.log.levels.INFO)
+
+	async.run(function()
+		local result = cli.git_fetch():cwd(self.repo.dir):call_async()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Fetched from remote", vim.log.levels.INFO)
+				self:refresh()
+			else
+				vim.notify("Failed to fetch: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
 			end
 		end)
 	end)
