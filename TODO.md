@@ -8,6 +8,19 @@ I think we're looking for some kind of stacking of views, where quitting takes y
 
 Probably, "go back to the stack," would be bound to plain `:JJ` (no-arg).
 
+> ⚠ Blocked (2026-07-07): Needs design decisions before coding — the current
+> architecture lacks the primitives. Today `:JJ` is `nargs = "+"`
+> (`lua/neojj.lua:127`), so no-arg `:JJ` errors; views are singletons
+> (`StatusBuffer.new`/`LogBuffer.new` reuse one instance) so two status views of
+> different changes can't coexist as stack frames; there's no cursor-position
+> storage, `open_file_at_cursor` just `:edit`s over the window, and `q` calls
+> `Buffer:close()` which tears the buffer down. Decisions needed: (1) Should a
+> stack frame store (buffer-type, revision/file, cursor) and re-render on pop, or
+> keep live buffers/windows alive? (2) Repurpose `q`/`<esc>` to pop one frame
+> (closing only when the stack empties), or keep `q` as close and add a separate
+> "go back" key? (3) Which view types are stack frames — just log/status/file, or
+> also describe/annotate/split-terminal?
+
 # [ ] Edit (S)
 
 Wraps `jj edit <rev>`. In the log buffer, `e` on a revision makes it the
