@@ -61,16 +61,44 @@ local T = MiniTest.new_set({
 			child.lua([[ M.setup() ]])
 			child.lua([[ expect = require('mini.test').expect ]])
 
-			-- Create a fake repo directory for testing.
+			-- Pin the per-repo buffer namespace to a constant.
 			--
-			-- The directory path must be *deterministic* (not vim.fn.tempname(),
-			-- which is random per run) because buffer names are now namespaced per
-			-- repo: they embed a short hash of the repo root path, and that name is
-			-- shown in the window statusline captured by the reference screenshots.
-			-- A random path would produce a different hash — and thus a different
-			-- statusline — on every run, so the screenshots could never match.
+			-- Buffer names are namespaced per repo: they embed a short sha256 hash
+			-- of the repo root path, and that name is shown in the window statusline
+			-- captured by the reference screenshots. The hash is *path*-dependent, so
+			-- it varies by machine and even by platform: on macOS `/tmp` is a symlink
+			-- to `/private/tmp` (and getcwd() resolves it), so the same mock repo
+			-- hashes differently under Linux CI than on a developer's Mac — the
+			-- screenshots could then never match across both. Stubbing the namespace
+			-- to a fixed value makes the captured statusline identical everywhere.
+			-- (repo_namespace's real behaviour is covered by tests/test_util.lua.)
 			child.lua([[
-				-- Create a minimal mock repository at a fixed, deterministic path.
+				local util = require('neojj.lib.jj.util')
+				util.repo_namespace = function() return 'neojj_integration_test_repo' end
+			]])
+
+			-- Provide a pure-Lua clipboard provider so the `+` (system clipboard)
+			-- register works headlessly. CI Linux has no clipboard tool (xclip/
+			-- wl-clipboard), so without this vim.fn.setreg("+", ...) silently no-ops
+			-- and the yank test reads back an empty string.
+			child.lua([[
+				local clip = {}
+				vim.g.clipboard = {
+					name = "neojj-test-clipboard",
+					copy = {
+						["+"] = function(lines) clip["+"] = lines end,
+						["*"] = function(lines) clip["*"] = lines end,
+					},
+					paste = {
+						["+"] = function() return clip["+"] or { "" } end,
+						["*"] = function() return clip["*"] or { "" } end,
+					},
+				}
+			]])
+
+			-- Create a fake repo directory for testing at a fixed path so the mock
+			-- repository has a real `.jj` for find_jj_dir/get_root to resolve.
+			child.lua([[
 				local mock_repo_dir = vim.fn.fnamemodify(vim.fn.resolve('/tmp'), ':p') .. 'neojj_integration_test_repo'
 				vim.fn.delete(mock_repo_dir, 'rf')
 				vim.fn.mkdir(mock_repo_dir, 'p')
