@@ -66,6 +66,9 @@ function StatusBuffer.new(repo, revision)
 		kind = "replace", -- Default to replace current view
 		modifiable = false,
 		readonly = true,
+		-- Stay alive when a drilled-into frame (a file, or another view) replaces
+		-- us in the window, so the view stack can reveal us again on pop.
+		bufhidden = "hide",
 		cwd = repo.dir,
 		context_highlight = true,
 		active_item_highlight = true,
@@ -117,11 +120,12 @@ end
 
 ---Setup status-specific key mappings
 function StatusBuffer:_setup_mappings()
-	-- Close the status view (and its window/split/tab, if any)
-	for _, key in ipairs({ "q", "<c-c>" }) do
+	-- Pop one frame off the view stack, revealing the view drilled down from
+	-- (e.g. the log). Only when this view is the last frame does it close.
+	for _, key in ipairs({ "q", "<esc>", "<c-c>" }) do
 		self.buffer:map("n", key, function()
-			self.buffer:close()
-		end, { desc = "Close status" })
+			self:go_back()
+		end, { desc = "Back (pop view stack) / close status" })
 	end
 
 	-- Refresh mapping
@@ -384,10 +388,37 @@ function StatusBuffer:render()
 	self.buffer:render(components)
 end
 
+---Register this view as the top frame of the drill-down view stack.
+---
+---Called from every display entry point so navigating into the status view
+---(from the log, or via `:JJ status`) stacks it as a live frame. Uses the same
+---buffer, so revisiting the view moves the existing frame to the top rather
+---than duplicating it.
+function StatusBuffer:_push_frame()
+	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
+		teardown = function()
+			self:close()
+		end,
+	})
+end
+
+---Go back: pop this frame off the view stack, revealing the frame beneath. If
+---this view is not the current stack top (an unexpected state), close it.
+function StatusBuffer:go_back()
+	local view_stack = require("neojj.lib.view_stack")
+	local top = view_stack.top()
+	if top and top.bufnr == self.buffer:get_handle() then
+		view_stack.pop()
+	else
+		self.buffer:close()
+	end
+end
+
 ---Show the status buffer
 ---@param kind? string Display mode override
 function StatusBuffer:show(kind)
 	self.buffer:open(kind)
+	self:_push_frame()
 	self:refresh()
 end
 
@@ -396,12 +427,14 @@ end
 function StatusBuffer:show_split(split_type)
 	local kind = split_type == "vertical" and "vsplit" or "split"
 	self.buffer:open(kind)
+	self:_push_frame()
 	self:refresh()
 end
 
 ---Show the status buffer in a new tab
 function StatusBuffer:show_tab()
 	self.buffer:open("tab")
+	self:_push_frame()
 	self:refresh()
 end
 
@@ -579,7 +612,8 @@ function StatusBuffer:open_file_at_cursor()
 	local root = self.repo:get_root() or self.repo.dir
 	local abs_path = root .. "/" .. item.path
 
-	-- Open the file in the current window
+	-- Open the file in the current window (the stack window). This replaces the
+	-- status view, which stays alive (bufhidden="hide") beneath the new frame.
 	local escaped_path = vim.fn.fnameescape(abs_path)
 	if item.line then
 		-- Jump to specific line (from diff position)
@@ -587,6 +621,11 @@ function StatusBuffer:open_file_at_cursor()
 	else
 		vim.cmd("edit " .. escaped_path)
 	end
+
+	-- Push the file as the top frame. No teardown: it is the user's own file
+	-- buffer, so popping back to the status view just navigates away and leaves
+	-- it listed. From the file, no-arg `:JJ` returns to the status view.
+	require("neojj.lib.view_stack").push(vim.api.nvim_get_current_buf())
 end
 
 ---Open describe buffer for current commit

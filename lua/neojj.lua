@@ -71,6 +71,14 @@ function M.create_commands()
 		local subcommand = args.fargs[1]
 		local rest_args = vim.list_slice(args.fargs, 2)
 
+		-- No-arg `:JJ` means "return to the view stack": raise the top NeoJJ view
+		-- (log/status/file) from wherever the user is, e.g. a file opened from a
+		-- status view.
+		if not subcommand then
+			M.jj_back()
+			return
+		end
+
 		if subcommand == "status" then
 			local arg1 = rest_args[1]
 			local arg2 = rest_args[2]
@@ -124,7 +132,8 @@ function M.create_commands()
 			vim.notify("Available: status, describe, log, new, annotate, split", vim.log.levels.INFO)
 		end
 	end, {
-		nargs = "+",
+		-- "*" (not "+") so a bare `:JJ` is valid and routes to jj_back().
+		nargs = "*",
 		complete = function(arglead, cmdline, _cursorpos)
 			local args = vim.split(cmdline, "%s+")
 			local num_args = #args
@@ -173,8 +182,17 @@ function M.create_commands()
 
 			return {}
 		end,
-		desc = "JJ commands (status, describe, log, new, annotate, split)",
+		desc = "JJ commands (no arg: return to view stack; status, describe, log, new, annotate, split)",
 	})
+end
+
+---Return to the NeoJJ view stack.
+---
+---Bound to the no-arg `:JJ` command. Raises the top stack frame (the most
+---recent log/status/file view) from wherever the user is; when already on the
+---top frame (e.g. a file opened from a status view), steps back one level.
+function M.jj_back()
+	require("neojj.lib.view_stack").raise()
 end
 
 ---Get a JJ repository instance for the given directory

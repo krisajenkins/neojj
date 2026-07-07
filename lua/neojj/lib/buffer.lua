@@ -32,6 +32,7 @@ Buffer.__index = Buffer
 ---@field readonly? boolean Whether buffer is readonly
 ---@field unlisted? boolean Whether buffer is unlisted
 ---@field scratch? boolean Whether buffer is scratch
+---@field bufhidden? string 'bufhidden' value (default "wipe"; stack views use "hide")
 
 ---Get existing buffer by name or create new one
 ---
@@ -91,7 +92,10 @@ function Buffer:_setup_buffer()
 		filetype = self.filetype,
 		modifiable = self.config.modifiable ~= false,
 		readonly = self.config.readonly == true,
-		bufhidden = "wipe",
+		-- Stack-participating views (status/log) pass "hide" so they survive being
+		-- replaced by the frame drilled into and can be revealed again on pop;
+		-- everything else keeps the default "wipe".
+		bufhidden = self.config.bufhidden or "wipe",
 		buftype = "nofile",
 		swapfile = false,
 	}
@@ -389,6 +393,7 @@ end
 ---@field disable_relative_line_numbers? boolean Disable relative line numbers
 ---@field disable_signs? boolean Disable sign column
 ---@field spell_check? boolean Enable spell checking
+---@field bufhidden? string 'bufhidden' value (default "wipe"; stack views use "hide")
 ---@field cwd? string Working directory for the buffer
 ---@field user_mappings? table User-configurable mappings
 ---@field user_autocmds? table User-defined autocmds
@@ -407,6 +412,7 @@ function Buffer.create(config)
 		readonly = config.readonly,
 		unlisted = config.unlisted,
 		scratch = config.scratch,
+		bufhidden = config.bufhidden,
 	})
 
 	-- Store extended configuration

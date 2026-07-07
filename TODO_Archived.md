@@ -5,6 +5,36 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change qspnqsss)*
+
+# [x] View Stacks
+
+Common scenario: `:JJ log`, drill into a change's status, expand a file's diff,
+open the file — then get back up to the status view (cursor intact) and the log
+view (cursor intact) without re-navigating. A stack of views: `q`/`<esc>` pops
+one frame; no-arg `:JJ` returns to the top of the stack from anywhere.
+
+> Design decisions (Kris):
+>   (1) Keep live buffers/windows alive — do NOT snapshot (buffer-type,
+>     revision/file, cursor) and re-render on pop. Buffers are cheap and Vim
+>     preserves cursor/fold/scroll state better than we would.
+>   (2) `q`/`<esc>` pops one frame, closing only when the stack empties.
+>     (May revisit with user testing.)
+>   (3) Only log/status/file are stack frames for now; describe/annotate/
+>     split-terminal are not. Added a CLAUDE.md note to consider whether new
+>     buffer types should be stack-frame candidates.
+
+> Note: implemented as `lua/neojj/lib/view_stack.lua` — an ordered list of live
+> frames sharing one window, with `push` (move-to-top dedupe), `pop` (reveal
+> beneath, or teardown when empty), and `raise` (no-arg `:JJ`). Log/status views
+> register frames from their `show`/`show_split`/`show_tab` entry points and use
+> `bufhidden = "hide"` so they survive being replaced; `open_file_at_cursor`
+> pushes a file frame; `:JJ` nargs changed `"+"` → `"*"`. New `tests/
+> test_view_stack.lua`; `make` passes (182 tests, typecheck + check-format
+> clean).
+
+---
+
 *Archived: 2026-07-07 (change yqxzsuuq)*
 
 # [x] GitHub Actions CI

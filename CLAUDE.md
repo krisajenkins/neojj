@@ -89,6 +89,28 @@ The `doc/tags` file is tracked in git and should be updated when documentation c
 - **Caching**: Repository state is cached to minimize jj command executions
 - **Interactive Components**: Components can be marked as `interactive = true` to support cursor-based interaction
 
+### View Stack (`lua/neojj/lib/view_stack.lua`)
+
+Drilling down (log → a change's status → a file) builds a stack of **live**
+views. Rather than snapshot each view's (cursor, revision, folds) and re-render
+on the way back, the stack keeps every view's buffer alive (they use
+`bufhidden = "hide"`) and just switches the shared window between them, so Vim
+preserves cursor/fold/scroll state for free.
+
+- `q` / `<esc>` on a NeoJJ view pops one frame, revealing the frame beneath;
+  popping the last frame closes the view.
+- No-arg `:JJ` returns to the stack from anywhere (raises the top frame; from a
+  file opened out of a status view it steps back into that status view).
+- A view registers itself as a frame from its `show`/`show_split`/`show_tab`
+  entry points (`StatusBuffer:_push_frame` / `LogBuffer:_push_frame`); opening a
+  file from the status view pushes a file frame.
+
+**Only log, status and file views are stack frames today.** describe, annotate
+and the split terminal are transient and are NOT pushed. **When adding a new
+buffer type, consider whether it should be a stack frame** — if it is a view the
+user navigates *into* and expects to `q`/`:JJ` back out of, push it onto the
+view stack; if it is a transient editor/terminal, leave it off.
+
 ### Component Position Tracking System
 
 The renderer tracks the position of interactive components to enable cursor-based interactions:

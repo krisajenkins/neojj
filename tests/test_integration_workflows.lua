@@ -510,7 +510,8 @@ T.test_keybinding_q_closes_status = function()
 	local handle = child.lua_get([[ vim.api.nvim_get_current_buf() ]])
 
 	-- Press q. type_keys routes through the buffer-local `q` mapping
-	-- (→ Buffer:close), which wipes the bufhidden="wipe" status buffer.
+	-- (→ StatusBuffer:go_back → view_stack.pop). The status view is the only
+	-- stack frame here, so popping it tears the view down and wipes the buffer.
 	child.type_keys("q")
 
 	local valid = child.lua_get(("vim.api.nvim_buf_is_valid(%d)"):format(handle))

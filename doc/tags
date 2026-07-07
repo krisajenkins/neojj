@@ -50,6 +50,7 @@ neojj-status-display	neojj.txt	/*neojj-status-display*
 neojj-status-mappings	neojj.txt	/*neojj-status-mappings*
 neojj-status-navigation	neojj.txt	/*neojj-status-navigation*
 neojj-status-refresh	neojj.txt	/*neojj-status-refresh*
+neojj-view-stack	neojj.txt	/*neojj-view-stack*
 neojj.get_repo()	neojj.txt	/*neojj.get_repo()*
 neojj.jj_annotate()	neojj.txt	/*neojj.jj_annotate()*
 neojj.jj_describe()	neojj.txt	/*neojj.jj_describe()*

@@ -91,6 +91,9 @@ function LogBuffer.new(repo, options)
 		kind = "replace", -- Default to replace current view
 		modifiable = false,
 		readonly = true,
+		-- Stay alive when a drilled-into frame (a change's status view) replaces us
+		-- in the window, so the view stack can reveal us again on pop.
+		bufhidden = "hide",
 		cwd = repo.dir,
 		context_highlight = true,
 		active_item_highlight = true,
@@ -142,11 +145,12 @@ end
 
 ---Setup log-specific key mappings
 function LogBuffer:_setup_mappings()
-	-- Close the log view (and its window/split/tab, if any)
-	for _, key in ipairs({ "q", "<c-c>" }) do
+	-- Pop one frame off the view stack, revealing the view drilled down from.
+	-- Only when this view is the last frame does it close.
+	for _, key in ipairs({ "q", "<esc>", "<c-c>" }) do
 		self.buffer:map("n", key, function()
-			self.buffer:close()
-		end, { desc = "Close log" })
+			self:go_back()
+		end, { desc = "Back (pop view stack) / close log" })
 	end
 
 	-- Refresh mapping
@@ -315,10 +319,37 @@ function LogBuffer:render()
 	self.buffer:render(components)
 end
 
+---Register this view as the top frame of the drill-down view stack.
+---
+---Called from every display entry point so navigating into the log view (from
+---a status view, or via `:JJ log`) stacks it as a live frame. Uses the same
+---buffer, so revisiting the view moves the existing frame to the top rather
+---than duplicating it.
+function LogBuffer:_push_frame()
+	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
+		teardown = function()
+			self:close()
+		end,
+	})
+end
+
+---Go back: pop this frame off the view stack, revealing the frame beneath. If
+---this view is not the current stack top (an unexpected state), close it.
+function LogBuffer:go_back()
+	local view_stack = require("neojj.lib.view_stack")
+	local top = view_stack.top()
+	if top and top.bufnr == self.buffer:get_handle() then
+		view_stack.pop()
+	else
+		self.buffer:close()
+	end
+end
+
 ---Show the log buffer
 ---@param kind? string Display mode override
 function LogBuffer:show(kind)
 	self.buffer:open(kind)
+	self:_push_frame()
 	self:refresh()
 end
 
@@ -327,12 +358,14 @@ end
 function LogBuffer:show_split(split_type)
 	local kind = split_type == "vertical" and "vsplit" or "split"
 	self.buffer:open(kind)
+	self:_push_frame()
 	self:refresh()
 end
 
 ---Show the log buffer in a new tab
 function LogBuffer:show_tab()
 	self.buffer:open("tab")
+	self:_push_frame()
 	self:refresh()
 end
 

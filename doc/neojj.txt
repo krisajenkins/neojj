@@ -90,8 +90,13 @@ Using packer.nvim: >lua
 NeoJJ provides a unified `:JJ` command with subcommands:
 
                                                                           *:JJ*
-:JJ {subcommand} [args...]
-                Execute a JJ subcommand. Available subcommands:
+:JJ [subcommand] [args...]
+                With no subcommand, return to the view stack: raise the most
+                recent NeoJJ view (log/status/file) from wherever you are. This
+                is how you get back to a status view after opening a file from
+                it. See |neojj-view-stack|.
+
+                With a subcommand, execute it. Available subcommands:
                 • status
                 • log
                 • describe
@@ -196,6 +201,28 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ split abc123    " Split specific revision
 <
 
+VIEW STACK                                                  *neojj-view-stack*
+
+Drilling down through NeoJJ builds a stack of live views. A typical flow: >
+    :JJ log            " open the log
+    <CR>               " open the status view for the change at cursor
+    <CR>               " (after expanding a diff) open the file at cursor
+<
+Each step keeps the previous view alive rather than re-rendering it, so its
+cursor, folds and scroll position are preserved exactly.
+
+To walk back up:
+                • On a NeoJJ view (log/status), press `q` or `<Esc>` to pop one
+                  frame and reveal the view beneath. Popping the last frame
+                  closes the view.
+                • From a file you opened out of a status view (a non-NeoJJ
+                  buffer, so `q` is not remapped), run `:JJ` with no arguments
+                  to return to the status view. `:JJ` returns to the top of the
+                  stack from anywhere.
+
+Only the log, status and file views participate in the stack. The describe,
+annotate and split-terminal views are transient and are not stacked.
+
 ==============================================================================
 5. STATUS BUFFER                                                  *neojj-status*
 
@@ -234,8 +261,10 @@ n                       Create new change from current commit
 l                       Open log view
 
                                                            *neojj-status-close*
-q                       Close status buffer
-<C-c>                   Close status buffer
+q                       Back: pop the view stack (reveal the view drilled down
+                        from); closes the status buffer if it is the last frame
+<Esc>                   Same as q
+<C-c>                   Same as q
 
 ==============================================================================
 6. LOG BUFFER                                                        *neojj-log*
@@ -273,8 +302,10 @@ s                       Open status view
 y                       Yank change ID for commit at cursor
 
                                                              *neojj-log-close*
-q                       Close log buffer
-<C-c>                   Close log buffer
+q                       Back: pop the view stack (reveal the view drilled down
+                        from); closes the log buffer if it is the last frame
+<Esc>                   Same as q
+<C-c>                   Same as q
 
 ==============================================================================
 7. DESCRIBE BUFFER                                              *neojj-describe*

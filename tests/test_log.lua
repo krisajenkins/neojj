@@ -19,10 +19,11 @@ T.test_jj_log_command_creation = function()
 	child.lua([[
 		require('neojj').setup()
 
-		-- Check that JJ command exists
+		-- Check that JJ command exists. nargs is "*" (not "+") so a bare `:JJ`
+		-- is valid and routes to jj_back() / the view stack.
 		local commands = vim.api.nvim_get_commands({})
 		expect.equality(commands.JJ ~= nil, true)
-		expect.equality(commands.JJ.nargs, "+")
+		expect.equality(commands.JJ.nargs, "*")
 	]])
 end
 
