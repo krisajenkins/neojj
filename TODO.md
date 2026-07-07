@@ -42,3 +42,10 @@ status/log runs `jj undo` with a notification of what was undone. New
 :JJ oplog` buffer cloning the log-buffer pattern (parser + ui + init) listing
 operations; `<cr>` or `r` on an operation runs `jj op restore` with
 confirmation.
+
+# [ ] Auto-refresh on repo change (S/M)
+
+Watch `.jj/repo/op_heads` with `vim.uv.fs_event` and refresh open NeoJJ buffers
+when the repo changes externally — the equivalent of neogit watching `.git`.
+This needs a little research - how good is the `vim.uv.fs_event support`? Will
+it work reliably? Across which platforms?

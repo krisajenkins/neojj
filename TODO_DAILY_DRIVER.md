@@ -120,12 +120,6 @@ Telescope / `vim.ui.select` pickers for revisions and bookmarks, used by squash
 that upgrades the prompt-based flows above from type-a-change-id to
 pick-from-a-list.
 
-# [ ] Auto-refresh on repo change (S/M)
-
-Watch `.jj/repo/op_heads` with `vim.uv.fs_event` (or poll `jj op log -n1`) and
-refresh open NeoJJ buffers when the repo changes externally — the equivalent of
-neogit watching `.git`.
-
 ## Explicitly out of scope for v1.0
 
 Irrelevant or low-value under jj's model: staging/index UI (no index), stash
