@@ -30,12 +30,15 @@ the things you want.
 - **Beautiful UI** - Syntax-highlighted buffers with intuitive navigation
 - **Status View** - See working copy changes, conflicts, and file diffs
 - **Log View** - Browse commit history with graph visualization
+- **View Stacks** - Drill down from log → status → file, then `q` or `:JJ` back out
 - **Annotate/Blame** - See which change last touched each line of a file
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
 - **Commit Details** - View detailed commit information and diffs
+- **Working-copy Actions** - `jj fix`, `jj tug`, `jj edit`, and `jj new` from the buffers
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
 - **Split Support** - Open buffers in horizontal/vertical splits or tabs
 - **Auto-refresh** - Automatically updates when colorscheme changes
+- **Health Check** - `:checkhealth neojj` verifies your setup
 
 ## Screenshots
 
@@ -75,6 +78,26 @@ o  yostqsxw you@example.com 2024-01-14 16:45:00
 ```
 
 ## Installation
+
+### Using the built-in package manager (Neovim >= 0.12)
+
+Neovim 0.12 ships with its own package manager, `vim.pack`, so no third-party
+plugin manager is required:
+
+```lua
+vim.pack.add({
+  { src = "https://github.com/nvim-lua/plenary.nvim" },  -- Required for async operations
+  { src = "https://github.com/krisajenkins/neojj" },
+})
+
+require("neojj").setup()
+
+-- Optional: Add keybindings
+local neojj = require("neojj")
+vim.keymap.set("n", "<leader>js", neojj.jj_status, { desc = "JJ Status" })
+vim.keymap.set("n", "<leader>jl", neojj.jj_log, { desc = "JJ Log" })
+vim.keymap.set("n", "<leader>jd", neojj.jj_describe, { desc = "JJ Describe" })
+```
 
 ### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
@@ -137,6 +160,7 @@ For detailed documentation, see `:help neojj` in Neovim.
 NeoJJ provides a unified `:JJ` command with subcommands:
 
 ```vim
+:JJ                             " Return to the top of the view stack from anywhere
 :JJ status [change_id] [split]  " Open status buffer (working copy or specific change)
 :JJ log [split] [count]         " Open log buffer (optionally limit revisions shown)
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
@@ -150,6 +174,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 #### Examples
 
 ```vim
+:JJ                           " Step back out of the current view (pop the view stack)
 :JJ status                    " Open status for working copy in current window
 :JJ status horizontal         " Open status in horizontal split
 :JJ status abc123             " Show status for a specific change
@@ -180,7 +205,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `x`             | Run jj fix (format `@`)       |
 | `t`             | Tug closest bookmark to `@`   |
 | `l`             | Open log view                 |
-| `q` / `<C-c>`   | Quit                          |
+| `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
 | `?`             | Show/hide help                |
 
 ### Log Buffer Keybindings
@@ -192,13 +217,13 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `<Tab>`       | Toggle revision details |
 | `d`           | Describe commit         |
 | `n`           | Create new change       |
-| `e`           | Edit change (checkout)  |
+| `e`           | Edit change (make working copy) |
 | `x`           | Run jj fix (format `@`) |
 | `t`           | Tug bookmark to `@`     |
 | `y`           | Yank change ID          |
 | `r` / `<C-r>` | Refresh log             |
 | `s`           | Open status view        |
-| `q` / `<C-c>` | Quit                    |
+| `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
 | `?`           | Show/hide help          |
 
 ### Describe Buffer Keybindings
