@@ -40,6 +40,20 @@ Jujutsu version control system, including:
 • Jujutsu >= 0.9.0 (the `jj` command-line tool)
 • plenary.nvim - Required dependency for async operations
 
+HEALTH CHECK                                            *neojj-health*
+                                                        *:checkhealth-neojj*
+
+Run |:checkhealth| neojj to verify your setup: >
+
+    :checkhealth neojj
+<
+It reports:
+
+• Your Neovim version (warns if older than the minimum supported).
+• Whether the `jj` executable is on your PATH, and its version (warns if
+  older than the minimum supported).
+• Whether plenary.nvim is available.
+
 ==============================================================================
 3. INSTALLATION                                            *neojj-installation*
 

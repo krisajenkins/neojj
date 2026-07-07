@@ -5,6 +5,23 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change qkolrmos)*
+
+# [x] Add :checkhealth support
+
+Create `lua/neojj/health.lua` with a `check()` that reports: jj binary on PATH
+and its version (warn if older than the minimum the parsers were built
+against — note it after the template rewrite), plenary.nvim available, Neovim
+version. Register so `:checkhealth neojj` works; mention it in README and
+vimdoc.
+
+> Note: health.lua is auto-discovered by :checkhealth (no manual registration);
+> checks Neovim vs 0.9.0, jj via exepath + `jj --version` parse vs 0.9.0, and
+> plenary via pcall(require). Uses a report_* shim for Neovim < 0.10. Documented
+> in README + doc/neojj.txt; test_health.lua stubs vim.health.
+
+---
+
 *Archived: 2026-07-07 (change znmqrzvx)*
 
 # [x] Vimdoc completeness

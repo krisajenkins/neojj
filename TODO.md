@@ -10,14 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Add :checkhealth support
-
-Create `lua/neojj/health.lua` with a `check()` that reports: jj binary on PATH
-and its version (warn if older than the minimum the parsers were built
-against — note it after the template rewrite), plenary.nvim available, Neovim
-version. Register so `:checkhealth neojj` works; mention it in README and
-vimdoc.
-
 # [ ] GitHub Actions CI
 
 Add `.github/workflows/ci.yml`: checkout, install Nix

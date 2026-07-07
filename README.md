@@ -292,6 +292,10 @@ See `lua/neojj/highlights.lua` for the complete list.
 - **Jujutsu** >= 0.9.0 (the `jj` command-line tool)
 - **plenary.nvim** - Required dependency for async operations
 
+Run `:checkhealth neojj` to verify your setup: it reports your Neovim version,
+whether `jj` is on your PATH (and its version), and whether plenary.nvim is
+available.
+
 ## Architecture
 
 NeoJJ is built with a modular architecture inspired by Neogit:
@@ -411,6 +415,16 @@ jj --version
 ```
 
 Install Jujutsu: https://github.com/martinvonz/jj#installation
+
+Or run a full diagnostic from inside Neovim:
+
+```vim
+:checkhealth neojj
+```
+
+This reports your Neovim version, whether `jj` is found on your PATH (and its
+version, warning if it is older than the minimum), and whether plenary.nvim is
+installed.
 
 ## Roadmap
 
