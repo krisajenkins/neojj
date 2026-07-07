@@ -10,27 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Add second-wave tests: parsers, CLI contract, repository, describe
-
-Lower-urgency but wanted before calling the suite trustworthy:
-
-- Malformed-input parser tests: truncated status output, unknown status
-  letters, ANSI-coloured input to the log/status parsers; a table-driven loop
-  over awkward paths (spaces, unicode, dotfiles) in `status_parser`.
-- Contract-test `lua/neojj/lib/jj/cli.lua`'s builder
-  (`arg`/`args`/`option`/`flag`/`short_flag`/`cwd` → expected argv/spawn opts)
-  so the mock CLI can't silently drift from the real interface.
-- `repository.lua`: `instance()` caching per dir, `refresh()` populating state
-  via the mock CLI, `detect_repository()` on a non-repo.
-- `util.lua` pure functions: `find_jj_dir` walking up from a nested subdir,
-  `path_join` edge cases.
-- Describe flow: `submit()` invokes `jj describe` with multiline buffer
-  content; `abort()` fires `on_abort` without calling the CLI.
-- Empty/fresh-repo rendering: log with zero revisions, status with no
-  description — assert the actual empty-state text, replacing the tautological
-  `type(content) == "string"` checks (`test_ui.lua:295-297`,
-  `test_log.lua:74-83`).
-
 # [ ] README accuracy pass
 
 Verified inaccuracies: the log-buffer table says `d` = "Show commit diff" (it's

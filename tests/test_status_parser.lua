@@ -279,4 +279,86 @@ T["parse_working_copy_info"]["parses dotfiles in paths"] = function()
 	expect.equality(result.modified_files[3].path, "lua/neojj/buffers/status/init.lua")
 end
 
+-- Second-wave malformed-input tests: the parser must never raise on garbage,
+-- and must ignore lines it cannot classify rather than misfiling them.
+
+T["parse_working_copy_info"]["survives truncated output"] = function()
+	-- A header cut off mid-stream (jj killed, pipe closed) must still yield the
+	-- change_id it did see and a clean, non-crashing structure.
+	local lines = {
+		"Working copy  (@) : wwqvwtzo 4291f1c2",
+		"Parent commit (@-):", -- truncated mid-line: colon present, no id follows
+	}
+	local result = status_parser.parse_working_copy_info(lines)
+
+	expect.equality(result.change_id, "wwqvwtzo")
+	-- The truncated "Parent commit (@-):" line has no id to capture.
+	expect.equality(#result.parent_ids, 0)
+	expect.equality(#result.modified_files, 0)
+	expect.equality(#result.conflicts, 0)
+	expect.equality(result.is_empty, true)
+end
+
+T["parse_working_copy_info"]["ignores unknown status letters"] = function()
+	-- jj only emits M/A/D/R/C/? status codes. An unrecognised leading letter
+	-- must be dropped, not misfiled as a modified file.
+	local lines = {
+		"Working copy  (@) : qpvuntsm abcd1234",
+		"X unexpected/status.txt",
+		"Z another/mystery.txt",
+		"M real/change.lua",
+	}
+	local result = status_parser.parse_working_copy_info(lines)
+
+	-- Only the genuine "M" line survives; X and Z are ignored.
+	expect.equality(#result.modified_files, 1)
+	expect.equality(result.modified_files[1].status, "M")
+	expect.equality(result.modified_files[1].path, "real/change.lua")
+end
+
+T["parse_working_copy_info"]["does not crash on ANSI-coloured input"] = function()
+	-- The plugin always runs jj with `--color never`, so ANSI escapes should
+	-- never appear. If they leak through anyway, the parser must degrade
+	-- gracefully (return a well-formed structure) rather than raise: the escape
+	-- prefix simply prevents the file-status branches from matching.
+	local esc = string.char(27)
+	local lines = {
+		esc .. "[1mWorking copy  (@) : qpvuntsm abcd1234" .. esc .. "[0m",
+		esc .. "[32mM" .. esc .. "[0m README.md",
+		esc .. "[31mD" .. esc .. "[0m old.lua",
+	}
+
+	local result
+	expect.no_error(function()
+		result = status_parser.parse_working_copy_info(lines)
+	end)
+
+	-- Structure is intact and iterable regardless of the colour noise.
+	expect.equality(type(result.modified_files), "table")
+	expect.equality(type(result.conflicts), "table")
+	expect.equality(type(result.parent_ids), "table")
+end
+
+T["parse_working_copy_info"]["parses awkward paths"] = function()
+	-- Table-driven coverage of paths jj can legitimately produce: embedded
+	-- spaces, unicode, dotfiles and emoji. `^([MAD]) (.+)` captures everything
+	-- after the status letter and space, so these must round-trip verbatim.
+	local cases = {
+		{ line = "M my file.txt", status = "M", path = "my file.txt" },
+		{ line = "A dir with spaces/data.csv", status = "A", path = "dir with spaces/data.csv" },
+		{ line = "M café/résumé.md", status = "M", path = "café/résumé.md" },
+		{ line = "A .config/settings.toml", status = "A", path = ".config/settings.toml" },
+		{ line = "M .hidden", status = "M", path = ".hidden" },
+		{ line = "D path/with-emoji-🚀.txt", status = "D", path = "path/with-emoji-🚀.txt" },
+	}
+
+	for _, case in ipairs(cases) do
+		local result = status_parser.parse_working_copy_info({ case.line })
+		expect.equality(#result.modified_files, 1)
+		expect.equality(result.modified_files[1].status, case.status)
+		expect.equality(result.modified_files[1].path, case.path)
+		expect.equality(result.is_empty, false)
+	end
+end
+
 return T

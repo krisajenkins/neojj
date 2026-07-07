@@ -41,6 +41,88 @@ local function load_cli_with_job_spy()
 	return Cli, captured, restore
 end
 
+--- Assert that two array-like tables are element-for-element equal.
+local function expect_args(actual, expected)
+	expect.equality(#actual, #expected)
+	for i = 1, #expected do
+		expect.equality(actual[i], expected[i])
+	end
+end
+
+-- Contract: every builder starts from the default `--color never` args and the
+-- factory function's subcommand, then appends in chain order. These assert the
+-- exact argv (captured.opts.args) that reaches plenary.job, which is the real
+-- contract downstream tooling depends on.
+
+T["status builder emits the default color args and subcommand"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.status():call()
+
+	expect_args(captured.opts.args, { "--color", "never", "status" })
+
+	restore()
+end
+
+T["log builder chains args, options and flags in order"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.log():arg("-r"):arg("@"):option("template", "json(self)"):flag("no-graph"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"log",
+		"-r",
+		"@",
+		"--template",
+		"json(self)",
+		"--no-graph",
+	})
+
+	restore()
+end
+
+T["option without a value emits a bare long flag"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.raw():option("version"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "--version" })
+
+	restore()
+end
+
+T["short_flag emits a single-dash flag"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.log():short_flag("n"):arg("10"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "log", "-n", "10" })
+
+	restore()
+end
+
+T["describe builder carries the revision argument"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.describe():arg("abc123"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "describe", "abc123" })
+
+	restore()
+end
+
+T["cwd sets the job's working directory"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.status():cwd("/some/repo/dir"):call()
+
+	expect.equality(captured.opts.cwd, "/some/repo/dir")
+
+	restore()
+end
+
 T["call omits env when none is set"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 

@@ -113,6 +113,37 @@ T.test_log_ui_components = function()
 	]])
 end
 
+---Rendering an empty log (no revisions) must show the real "no commits" copy.
+---@return nil
+T.test_log_empty_state_renders_real_text = function()
+	child.lua([[
+		local LogUI = require('neojj.buffers.log.ui')
+		local Buffer = require('neojj.lib.buffer')
+
+		-- No raw_lines means LogUI.create falls through to the empty state.
+		local components = LogUI.create({ revisions = { items = {} } })
+
+		local buffer = Buffer.create({
+			name = 'JJ Log - Empty',
+			filetype = 'neojj-log',
+			modifiable = false,
+			readonly = true,
+		})
+		buffer:render(components)
+
+		local lines = vim.api.nvim_buf_get_lines(buffer:get_handle(), 0, -1, false)
+		local content = table.concat(lines, '\n')
+
+		expect.equality(content:find('No commits found', 1, true) ~= nil, true)
+		expect.equality(
+			content:find('The repository has no commits or the log query returned no results.', 1, true) ~= nil,
+			true
+		)
+
+		buffer:close()
+	]])
+end
+
 ---Test log parsing
 ---@return nil
 T.test_log_parsing = function()

@@ -384,4 +384,111 @@ T.test_load_does_not_wipe_user_input = function()
 	]])
 end
 
+--- submit() shells out to `jj describe --stdin` via plenary.job directly and
+--- must pass the multiline buffer content as the job's `writer`. We stub
+--- plenary.async.run to invoke its fn synchronously and plenary.job with a spy
+--- that captures the job options, so we observe the exact argv + stdin writer
+--- without running jj.
+T.test_submit_passes_multiline_content_as_writer = function()
+	child.lua([[
+		expect = require('mini.test').expect
+
+		local captured = {}
+		package.loaded['plenary.async'] = { run = function(fn) fn() end }
+
+		local mock_job = {}
+		mock_job.__index = mock_job
+		function mock_job.new(_, opts)
+			captured.opts = opts
+			return setmetatable({ code = 0 }, mock_job)
+		end
+		function mock_job:sync() return {} end
+		function mock_job:stderr_result() return {} end
+		package.loaded['plenary.job'] = mock_job
+
+		-- Mock the CLI used by load_current_description() so no real jj runs.
+		local function chain()
+			local b = {}
+			b.option = function(self) return self end
+			b.flag = function(self) return self end
+			b.call = function() return { success = true, stdout = '{}' } end
+			return b
+		end
+		package.loaded['neojj.lib.jj.cli'] = { log = function() return chain() end }
+
+		local mock_repo = { dir = '/fake/repo', is_jj_repo = function() return true end }
+		local DescribeBuffer = require('neojj.buffers.describe')
+		local db = DescribeBuffer.new(mock_repo, '@')
+
+		-- Multiline content, plus a 'JJ:' help line that must be stripped.
+		vim.api.nvim_buf_set_lines(db.buffer.handle, 0, -1, false, {
+			'First line of description',
+			'',
+			'Second paragraph here.',
+			'JJ: this help line is stripped',
+		})
+
+		db:submit()
+
+		-- The job launched with the fixed describe argv and cwd...
+		expect.no_equality(captured.opts, nil)
+		expect.equality(captured.opts.command, 'jj')
+		expect.equality(captured.opts.cwd, '/fake/repo')
+		local a = captured.opts.args
+		expect.equality(a[1], '--color')
+		expect.equality(a[2], 'never')
+		expect.equality(a[3], 'describe')
+		expect.equality(a[4], '@')
+		expect.equality(a[5], '--stdin')
+		-- ...and the multiline description was handed to jj via stdin (writer),
+		-- with the 'JJ:' help line and trailing blank removed.
+		expect.equality(captured.opts.writer, 'First line of description\n\nSecond paragraph here.')
+
+		package.loaded['plenary.async'] = nil
+		package.loaded['plenary.job'] = nil
+	]])
+end
+
+--- abort() must fire on_abort and never touch the CLI or launch a job: quitting
+--- is a pure bail-out, not a describe call. We record every job construction and
+--- every async.run so we can assert none happened during abort.
+T.test_abort_fires_callback_without_cli = function()
+	child.lua([[
+		expect = require('mini.test').expect
+
+		local job_launches = 0
+		local mock_job = {}
+		mock_job.__index = mock_job
+		function mock_job.new(_, _opts)
+			job_launches = job_launches + 1
+			return setmetatable({ code = 0 }, mock_job)
+		end
+		function mock_job:sync() return {} end
+		function mock_job:stderr_result() return {} end
+		package.loaded['plenary.job'] = mock_job
+
+		local async_runs = 0
+		package.loaded['plenary.async'] = { run = function() async_runs = async_runs + 1 end }
+
+		local mock_repo = { dir = '/fake/repo', is_jj_repo = function() return true end }
+		local DescribeBuffer = require('neojj.buffers.describe')
+
+		local aborted = 0
+		local db = DescribeBuffer.new(mock_repo, '@', nil, function() aborted = aborted + 1 end)
+
+		-- Ignore any async.run triggered by construction (load_current_description).
+		async_runs = 0
+
+		db:abort()
+
+		expect.equality(aborted, 1)
+		-- No CLI/job activity whatsoever during abort.
+		expect.equality(job_launches, 0)
+		expect.equality(async_runs, 0)
+
+		package.loaded['plenary.async'] = nil
+		package.loaded['plenary.job'] = nil
+	]])
+end
+
 return T

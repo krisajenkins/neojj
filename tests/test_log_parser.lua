@@ -251,4 +251,29 @@ T["parse_log_output"]["extracts graph characters correctly"] = function()
 	end
 end
 
+T["parse_log_output"]["preserves ANSI escapes inside fields"] = function()
+	-- Field splitting keys purely off the RECORD_SEP (\30) and UNIT_SEP (\31)
+	-- control characters, so any ANSI colour escapes that leak into a field are
+	-- carried through verbatim rather than corrupting the split. (jj is run with
+	-- `--color never`, but the parser must not depend on that.)
+	local esc = string.char(27)
+	local coloured_id = esc .. "[1msqmvkywl" .. esc .. "[0m"
+	local output = "@  \030"
+		.. coloured_id
+		.. "\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\n"
+		.. "│  \030Adding jj log support.\n"
+
+	local result = log_parser.parse_log_output(output)
+
+	expect.equality(#result.revisions, 1)
+	local rev = result.revisions[1]
+	-- The escape-wrapped change id is preserved intact...
+	expect.equality(rev.change_id, coloured_id)
+	-- ...and the fields after it still split correctly on UNIT_SEP.
+	expect.equality(rev.author, "user@example.com")
+	expect.equality(rev.timestamp, "2025-07-14 21:06:06")
+	expect.equality(rev.commit_id, "f35b8f36")
+	expect.equality(rev.description, "Adding jj log support.")
+end
+
 return T

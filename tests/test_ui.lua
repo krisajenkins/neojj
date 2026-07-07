@@ -294,10 +294,14 @@ T.test_empty_status_display = function()
 		-- Show buffer
 		buffer:show()
 
-		-- Verify content includes empty state message
+		-- Verify content includes the real empty-state copy (case-insensitive).
 		local lines = vim.api.nvim_buf_get_lines(buffer:get_handle(), 0, -1, false)
 		local content = table.concat(lines, "\n"):lower()
-		expect.equality(type(content), "string")
+		expect.equality(content:find("no changes in working copy", 1, true) ~= nil, true)
+		expect.equality(
+			content:find("the working copy is clean and matches the current revision.", 1, true) ~= nil,
+			true
+		)
 
 		-- Clean up
 		buffer:close()

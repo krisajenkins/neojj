@@ -72,11 +72,6 @@ local function create_mock_builder(command)
 		return self
 	end
 
-	function builder:args(values)
-		vim.list_extend(self._args, values)
-		return self
-	end
-
 	function builder:option(key, value)
 		if value then
 			table.insert(self._args, "--" .. key)
