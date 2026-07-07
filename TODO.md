@@ -8,13 +8,6 @@ here, move existing bookmark here, delete, rename, track remote. The log UI
 already parses and highlights bookmarks, so the display side exists — this adds
 the write operations. Without this you cannot prepare a push.
 
-# [ ] Commit gesture: describe + new (S)
-
-Wraps `jj commit` semantics. In the status buffer, `c` opens the existing
-describe buffer; on submit, runs `jj commit -m <msg>` (describe + `jj new`) so
-the user lands on a fresh empty working copy — the canonical "finish this
-change" gesture. Reuses DescribeBuffer with a different submit action.
-
 # [ ] Auto-refresh on repo change (S/M)
 
 Watch `.jj/repo/op_heads` with `vim.uv.fs_event` and refresh open NeoJJ buffers

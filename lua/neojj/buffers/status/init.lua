@@ -161,6 +161,11 @@ function StatusBuffer:_setup_mappings()
 		self:describe_current_commit()
 	end, { desc = "Describe current commit" })
 
+	-- Commit: describe @ then jj new (land on a fresh empty working copy)
+	self.buffer:map("n", "c", function()
+		self:commit_change()
+	end, { desc = "Commit change (describe @ + jj new)" })
+
 	-- Create new change
 	self.buffer:map("n", "n", function()
 		self:create_new_change()
@@ -673,6 +678,60 @@ function StatusBuffer:describe_current_commit()
 
 	local revision_to_describe = self.revision or "@"
 	local describe_buffer = DescribeBuffer.new(self.repo, revision_to_describe, on_submit, on_abort)
+	describe_buffer:show()
+end
+
+---Commit the working copy: open the describe buffer for `@`, and once its
+---description is submitted run `jj new` so the user lands on a fresh empty
+---working copy. Together these two steps ARE `jj commit` (which is exactly
+---`jj describe @ --stdin` followed by `jj new`); jj's `commit` subcommand has no
+---`--stdin`, so we chain the two commands the describe buffer already speaks
+---rather than invoking `jj commit` directly. This is the canonical "finish this
+---change" gesture and always targets the working copy `@`.
+function StatusBuffer:commit_change()
+	local DescribeBuffer = require("neojj.buffers.describe")
+
+	-- After the description is saved (describe @ --stdin has already run and the
+	-- describe view has closed), advance onto a fresh empty change with `jj new`,
+	-- then refresh and re-focus the status view (mirrors describe_current_commit).
+	local function on_submit()
+		local cli = require("neojj.lib.jj.cli")
+		local async = require("plenary.async")
+
+		async.run(function()
+			local result = cli.new():cwd(self.repo.dir):call_async()
+
+			vim.schedule(function()
+				if result.success then
+					vim.notify("Committed change", vim.log.levels.INFO)
+				else
+					vim.notify(
+						"Failed to create new change: " .. (result.stderr or "Unknown error"),
+						vim.log.levels.ERROR
+					)
+				end
+
+				-- Refresh regardless: `jj describe` already changed the description, so
+				-- the view must reflect it even if the following `jj new` failed.
+				if self.buffer and self.buffer:is_valid() then
+					self:refresh()
+					self.buffer:open()
+				else
+					logger.debug("Status buffer no longer valid, skipping refresh after commit")
+				end
+			end)
+		end)
+	end
+
+	local function on_abort()
+		if self.buffer and self.buffer:is_valid() then
+			self.buffer:open()
+		end
+	end
+
+	-- Commit only ever operates on the working copy, so describe `@` (not the
+	-- pinned revision this view may be showing).
+	local describe_buffer = DescribeBuffer.new(self.repo, "@", on_submit, on_abort)
 	describe_buffer:show()
 end
 

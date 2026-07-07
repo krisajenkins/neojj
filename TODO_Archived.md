@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-08 (change npzvktvn)*
+
+# [x] Commit gesture: describe + new (S)
+
+Wraps `jj commit` semantics. In the status buffer, `c` opens the existing
+describe buffer; on submit, runs `jj commit -m <msg>` (describe + `jj new`) so
+the user lands on a fresh empty working copy — the canonical "finish this
+change" gesture. Reuses DescribeBuffer with a different submit action.
+
+Added `StatusBuffer:commit_change` and the `c` mapping. `jj`'s `commit`
+subcommand has no `--stdin`, so rather than shelling out to `jj commit` we chain
+the two commands it is actually equivalent to: the existing DescribeBuffer runs
+`jj describe @ --stdin` (piping the multi-line message), and on successful
+submit we run `jj new`, then refresh and re-focus the status view. Commit always
+targets the working copy `@`, even when the view is pinned to another revision,
+matching jj's semantics. Status help panel, `README.md`, `doc/neojj.txt` (tags
+regenerated) and a new `tests/test_status.lua` updated to match.
+
+---
+
 *Archived: 2026-07-07 (change wtxvuwmn)*
 
 # [x] Git push / fetch (M)

@@ -257,6 +257,8 @@ r                       Refresh status buffer
                                                          *neojj-status-actions*
 <CR>                    Open file at cursor
 d                       Describe current commit (edit description)
+c                       Commit change: describe @ then jj new, landing on a
+                        fresh empty working copy
 n                       Create new change from current commit
 x                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @

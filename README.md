@@ -33,7 +33,7 @@ Feel free to use it. What it does, it does well. It doesn't cover every `jj` fea
 - **Annotate/Blame** - See which change last touched each line of a file
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
 - **Commit Details** - View detailed commit information and diffs
-- **Working-copy Actions** - `jj fix`, `jj tug`, `jj edit`, and `jj new` from the buffers
+- **Working-copy Actions** - `jj commit`, `jj fix`, `jj tug`, `jj edit`, and `jj new` from the buffers
 - **Git Sync** - Push (`jj git push`) and pull (`jj git fetch`) from the status and log buffers
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
 - **Split Support** - Open buffers in horizontal/vertical splits or tabs
@@ -197,6 +197,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `<Enter>`       | Open file at cursor           |
 | `r` / `<C-r>`   | Refresh status                |
 | `d`             | Describe current commit       |
+| `c`             | Commit change (describe `@` + `jj new`) |
 | `n`             | Create new change             |
 | `x`             | Run jj fix (format `@`)       |
 | `t`             | Tug closest bookmark to `@`   |
