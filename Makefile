@@ -13,6 +13,10 @@ test_file: deps/mini.nvim
 format:
 	stylua lua scripts tests
 
+# Check formatting without modifying files (used in CI)
+check-format:
+	stylua --check lua scripts tests
+
 # Run static analysis (primary type checking tool)
 typecheck:
 	@echo "Running static analysis with luacheck..."

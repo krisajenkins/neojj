@@ -1,5 +1,7 @@
 # NeoJJ
 
+[![CI](https://github.com/krisajenkins/neojj/actions/workflows/ci.yml/badge.svg)](https://github.com/krisajenkins/neojj/actions/workflows/ci.yml)
+
 A Neovim plugin for [Jujutsu (jj)](https://github.com/martinvonz/jj) version control, inspired by [Neogit](https://github.com/NeogitOrg/neogit).
 
 <div align="center">

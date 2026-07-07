@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change yqxzsuuq)*
+
+# [x] GitHub Actions CI
+
+Add `.github/workflows/ci.yml`: checkout, install Nix
+(`DeterminateSystems/nix-installer-action` + `magic-nix-cache-action`), run
+`nix develop -c make` (typecheck + tests — the dev shell already provides jj,
+luacheck, stylua, and neovim, so no extra setup steps). Add a `check-format`
+Make target (`stylua --check lua scripts tests`) and run it in CI too. Trigger
+on push and pull_request; add a status badge to the README.
+
+> Note: magic-nix-cache-action is sunset; dropped the cache step entirely rather
+> than depend on flakehub-cache-action's OIDC/enrolment (which could redden the
+> first CI run on an un-enrolled repo). The build works uncached — add a cache
+> action later if speed matters. Added the check-format Make target and README
+> badge; YAML validated and `make`/`make check-format` pass locally (CI itself
+> only runs once pushed to GitHub).
+
+---
+
 *Archived: 2026-07-07 (change qkolrmos)*
 
 # [x] Add :checkhealth support
