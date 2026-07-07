@@ -42,6 +42,18 @@ local T = MiniTest.new_set({
 				function switch_to_state(state_name)
 					MockCli.set_state(state_name)
 				end
+
+				-- Wait until the current buffer contains `needle` (or a timeout).
+				-- Prefer this over fixed `vim.wait(500)` sleeps: async jj commands
+				-- render on their own schedule, so poll for the observable result
+				-- (a header, "Change ID:", a help panel) instead of guessing a delay.
+				-- Returns true if the text appeared, false on timeout.
+				function wait_for_text(needle, timeout)
+					return vim.wait(timeout or 2000, function()
+						local text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+						return text:find(needle, 1, true) ~= nil
+					end, 20)
+				end
 			]])
 
 			-- Now load neojj (it will use our mock CLI)
@@ -97,8 +109,8 @@ T.test_workflow_basic_status_empty = function()
         vim.cmd("JJ status")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the status view to finish rendering (async jj status).
+	child.lua([[ wait_for_text("JJ Status") ]])
 
 	-- Take a screenshot of this basic status setup.
 	expect.reference_screenshot(child.get_screenshot())
@@ -117,8 +129,8 @@ T.test_workflow_basic_log = function()
         vim.cmd("JJ log")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the log view to finish rendering (async jj log).
+	child.lua([[ wait_for_text("JJ Log") ]])
 
 	-- Take a screenshot of this basic status setup.
 	expect.reference_screenshot(child.get_screenshot())
@@ -137,8 +149,8 @@ T.test_workflow_basic_commit = function()
         vim.cmd("JJ status @")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the commit view to finish rendering (async jj show).
+	child.lua([[ wait_for_text("Change ID:") ]])
 
 	-- Take a screenshot of the commit view
 	expect.reference_screenshot(child.get_screenshot())
@@ -157,19 +169,37 @@ T.test_workflow_log_to_commit_navigation = function()
         vim.cmd("JJ log")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the log to render its commit lines (async jj log).
+	child.lua([[ wait_for_text("test@example.com") ]])
 
-	-- Press Enter on the first commit line to navigate to commit view
+	-- Position the cursor on the working-copy commit line (the `@` node). That
+	-- line carries an interactive component with a change_id, which is what
+	-- LogBuffer:show_commit_at_cursor() requires (it early-returns otherwise).
 	child.lua([[
-		-- Move to the first commit line (usually line 4 after header)
-		vim.cmd("normal! 4G")
-		-- Press Enter to open commit view
-		vim.cmd("normal! \\<CR>")
+		local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+		for i, line in ipairs(lines) do
+			if line:match("^@") then
+				vim.api.nvim_win_set_cursor(0, { i, 0 })
+				break
+			end
+		end
 	]])
 
-	-- Wait for commit view to load
-	child.lua([[ vim.wait(500) ]])
+	-- Press Enter to open the commit view. type_keys routes through the
+	-- buffer-local `<cr>` mapping (unlike `normal!`, which bypasses mappings and,
+	-- inside a [[ ]] block, would only receive the literal text `\<CR>`).
+	child.type_keys("<CR>")
+
+	-- Wait for the commit/status view to replace the log view. The commit view
+	-- renders "Change ID: ..." (see status/ui.lua), so its presence proves the
+	-- view actually switched rather than the cursor merely moving.
+	child.lua([[ wait_for_text("Change ID:") ]])
+
+	-- Assert the view genuinely switched to the commit view.
+	local text = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+	]])
+	expect.equality(text:find("Change ID:", 1, true) ~= nil, true)
 
 	-- Take a screenshot of the commit view opened from log
 	expect.reference_screenshot(child.get_screenshot())
@@ -188,8 +218,8 @@ T.test_workflow_commit_file_interactions = function()
         vim.cmd("JJ status @")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the commit view to finish rendering (async jj show).
+	child.lua([[ wait_for_text("Change ID:") ]])
 
 	-- Navigate to a file line (if files are present)
 	child.lua([[
@@ -221,13 +251,22 @@ T.test_workflow_commit_help = function()
         vim.cmd("JJ status @")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the commit view to finish rendering (async jj show).
+	child.lua([[ wait_for_text("Change ID:") ]])
 
-	-- Press ? to show help
-	child.lua([[
-		vim.cmd("normal! ?")
+	-- Press ? to toggle the help panel. type_keys routes through the buffer-local
+	-- `?` mapping (→ StatusBuffer:toggle_help); `normal! ?` would instead run
+	-- Vim's built-in reverse search and never show the help panel.
+	child.type_keys("?")
+
+	-- Wait for the help panel to render (status/ui.lua create_help header).
+	child.lua([[ wait_for_text("NeoJJ Status Help") ]])
+
+	-- Assert the help panel is actually displayed.
+	local text = child.lua_get([[
+		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
 	]])
+	expect.equality(text:find("NeoJJ Status Help", 1, true) ~= nil, true)
 
 	-- Take a screenshot of the help display
 	expect.reference_screenshot(child.get_screenshot())
@@ -246,8 +285,8 @@ T.test_workflow_multiple_changes_status = function()
         vim.cmd("JJ status")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the status view to finish rendering (async jj status).
+	child.lua([[ wait_for_text("JJ Status") ]])
 
 	-- Take a screenshot showing modified, added, and deleted files
 	expect.reference_screenshot(child.get_screenshot())
@@ -266,8 +305,8 @@ T.test_workflow_conflict_status = function()
         vim.cmd("JJ status")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the status view to finish rendering (async jj status).
+	child.lua([[ wait_for_text("JJ Status") ]])
 
 	-- Take a screenshot showing conflict markers
 	expect.reference_screenshot(child.get_screenshot())
@@ -288,8 +327,8 @@ T.test_workflow_status_refresh_failure = function()
 		vim.cmd("JJ status")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the rendered error banner to appear (async jj status failure).
+	child.lua([[ wait_for_text("Error:") ]])
 
 	local text = child.lua_get([[
 		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
@@ -315,8 +354,8 @@ T.test_workflow_status_refresh_success_renders_files = function()
 		vim.cmd("JJ status")
 	]])
 
-	-- Wait for async operations to complete
-	child.lua([[ vim.wait(500) ]])
+	-- Wait for the status header to render (async jj status success).
+	child.lua([[ wait_for_text("JJ Status") ]])
 
 	local text = child.lua_get([[
 		table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")

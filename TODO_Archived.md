@@ -5,6 +5,29 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change mwlpklql)*
+
+# [x] Fix the two integration tests that pass without testing anything
+
+`tests/test_integration_workflows.lua:160` uses `vim.cmd("normal! \<CR>")` —
+that sends literal `\<CR>` characters, and `normal!` bypasses buffer-local
+mappings anyway; the reference screenshot for
+`test_workflow_log_to_commit_navigation` still shows the **log** view (only the
+cursor moved). Same bug at `:221` for the `?` help test — its screenshot shows
+no help panel.
+
+Fix: use `child.type_keys("<CR>")` / `child.type_keys("?")`, assert the buffer
+content actually changed (e.g. contains `"Change ID:"` / help text), and
+re-baseline the screenshots. Also replace the seven `vim.wait(500)` sleeps in
+this file with condition-based waits where practical.
+
+> Note: both tests now route keys through mappings and assert the view switched
+> ("Change ID:" / "NeoJJ Status Help"); the two affected screenshots were
+> re-baselined; all 11 fixed sleeps became condition-based vim.wait polls. No
+> new fixture was needed (initial-show-at.txt already populates the commit view).
+
+---
+
 *Archived: 2026-07-07 (change lpspsrqk)*
 
 # [x] Extract shared buffer helpers to stop copy-paste drift

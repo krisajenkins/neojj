@@ -10,20 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Fix the two integration tests that pass without testing anything
-
-`tests/test_integration_workflows.lua:160` uses `vim.cmd("normal! \\<CR>")` —
-that sends literal `\<CR>` characters, and `normal!` bypasses buffer-local
-mappings anyway; the reference screenshot for
-`test_workflow_log_to_commit_navigation` still shows the **log** view (only the
-cursor moved). Same bug at `:221` for the `?` help test — its screenshot shows
-no help panel.
-
-Fix: use `child.type_keys("<CR>")` / `child.type_keys("?")`, assert the buffer
-content actually changed (e.g. contains `"Change ID:"` / help text), and
-re-baseline the screenshots. Also replace the seven `vim.wait(500)` sleeps in
-this file with condition-based waits where practical.
-
 # [ ] Make the mock CLI fail loudly on unknown fixtures
 
 `tests/helpers/mock_cli.lua:181-188` returns `success = true, stdout = ""` when
