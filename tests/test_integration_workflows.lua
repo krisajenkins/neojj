@@ -366,6 +366,60 @@ T.test_workflow_status_refresh_success_renders_files = function()
 	expect.equality(text:find("Error:", 1, true) == nil, true)
 end
 
+---Test that `:JJ status` in a directory with no `.jj` ancestor reports a
+---friendly "not a repository" message and does not crash.
+---@return nil
+T.test_workflow_status_not_a_repository = function()
+	-- is_jj_repo() is decided by the REAL filesystem (util.find_jj_dir walks up
+	-- looking for `.jj`), NOT the mock CLI — so mock injection is irrelevant to
+	-- this path. We just need a cwd whose ancestors contain no `.jj`. The project
+	-- tree and the pre_case mock repo dir both have a `.jj`, so use a fresh temp
+	-- dir under $TMPDIR (vim.fn.tempname() is random per run, which is fine here:
+	-- this test asserts on buffer/notify text, not on a reference screenshot).
+	child.lua([[
+		_G.saved_cwd = vim.fn.getcwd()
+		_G.nojj_dir = vim.fn.tempname() .. '_nojj'
+		vim.fn.mkdir(_G.nojj_dir, 'p')
+		vim.cmd('cd ' .. _G.nojj_dir)
+
+		-- M.jj_status short-circuits with a friendly `vim.notify(..., ERROR)`
+		-- before any status buffer is created. The ERROR-level notify would
+		-- otherwise be re-raised out of the command call by the test RPC, so
+		-- capture the messages instead of letting them surface.
+		_G.saved_notify = vim.notify
+		_G.notified = {}
+		vim.notify = function(msg)
+			table.insert(_G.notified, msg)
+		end
+	]])
+
+	-- Running the command must not raise, even outside a jj repository.
+	local ok = child.lua_get([[
+		select(1, pcall(function() vim.cmd("JJ status") end))
+	]])
+
+	local notified = child.lua_get([[ _G.notified ]])
+
+	-- Restore state and clean up the temp dir.
+	child.lua([[
+		vim.notify = _G.saved_notify
+		vim.cmd('cd ' .. _G.saved_cwd)
+		vim.fn.delete(_G.nojj_dir, 'rf')
+	]])
+
+	-- The command completed without error (no crash).
+	expect.equality(ok, true)
+
+	-- A friendly "not a repository" message was surfaced.
+	local found = false
+	for _, msg in ipairs(notified) do
+		if type(msg) == "string" and msg:find("Not a jj repository", 1, true) then
+			found = true
+		end
+	end
+	expect.equality(found, true)
+end
+
 ---Test that <Tab> on a file row in the status buffer toggles its diff open.
 ---@return nil
 T.test_keybinding_tab_toggles_file_diff = function()

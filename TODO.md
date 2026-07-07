@@ -10,13 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Add error-path tests
-
-With the mock CLI returning `success=false, stderr=...`: drive `:JJ status` /
-`StatusBuffer:refresh` and assert `render_error` output appears in the buffer.
-Test `:JJ status` in a directory with no `.jj` (friendly message, no crash) and
-the missing-jj-executable path. These lock in the error-handling items above.
-
 # [ ] Replace the machine-dependent test and clean up the suite
 
 `tests/test_unit.lua:29-37` runs real `jj` against the developer's live checkout

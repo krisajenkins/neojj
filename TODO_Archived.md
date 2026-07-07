@@ -5,6 +5,22 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change pzmvrnrl)*
+
+# [x] Add error-path tests
+
+With the mock CLI returning `success=false, stderr=...`: drive `:JJ status` /
+`StatusBuffer:refresh` and assert `render_error` output appears in the buffer.
+Test `:JJ status` in a directory with no `.jj` (friendly message, no crash) and
+the missing-jj-executable path. These lock in the error-handling items above.
+
+> Note: two of the three were already covered (test_workflow_status_refresh_
+> failure; the missing-jj test in test_cli.lua). Added the no-`.jj`-directory
+> test — M.jj_status short-circuits with a vim.notify (no buffer created), so
+> the test captures notify and asserts the friendly message + no crash.
+
+---
+
 *Archived: 2026-07-07 (change rtmvonzx)*
 
 # [x] Add cursor-interaction and keybinding tests
