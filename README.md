@@ -20,14 +20,13 @@ A Neovim plugin for [Jujutsu (jj)](https://github.com/martinvonz/jj) version con
 
 ---
 
-## Status: Work In Progress
+## Status: A Healthy First Version
 
-Feel free to use it. What it does, it does well. But it probably doesn't do all
-the things you want.
+Feel free to use it. What it does, it does well. It doesn't cover every `jj` feature, but I find it very convenient for daily use.
 
 ## Features
 
-- **Beautiful UI** - Syntax-highlighted buffers with intuitive navigation
+- **Rich UI** - Syntax-highlighted buffers with intuitive navigation
 - **Status View** - See working copy changes, conflicts, and file diffs
 - **Log View** - Browse commit history with graph visualization
 - **View Stacks** - Drill down from log → status → file, then `q` or `:JJ` back out
@@ -37,7 +36,6 @@ the things you want.
 - **Working-copy Actions** - `jj fix`, `jj tug`, `jj edit`, and `jj new` from the buffers
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
 - **Split Support** - Open buffers in horizontal/vertical splits or tabs
-- **Auto-refresh** - Automatically updates when colorscheme changes
 - **Health Check** - `:checkhealth neojj` verifies your setup
 
 ## Screenshots
