@@ -96,7 +96,6 @@ require("neojj").setup()
 local neojj = require("neojj")
 vim.keymap.set("n", "<leader>js", neojj.jj_status, { desc = "JJ Status" })
 vim.keymap.set("n", "<leader>jl", neojj.jj_log, { desc = "JJ Log" })
-vim.keymap.set("n", "<leader>jd", neojj.jj_describe, { desc = "JJ Describe" })
 ```
 
 ### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
@@ -114,8 +113,6 @@ vim.keymap.set("n", "<leader>jd", neojj.jj_describe, { desc = "JJ Describe" })
     -- Optional: Add keybindings
     vim.keymap.set("n", "<leader>js", neojj.jj_status, { desc = "JJ Status" })
     vim.keymap.set("n", "<leader>jl", neojj.jj_log, { desc = "JJ Log" })
-    vim.keymap.set("n", "<leader>jd", neojj.jj_describe, { desc = "JJ Describe" })
-    vim.keymap.set("n", "<leader>jS", neojj.jj_split, { desc = "JJ Split" })
   end,
 }
 ```
