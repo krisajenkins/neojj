@@ -5,6 +5,31 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change sqnkwyzm)*
+
+# [x] Fixture housekeeping
+
+`fixtures/demo-repo/` is untracked and nondeterministic:
+`fixtures/create-demo-repo.sh` pins `JJ_USER`/`JJ_EMAIL`/`JJ_TIMESTAMP` but jj
+change IDs are random, so regenerating produces IDs that no longer match the
+frozen `tests/fixtures/jj-outputs/*` or the 11 reference screenshots.
+
+Fix: treat the committed `tests/fixtures/jj-outputs/` as canonical; add
+`/fixtures/demo-repo/` to `.gitignore`; document in `tests/CLAUDE.md` that
+regenerating the demo repo re-baselines everything, and record which jj version
+the fixtures were captured with. Recapture the oddball
+`dotfile-test-status.txt` (mode 0600, captured from the real neojj repo, not
+the demo repo) from the demo repo for consistent provenance.
+
+> Decision: did the three safe sub-tasks (gitignore demo-repo, document the
+> canonical/disposable split + jj 0.43.0 in tests/CLAUDE.md). The
+> dotfile-test-status.txt recapture was NOT done — regenerating it from the demo
+> repo would require adding a capture step AND rewriting the exact-path
+> assertions in test_status_parser.lua; instead it is documented as a
+> deliberately hand-authored fixture (lower risk, no test churn).
+
+---
+
 *Archived: 2026-07-07 (change yulpztrk)*
 
 # [x] Replace the machine-dependent test and clean up the suite

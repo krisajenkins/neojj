@@ -10,20 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] Fixture housekeeping
-
-`fixtures/demo-repo/` is untracked and nondeterministic:
-`fixtures/create-demo-repo.sh` pins `JJ_USER`/`JJ_EMAIL`/`JJ_TIMESTAMP` but jj
-change IDs are random, so regenerating produces IDs that no longer match the
-frozen `tests/fixtures/jj-outputs/*` or the 11 reference screenshots.
-
-Fix: treat the committed `tests/fixtures/jj-outputs/` as canonical; add
-`/fixtures/demo-repo/` to `.gitignore`; document in `tests/CLAUDE.md` that
-regenerating the demo repo re-baselines everything, and record which jj version
-the fixtures were captured with. Recapture the oddball
-`dotfile-test-status.txt` (mode 0600, captured from the real neojj repo, not
-the demo repo) from the demo repo for consistent provenance.
-
 # [ ] Add second-wave tests: parsers, CLI contract, repository, describe
 
 Lower-urgency but wanted before calling the suite trustworthy:

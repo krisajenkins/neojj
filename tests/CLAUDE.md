@@ -100,6 +100,23 @@ make test_file FILE=tests/test_ui.lua
 nix develop --command make test
 ```
 
+## Fixtures
+
+- **`tests/fixtures/jj-outputs/` is canonical.** These committed files are the
+  source of truth consumed by the tests (via the `read_fixture` helper). Treat
+  them as frozen — the parser and screenshot tests assert against their exact
+  content and change IDs. Captured with **jj 0.43.0**.
+- **`fixtures/demo-repo/` is disposable and git-ignored.** It only exists so the
+  `jj-outputs` fixtures can be regenerated; no test reads it directly.
+  `fixtures/create-demo-repo.sh` pins `JJ_USER`/`JJ_EMAIL`/`JJ_TIMESTAMP`, but jj
+  change IDs are random, so **regenerating the demo repo re-baselines
+  everything** — every `jj-outputs` fixture and the reference screenshots will
+  need re-capturing. Do it deliberately, not casually.
+- **`dotfile-test-status.txt` is a deliberately hand-authored fixture.** It
+  exercises dotfile-in-path parsing (`test_status_parser.lua`) with exact
+  path/status/count assertions; it is not produced by `create-demo-repo.sh`.
+  Leave it as-is unless the dotfile-parsing test's expectations change.
+
 ## Test Categories
 
 ### Unit Tests (`tests/test_unit.lua`)
