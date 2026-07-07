@@ -10,16 +10,6 @@ CI. Note the ordering dependency: the log-template rewrite must land **before**
 the empty-environment fix, because fixing the env will let user-configured jj
 log templates load and break the current parser.
 
-# [ ] README accuracy pass
-
-Verified inaccuracies: the log-buffer table says `d` = "Show commit diff" (it's
-describe); the status-buffer table is missing `n` (new change); `D` is
-advertised but was a stub (remove once the dead-code item lands); the Commands
-section is missing `:JJ annotate`; `:JJ new` and `:JJ split` should be
-documented. Refresh the feature list against the code (keep the honest
-work-in-progress framing), and re-verify every keybinding table against
-`_setup_mappings()` in each buffer.
-
 # [ ] Vimdoc completeness
 
 Bring `doc/neojj.txt` in line with post-cleanup reality: every command

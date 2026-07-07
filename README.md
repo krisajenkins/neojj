@@ -28,6 +28,7 @@ the things you want.
 - **Beautiful UI** - Syntax-highlighted buffers with intuitive navigation
 - **Status View** - See working copy changes, conflicts, and file diffs
 - **Log View** - Browse commit history with graph visualization
+- **Annotate/Blame** - See which change last touched each line of a file
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
 - **Commit Details** - View detailed commit information and diffs
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
@@ -135,9 +136,10 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 
 ```vim
 :JJ status [change_id] [split]  " Open status buffer (working copy or specific change)
-:JJ log [split]                 " Open log buffer
+:JJ log [split] [count]         " Open log buffer (optionally limit revisions shown)
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
 :JJ new [revision]              " Create new empty change
+:JJ annotate [filepath]         " Annotate/blame a file (defaults to current file)
 :JJ split [revision]            " Interactively split a commit
 ```
 
@@ -151,38 +153,46 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ status abc123             " Show status for a specific change
 :JJ status abc123 vertical    " Show specific change in vertical split
 :JJ log vertical              " Open log in vertical split
+:JJ log 50                    " Open log limited to 50 revisions
+:JJ log vertical 50           " Vertical split, limited to 50 revisions
 :JJ describe                  " Describe current commit (@)
 :JJ describe @-               " Describe parent commit
 :JJ new                       " Create new change from working copy
+:JJ annotate                  " Annotate the current file
+:JJ annotate lua/neojj.lua    " Annotate a specific file
 :JJ split                     " Split current commit interactively
 :JJ split @-                  " Split parent commit
 ```
 
 ### Status Buffer Keybindings
 
-| Key           | Action                       |
-| ------------- | ---------------------------- |
-| `j`/`k`       | Move cursor up/down          |
-| `<Tab>`       | Toggle file diff             |
-| `<S-Tab>`     | Toggle all file diffs        |
-| `r`           | Refresh status               |
-| `d`           | Describe current commit      |
-| `D`           | Show diff for file at cursor |
-| `l`           | Open log view                |
-| `q` / `<Esc>` | Quit                         |
-| `?`           | Show/hide help               |
+| Key             | Action                        |
+| --------------- | ----------------------------- |
+| `j`/`k`         | Move cursor up/down           |
+| `<Tab>`         | Toggle file diff              |
+| `<S-Tab>`       | Toggle all file diffs         |
+| `<Enter>`       | Open file at cursor           |
+| `r` / `<C-r>`   | Refresh status                |
+| `d`             | Describe current commit       |
+| `n`             | Create new change             |
+| `l`             | Open log view                 |
+| `q` / `<C-c>`   | Quit                          |
+| `?`             | Show/hide help                |
 
 ### Log Buffer Keybindings
 
-| Key           | Action              |
-| ------------- | ------------------- |
-| `j`/`k`       | Move cursor up/down |
-| `<Enter>`     | Show commit details |
-| `d`           | Show commit diff    |
-| `r`           | Refresh log         |
-| `s`           | Open status view    |
-| `q` / `<Esc>` | Quit                |
-| `?`           | Show/hide help      |
+| Key           | Action                  |
+| ------------- | ----------------------- |
+| `j`/`k`       | Move cursor up/down     |
+| `<Enter>`     | Show commit details     |
+| `<Tab>`       | Toggle revision details |
+| `d`           | Describe commit         |
+| `n`           | Create new change       |
+| `y`           | Yank change ID          |
+| `r` / `<C-r>` | Refresh log             |
+| `s`           | Open status view        |
+| `q` / `<C-c>` | Quit                    |
+| `?`           | Show/hide help          |
 
 ### Describe Buffer Keybindings
 
@@ -193,7 +203,17 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `<C-c><C-q>` | Abort (discard changes) |
 | `ZZ`         | Submit description      |
 | `ZQ`         | Abort (discard changes) |
+| `q`          | Close (confirms if modified) |
 | `:w` / `:wq` | Submit description      |
+
+### Annotate Buffer Keybindings
+
+| Key           | Action               |
+| ------------- | -------------------- |
+| `<Enter>`     | Open change at cursor |
+| `y`           | Copy change ID       |
+| `q` / `<C-c>` / `<Esc>` | Close      |
+| `?`           | Show/hide help       |
 
 ## Configuration
 

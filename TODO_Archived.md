@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change ooxumnmw)*
+
+# [x] README accuracy pass
+
+Verified inaccuracies: the log-buffer table says `d` = "Show commit diff" (it's
+describe); the status-buffer table is missing `n` (new change); `D` is
+advertised but was a stub (remove once the dead-code item lands); the Commands
+section is missing `:JJ annotate`; `:JJ new` and `:JJ split` should be
+documented. Refresh the feature list against the code (keep the honest
+work-in-progress framing), and re-verify every keybinding table against
+`_setup_mappings()` in each buffer.
+
+> Note: every table re-grounded against current _setup_mappings — fixed log
+> `d` = describe, added status `<Enter>`/`n`, log `<Tab>`/`n`/`y`, describe `q`,
+> and a new Annotate table; dropped the removed `D` and the status/log `<Esc>`
+> (annotate still binds `<Esc>`, so it's listed there only). Documented `:JJ
+> annotate` and `:JJ log [split] [count]`.
+
+---
+
 *Archived: 2026-07-07 (change qomxttrp)*
 
 # [x] Add second-wave tests: parsers, CLI contract, repository, describe
