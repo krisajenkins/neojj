@@ -2,7 +2,14 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+# Only one CI run per ref at a time — cancel superseded runs instead of letting
+# them finish. Stops a rapid series of pushes from queueing up 25-minute builds.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -16,6 +23,37 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v16
+
+      # The overlays build jujutsu and neovim from source (they pin versions
+      # newer than nixpkgs, so they aren't in cache.nixos.org). That compile is
+      # what makes CI slow. Cache the resulting /nix/store in GitHub's own
+      # Actions cache so the first run pays the ~25 min build and every run after
+      # restores it in seconds. The key busts whenever the flake or an overlay
+      # changes, forcing a rebuild only then.
+      - name: Cache Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', 'overlays/**') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          # Garbage-collect the store down to the runtime closure before saving so
+          # build-only deps (the Rust toolchain, sources) don't bloat the cache
+          # past GitHub's 10 GB cap. Tune upward if a cold run still rebuilds.
+          gc-max-store-size-linux: 5G
+          # Roll the cache: drop older entries with the same prefix, keep the
+          # freshly-written primary key.
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-created: 0
+          purge-primary-key: never
+
+      # `make` clones mini.nvim and plenary.nvim into deps/ on every run; cache
+      # them so we skip the re-clone. Keyed on the Makefile since that's where the
+      # clone URLs live.
+      - name: Cache test dependencies
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ hashFiles('Makefile') }}
 
       - name: Run checks and tests
         run: nix develop -c make
