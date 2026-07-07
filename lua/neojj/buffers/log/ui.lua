@@ -248,6 +248,7 @@ function LogUI.create_help()
 		Ui.empty_line(),
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
 		Ui.text("  n         - Create new change after cursor", { highlight = "NeoJJHelpText" }),
+		Ui.text("  x         - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  y         - Yank change ID", { highlight = "NeoJJHelpText" }),
 		Ui.text("  r         - Refresh log", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <C-r>     - Refresh log", { highlight = "NeoJJHelpText" }),

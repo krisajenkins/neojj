@@ -5,6 +5,17 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-07 (change xqtpwtmy)*
+
+# [x] `jj fix` support
+
+Wraps `jj fix`. `x` in the status and log buffers runs plain `jj fix` (formats
+the working copy `@` via the configured `fix.tools`), notifies, and refreshes.
+Added `M.fix()` to the CLI builder and `LogBuffer:fix()` / `StatusBuffer:fix()`
+mirroring the existing `create_new_change()` async pattern.
+
+---
+
 *Archived: 2026-07-07 (change qspnqsss)*
 
 # [x] View Stacks

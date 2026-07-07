@@ -258,6 +258,7 @@ r                       Refresh status buffer
 <CR>                    Open file at cursor
 d                       Describe current commit (edit description)
 n                       Create new change from current commit
+x                       Run jj fix on the working copy (formats @)
 l                       Open log view
 
                                                            *neojj-status-close*
@@ -298,6 +299,7 @@ r                       Refresh log buffer
 <CR>                    Show commit details for commit at cursor
 d                       Describe commit at cursor (edit description)
 n                       Create new change after commit at cursor
+x                       Run jj fix on the working copy (formats @)
 s                       Open status view
 y                       Yank change ID for commit at cursor
 

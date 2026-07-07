@@ -188,6 +188,11 @@ function LogBuffer:_setup_mappings()
 		self:create_new_change()
 	end, { desc = "Create new change after cursor" })
 
+	-- Run jj fix on the working copy
+	self.buffer:map("n", "x", function()
+		self:fix()
+	end, { desc = "Run jj fix (format working copy)" })
+
 	-- Yank change ID
 	self.buffer:map("n", "y", function()
 		self:yank_change_id_at_cursor()
@@ -468,6 +473,26 @@ function LogBuffer:create_new_change()
 				self:refresh()
 			else
 				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+			end
+		end)
+	end)
+end
+
+---Run `jj fix` on the working copy (formats/fixes the `@` change). This always
+---targets the working copy and ignores the cursor, matching jj's default.
+function LogBuffer:fix()
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	async.run(function()
+		local result = cli.fix():cwd(self.repo.dir):call_async()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify("Ran jj fix", vim.log.levels.INFO)
+				self:refresh()
+			else
+				vim.notify("Failed to run jj fix: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
 			end
 		end)
 	end)

@@ -136,6 +136,7 @@ The renderer tracks the position of interactive components to enable cursor-base
 - `<cr>`: Open file at cursor (if on a file entry)
 - `q` / `<c-c>` / `<esc>`: Close buffer
 - `d`: Describe current commit
+- `x`: Run jj fix (format working copy `@`)
 - `j` / `k`: Navigate up/down (standard vim navigation also works)
 
 ## Testing with MiniTest
