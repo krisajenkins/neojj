@@ -214,4 +214,47 @@ T.test_log_screenshot = function()
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+---Test that each commit metadata field is coloured with its own highlight group.
+T.test_log_metadata_field_highlights = function()
+	child.lua([[
+		local LogUI = require('neojj.buffers.log.ui')
+
+		local revision = {
+			change_id = "sqmvkywl",
+			author = "krisajenkins@gmail.com",
+			timestamp = "2025-07-14 21:06:06",
+			commit_id = "f35b8f36",
+			bookmarks = { "main" },
+			conflict = false,
+		}
+		local commit_text = revision.change_id
+			.. " " .. revision.author
+			.. " " .. revision.timestamp
+			.. " " .. revision.bookmarks[1]
+			.. " " .. revision.commit_id
+
+		-- Non-current-head row: each field gets its own semantic highlight.
+		local comps = LogUI.create_commit_text_components(commit_text, revision, false)
+		local seen = {}
+		for _, c in ipairs(comps) do
+			seen[c:get_highlight()] = c:get_value()
+		end
+		expect.equality(seen["NeoJJLogChangeId"], "sqmvkywl")
+		expect.equality(seen["NeoJJLogAuthor"], "krisajenkins@gmail.com")
+		expect.equality(seen["NeoJJLogTimestamp"], "2025-07-14 21:06:06")
+		expect.equality(seen["NeoJJLogBookmark"], "main")
+		expect.equality(seen["NeoJJLogCommitId"], "f35b8f36")
+
+		-- Working-copy (@) row keeps its bold emphasis on the change id.
+		local head_comps = LogUI.create_commit_text_components(commit_text, revision, true)
+		local head_seen = {}
+		for _, c in ipairs(head_comps) do
+			head_seen[c:get_highlight()] = c:get_value()
+		end
+		expect.equality(head_seen["NeoJJLogCurrentHead"], "sqmvkywl")
+		expect.equality(head_seen["NeoJJLogChangeId"], nil)
+		expect.equality(head_seen["NeoJJLogCommitId"], "f35b8f36")
+	]])
+end
+
 return T

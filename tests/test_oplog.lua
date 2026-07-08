@@ -132,4 +132,42 @@ T.test_oplog_renders_operations = function()
 	]])
 end
 
+---Test that each operation metadata field is coloured with its own highlight group.
+T.test_oplog_metadata_field_highlights = function()
+	child.lua([[
+		local OplogUI = require('neojj.buffers.oplog.ui')
+
+		local operation = {
+			operation_id = "abc123def456",
+			user = "user@example.com",
+			time_start = "2025-01-01 12:00:00",
+			is_current = false,
+		}
+		local op_text = operation.operation_id
+			.. " " .. operation.user
+			.. " " .. operation.time_start
+
+		-- Non-current operation: each field gets its own semantic highlight.
+		local comps = OplogUI.create_operation_text_components(op_text, operation)
+		local seen = {}
+		for _, c in ipairs(comps) do
+			seen[c:get_highlight()] = c:get_value()
+		end
+		expect.equality(seen["NeoJJOplogId"], "abc123def456")
+		expect.equality(seen["NeoJJOplogUser"], "user@example.com")
+		expect.equality(seen["NeoJJOplogTime"], "2025-01-01 12:00:00")
+
+		-- Current operation (@) keeps its bold emphasis on the operation id.
+		operation.is_current = true
+		local cur_comps = OplogUI.create_operation_text_components(op_text, operation)
+		local cur_seen = {}
+		for _, c in ipairs(cur_comps) do
+			cur_seen[c:get_highlight()] = c:get_value()
+		end
+		expect.equality(cur_seen["NeoJJOplogCurrent"], "abc123def456")
+		expect.equality(cur_seen["NeoJJOplogId"], nil)
+		expect.equality(cur_seen["NeoJJOplogTime"], "2025-01-01 12:00:00")
+	]])
+end
+
 return T

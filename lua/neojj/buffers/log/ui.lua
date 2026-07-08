@@ -82,10 +82,9 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 
 	-- Check if this is the working copy (current head) by looking for @ in the graph
 	local is_current_head = revision.graph and revision.graph:match("@") ~= nil
-	local commit_highlight = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogCommit"
 
-	-- Build commit text components with bookmark highlighting
-	local commit_components = LogUI.create_commit_text_components(commit_part, revision, commit_highlight)
+	-- Build commit text components, colouring each metadata field distinctly
+	local commit_components = LogUI.create_commit_text_components(commit_part, revision, is_current_head)
 
 	-- Combine graph + commit text components
 	local row_children = { Ui.text(graph_part, { highlight = "NeoJJLogGraph" }) }
@@ -175,50 +174,60 @@ function LogUI.create_graph_line(line, graph_prefix)
 	})
 end
 
----Create highlighted text components for the commit info, with bookmarks highlighted
+---Create highlighted text components for the commit info, colouring each
+---metadata field (change id, author, timestamp, bookmarks, commit id) with its
+---own highlight group so the columns read distinctly.
+---
+---The fields are located by walking left-to-right through the line: each field's
+---value (recorded verbatim on the revision by the parser) is found starting from
+---the previous field's end, so ordering is respected and the whitespace gaps
+---between fields keep the neutral separator highlight. The working-copy row keeps
+---its bold emphasis on the change id.
 ---@param commit_text string The commit info portion of the line
----@param revision table Revision data with bookmarks field
----@param base_highlight string Base highlight group for non-bookmark text
+---@param revision table Revision data with change_id/author/timestamp/bookmarks/commit_id fields
+---@param is_current_head boolean Whether this row is the working copy (@)
 ---@return table[] components List of text components
-function LogUI.create_commit_text_components(commit_text, revision, base_highlight)
-	if not revision.bookmarks or #revision.bookmarks == 0 then
-		return { Ui.text(commit_text, { highlight = base_highlight }) }
-	end
-
-	-- Find the region where bookmarks appear (between timestamp and commit_id)
-	local _, ts_end = commit_text:find(revision.timestamp, 1, true)
-	local cid_start = ts_end and commit_text:find(revision.commit_id, ts_end + 1, true)
-
-	if not ts_end or not cid_start then
-		return { Ui.text(commit_text, { highlight = base_highlight }) }
-	end
-
+function LogUI.create_commit_text_components(commit_text, revision, is_current_head)
 	local components = {}
+	local pos = 1 -- 1-indexed cursor into commit_text
+	local separator_hl = "NeoJJLogCommit"
 
-	-- Text before bookmarks (change_id, author, timestamp)
-	local prefix = commit_text:sub(1, ts_end)
-	table.insert(components, Ui.text(prefix, { highlight = base_highlight }))
-
-	-- Highlight each bookmark within the region between timestamp and commit_id
-	local bookmark_region = commit_text:sub(ts_end + 1, cid_start - 1)
-	local remaining = bookmark_region
-	for _, bookmark in ipairs(revision.bookmarks) do
-		local bm_start, bm_end = remaining:find(bookmark, 1, true)
-		if bm_start then
-			if bm_start > 1 then
-				table.insert(components, Ui.text(remaining:sub(1, bm_start - 1), { highlight = base_highlight }))
-			end
-			table.insert(components, Ui.text(bookmark, { highlight = "NeoJJLogBookmark" }))
-			remaining = remaining:sub(bm_end + 1)
+	-- Emit the field `value` with `highlight`, preceded by any gap text (spaces
+	-- between fields) rendered with the neutral separator highlight.
+	local function emit_field(value, highlight)
+		if not value or value == "" then
+			return
 		end
-	end
-	if remaining ~= "" then
-		table.insert(components, Ui.text(remaining, { highlight = base_highlight }))
+		local s, e = commit_text:find(value, pos, true)
+		if not s then
+			return
+		end
+		if s > pos then
+			table.insert(components, Ui.text(commit_text:sub(pos, s - 1), { highlight = separator_hl }))
+		end
+		table.insert(components, Ui.text(commit_text:sub(s, e), { highlight = highlight }))
+		pos = e + 1
 	end
 
-	-- Text after bookmarks (commit_id and beyond)
-	local suffix = commit_text:sub(cid_start)
-	table.insert(components, Ui.text(suffix, { highlight = base_highlight }))
+	local change_id_hl = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogChangeId"
+	emit_field(revision.change_id, change_id_hl)
+	emit_field(revision.author, "NeoJJLogAuthor")
+	emit_field(revision.timestamp, "NeoJJLogTimestamp")
+	for _, bookmark in ipairs(revision.bookmarks or {}) do
+		emit_field(bookmark, "NeoJJLogBookmark")
+	end
+	emit_field(revision.commit_id, "NeoJJLogCommitId")
+
+	-- Trailing text (e.g. " (conflict)").
+	if pos <= #commit_text then
+		local highlight = revision.conflict and "NeoJJConflict" or separator_hl
+		table.insert(components, Ui.text(commit_text:sub(pos), { highlight = highlight }))
+	end
+
+	-- Fallback: if nothing matched (unexpected line shape), render as one span.
+	if #components == 0 then
+		table.insert(components, Ui.text(commit_text, { highlight = separator_hl }))
+	end
 
 	return components
 end

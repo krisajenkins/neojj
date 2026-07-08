@@ -78,6 +78,13 @@ local default_highlights = {
 	NeoJJLogCurrentHead = { bold = true }, -- Current head (working copy) in bold
 	NeoJJLogImmutable = { link = "Constant" },
 	NeoJJLogDescription = { link = "String" },
+	-- Log metadata fields (differentiated so each column reads distinctly)
+	NeoJJLogChangeId = { link = "Identifier" },
+	NeoJJLogAuthor = { link = "String" },
+	NeoJJLogTimestamp = { link = "Comment" },
+	NeoJJLogCommitId = { link = "Special" },
+	NeoJJLogStats = { link = "Comment" },
+	NeoJJLogStatsSummary = { link = "Number" },
 
 	-- Operation-log display
 	NeoJJOplogGraph = { link = "Special" },

@@ -76,15 +76,63 @@ function OplogUI.create_operation_line(line, operation, _oplog_buffer)
 	local graph_part = operation.graph or ""
 	local op_part = line:sub(#graph_part + 1)
 
-	local op_highlight = operation.is_current and "NeoJJOplogCurrent" or "NeoJJOplogOperation"
+	local row_children = { Ui.text(graph_part, { highlight = "NeoJJOplogGraph" }) }
+	for _, comp in ipairs(OplogUI.create_operation_text_components(op_part, operation)) do
+		table.insert(row_children, comp)
+	end
 
-	return Ui.row({
-		Ui.text(graph_part, { highlight = "NeoJJOplogGraph" }),
-		Ui.text(op_part, { highlight = op_highlight }),
-	}, {
+	return Ui.row(row_children, {
 		item = operation,
 		interactive = true,
 	})
+end
+
+---Create highlighted text components for the operation info, colouring each
+---metadata field (operation id, user, timestamp) with its own highlight group so
+---the columns read distinctly. Fields are located left-to-right by value, mirroring
+---the log view's approach; the current operation (@) keeps its bold emphasis on
+---the operation id.
+---@param op_text string The operation info portion of the line
+---@param operation table Operation data with operation_id/user/time_start fields
+---@return table[] components List of text components
+function OplogUI.create_operation_text_components(op_text, operation)
+	local components = {}
+	local pos = 1 -- 1-indexed cursor into op_text
+	local separator_hl = "NeoJJOplogOperation"
+
+	-- Emit the field `value` with `highlight`, preceded by any gap text (spaces
+	-- between fields) rendered with the neutral separator highlight.
+	local function emit_field(value, highlight)
+		if not value or value == "" then
+			return
+		end
+		local s, e = op_text:find(value, pos, true)
+		if not s then
+			return
+		end
+		if s > pos then
+			table.insert(components, Ui.text(op_text:sub(pos, s - 1), { highlight = separator_hl }))
+		end
+		table.insert(components, Ui.text(op_text:sub(s, e), { highlight = highlight }))
+		pos = e + 1
+	end
+
+	local id_hl = operation.is_current and "NeoJJOplogCurrent" or "NeoJJOplogId"
+	emit_field(operation.operation_id, id_hl)
+	emit_field(operation.user, "NeoJJOplogUser")
+	emit_field(operation.time_start, "NeoJJOplogTime")
+
+	-- Trailing text, if any.
+	if pos <= #op_text then
+		table.insert(components, Ui.text(op_text:sub(pos), { highlight = separator_hl }))
+	end
+
+	-- Fallback: if nothing matched (unexpected line shape), render as one span.
+	if #components == 0 then
+		table.insert(components, Ui.text(op_text, { highlight = separator_hl }))
+	end
+
+	return components
 end
 
 ---Create a graph line component (non-interactive)

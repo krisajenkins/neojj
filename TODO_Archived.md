@@ -5,6 +5,25 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-08 (change uulossmq)*
+
+# [x] Syntax Highlighting
+
+I think our log and undo views lacks colour. We should improve the syntax
+highlighting here. The description lines are good, but the metadata is
+undifferentiated.
+
+Differentiated the previously-undifferentiated metadata in both the log and
+oplog views by giving each field its own semantic `NeoJJ*` highlight group
+(change id, author, timestamp, commit id, bookmarks; operation id/user/time for
+the oplog), while leaving description lines untouched. Added the missing
+`NeoJJLog*` groups in `highlights.lua`, rewrote the field-walking colouring in
+`buffers/log/ui.lua` and `buffers/oplog/ui.lua` so the two views feel uniform,
+regenerated the affected reference screenshots, and added metadata-highlight
+assertion tests.
+
+---
+
 *Archived: 2026-07-08 (change lxuwvswl)*
 
 # [x] Undo and operation-log view (M)
