@@ -153,6 +153,102 @@ T["git_fetch builder emits the git fetch subcommand"] = function()
 	restore()
 end
 
+T["bookmark_create builder targets a revision"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.bookmark_create():arg("feature"):option("revision", "abc123"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"bookmark",
+		"create",
+		"feature",
+		"--revision",
+		"abc123",
+	})
+
+	restore()
+end
+
+T["bookmark_move builder allows backwards moves onto a revision"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	-- `jj bookmark move` takes `--to` for its target; unlike `create` it has no
+	-- `--revision`/`-r` alias, so the move menu must use `--to`.
+	Cli.bookmark_move():arg("main"):option("to", "abc123"):flag("allow-backwards"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"bookmark",
+		"move",
+		"main",
+		"--to",
+		"abc123",
+		"--allow-backwards",
+	})
+
+	restore()
+end
+
+T["bookmark_delete builder carries the bookmark name"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.bookmark_delete():arg("feature"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "bookmark", "delete", "feature" })
+
+	restore()
+end
+
+T["bookmark_rename builder carries old and new names"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.bookmark_rename():arg("old"):arg("new"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "bookmark", "rename", "old", "new" })
+
+	restore()
+end
+
+T["bookmark_track builder carries a name@remote ref"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.bookmark_track():arg("main@origin"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "bookmark", "track", "main@origin" })
+
+	restore()
+end
+
+T["bookmark_untrack builder carries a name@remote ref"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.bookmark_untrack():arg("main@origin"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "bookmark", "untrack", "main@origin" })
+
+	restore()
+end
+
+T["bookmark_list builder emits a name template"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.bookmark_list():option("template", 'name ++ "\\n"'):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"bookmark",
+		"list",
+		"--template",
+		'name ++ "\\n"',
+	})
+
+	restore()
+end
+
 T["cwd sets the job's working directory"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 

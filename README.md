@@ -223,6 +223,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `e`           | Edit change (make working copy) |
 | `x`           | Run jj fix (format `@`) |
 | `t`           | Tug bookmark to `@`     |
+| `b`           | Bookmark management (create/move/delete/rename/track/untrack) |
 | `P`           | Push to remote (`jj git push`) |
 | `p`           | Pull from remote (`jj git fetch`) |
 | `y`           | Yank change ID          |

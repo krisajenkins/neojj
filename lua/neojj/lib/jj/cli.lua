@@ -325,6 +325,37 @@ function M.tug()
 		:option("to", 'heads(::@ & mutable() & ~description(exact:"") & (~empty() | merges()))')
 end
 
+-- Revision-targeted bookmark operations. These are kept separate from M.tug()
+-- (which builds a `jj bookmark move` with `--from/--to` revset heuristics): the
+-- log buffer's `b` menu drives these against the change under the cursor.
+function M.bookmark_create()
+	return new_builder("jj"):arg("bookmark"):arg("create")
+end
+
+function M.bookmark_move()
+	return new_builder("jj"):arg("bookmark"):arg("move")
+end
+
+function M.bookmark_delete()
+	return new_builder("jj"):arg("bookmark"):arg("delete")
+end
+
+function M.bookmark_rename()
+	return new_builder("jj"):arg("bookmark"):arg("rename")
+end
+
+function M.bookmark_track()
+	return new_builder("jj"):arg("bookmark"):arg("track")
+end
+
+function M.bookmark_untrack()
+	return new_builder("jj"):arg("bookmark"):arg("untrack")
+end
+
+function M.bookmark_list()
+	return new_builder("jj"):arg("bookmark"):arg("list")
+end
+
 function M.raw()
 	return new_builder("jj")
 end

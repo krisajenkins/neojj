@@ -51,6 +51,20 @@ local LOG_TEMPLATE = table.concat({
 	'"\\n"',
 }, " ++ ")
 
+-- Local bookmark names carried on a revision, with jj's display decorations
+-- stripped: a trailing "*" marks "ahead of / differs from remote", and
+-- "name@remote" entries are remote-tracking refs. `jj bookmark delete/rename`
+-- operate on plain local names, so drop the remote-tracking entries and the "*".
+local function local_bookmark_names(item)
+	local names = {}
+	for _, bookmark in ipairs((item and item.bookmarks) or {}) do
+		if not bookmark:find("@", 1, true) then
+			table.insert(names, (bookmark:gsub("%*$", "")))
+		end
+	end
+	return names
+end
+
 ---@class LogBuffer
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
@@ -218,6 +232,11 @@ function LogBuffer:_setup_mappings()
 	self.buffer:map("n", "t", function()
 		self:tug()
 	end, { desc = "Tug: advance closest bookmark to @" })
+
+	-- Bookmark management menu (create/move/delete/rename/track/untrack)
+	self.buffer:map("n", "b", function()
+		self:bookmark_menu()
+	end, { desc = "Bookmark management" })
 
 	-- Push to the remote (jj git push)
 	self.buffer:map("n", "P", function()
@@ -591,6 +610,219 @@ function LogBuffer:tug()
 				vim.notify("Failed to tug bookmark: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
 			end
 		end)
+	end)
+end
+
+---Run a prepared `jj bookmark …` builder asynchronously, notifying and
+---refreshing on success and surfacing stderr on failure. Modeled on
+---`LogBuffer:_run_push`. The builder must already have its cwd/args set; we wrap
+---`call_async` in its own `async.run` because the callers fire from
+---`vim.ui.select`/`vim.ui.input` callbacks, which run outside any async context.
+---@param builder table A cli.bookmark_* builder ready to call
+---@param success_msg string Notification shown on success
+function LogBuffer:_run_bookmark(builder, success_msg)
+	local async = require("plenary.async")
+
+	async.run(function()
+		local result = builder:call_async()
+
+		vim.schedule(function()
+			if result.success then
+				vim.notify(success_msg, vim.log.levels.INFO)
+				self:refresh()
+			else
+				vim.notify("Bookmark operation failed: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+			end
+		end)
+	end)
+end
+
+---Fetch the list of local bookmark names (one per line) and hand them to
+---`callback` on the main loop. Wraps the async jj call so `vim.ui.*` callbacks
+---can request a name list without being inside an async context themselves.
+---@param callback fun(names: string[])
+function LogBuffer:_fetch_bookmark_names(callback)
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	async.run(function()
+		local result = cli.bookmark_list():option("template", 'name ++ "\\n"'):cwd(self.repo.dir):call_async()
+
+		vim.schedule(function()
+			if not result.success then
+				vim.notify("Failed to list bookmarks: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+				callback({})
+				return
+			end
+
+			local names = {}
+			for _, line in ipairs(vim.split(result.stdout or "", "\n")) do
+				local name = vim.trim(line)
+				if name ~= "" then
+					table.insert(names, name)
+				end
+			end
+			callback(names)
+		end)
+	end)
+end
+
+---Open the bookmark-management menu for the change under the cursor. Wraps
+---`jj bookmark create/move/delete/rename/track/untrack` behind a `vim.ui.select`
+---prompt so bookmarks can be prepared for a push without leaving the log view.
+function LogBuffer:bookmark_menu()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return
+	end
+	local change_id = item.change_id
+
+	local choices = {
+		"Create bookmark here",
+		"Move bookmark here",
+		"Delete bookmark",
+		"Rename bookmark",
+		"Track remote bookmark",
+		"Untrack remote bookmark",
+	}
+
+	vim.ui.select(choices, { prompt = "jj bookmark:" }, function(_, idx)
+		if not idx then
+			return
+		end
+		if idx == 1 then
+			self:_bookmark_create(change_id)
+		elseif idx == 2 then
+			self:_bookmark_move(change_id)
+		elseif idx == 3 then
+			self:_bookmark_delete(item)
+		elseif idx == 4 then
+			self:_bookmark_rename()
+		elseif idx == 5 then
+			self:_bookmark_track()
+		elseif idx == 6 then
+			self:_bookmark_untrack()
+		end
+	end)
+end
+
+---Create a new bookmark on the given revision (`jj bookmark create`).
+---@param change_id string Revision the bookmark should point at
+function LogBuffer:_bookmark_create(change_id)
+	local cli = require("neojj.lib.jj.cli")
+
+	vim.ui.input({ prompt = "New bookmark name: " }, function(name)
+		if not name or name == "" then
+			return
+		end
+		self:_run_bookmark(
+			cli.bookmark_create():arg(name):option("revision", change_id):cwd(self.repo.dir),
+			"Created bookmark " .. name
+		)
+	end)
+end
+
+---Move an existing bookmark onto the given revision (`jj bookmark move`).
+---The target is passed with `--to`; unlike `jj bookmark create`, `move` has no
+---`--revision`/`-r` alias. `--allow-backwards` lets the bookmark move to an
+---ancestor as well as forward.
+---@param change_id string Revision the bookmark should move to
+function LogBuffer:_bookmark_move(change_id)
+	local cli = require("neojj.lib.jj.cli")
+
+	self:_fetch_bookmark_names(function(names)
+		if #names == 0 then
+			vim.notify("No bookmarks to move", vim.log.levels.WARN)
+			return
+		end
+		vim.ui.select(names, { prompt = "Move which bookmark here?" }, function(name)
+			if not name then
+				return
+			end
+			self:_run_bookmark(
+				cli.bookmark_move():arg(name):option("to", change_id):flag("allow-backwards"):cwd(self.repo.dir),
+				"Moved bookmark " .. name
+			)
+		end)
+	end)
+end
+
+---Delete a bookmark (`jj bookmark delete`). Offers the bookmarks on the cursor
+---revision first (the common case) and otherwise falls back to the full list.
+---@param item table Revision under the cursor
+function LogBuffer:_bookmark_delete(item)
+	local cli = require("neojj.lib.jj.cli")
+
+	local function pick_and_delete(names)
+		if #names == 0 then
+			vim.notify("No bookmarks to delete", vim.log.levels.WARN)
+			return
+		end
+		vim.ui.select(names, { prompt = "Delete which bookmark?" }, function(name)
+			if not name then
+				return
+			end
+			self:_run_bookmark(cli.bookmark_delete():arg(name):cwd(self.repo.dir), "Deleted bookmark " .. name)
+		end)
+	end
+
+	local cursor_names = local_bookmark_names(item)
+	if #cursor_names > 0 then
+		pick_and_delete(cursor_names)
+	else
+		self:_fetch_bookmark_names(pick_and_delete)
+	end
+end
+
+---Rename an existing bookmark (`jj bookmark rename`).
+function LogBuffer:_bookmark_rename()
+	local cli = require("neojj.lib.jj.cli")
+
+	self:_fetch_bookmark_names(function(names)
+		if #names == 0 then
+			vim.notify("No bookmarks to rename", vim.log.levels.WARN)
+			return
+		end
+		vim.ui.select(names, { prompt = "Rename which bookmark?" }, function(old_name)
+			if not old_name then
+				return
+			end
+			vim.ui.input({ prompt = "New name for " .. old_name .. ": " }, function(new_name)
+				if not new_name or new_name == "" then
+					return
+				end
+				self:_run_bookmark(
+					cli.bookmark_rename():arg(old_name):arg(new_name):cwd(self.repo.dir),
+					"Renamed bookmark " .. old_name .. " -> " .. new_name
+				)
+			end)
+		end)
+	end)
+end
+
+---Track a remote bookmark (`jj bookmark track name@remote`). Prompts for the
+---fully-qualified `name@remote` ref, since that pairing is what jj expects.
+function LogBuffer:_bookmark_track()
+	local cli = require("neojj.lib.jj.cli")
+
+	vim.ui.input({ prompt = "Track remote bookmark (name@remote): " }, function(ref)
+		if not ref or ref == "" then
+			return
+		end
+		self:_run_bookmark(cli.bookmark_track():arg(ref):cwd(self.repo.dir), "Tracking " .. ref)
+	end)
+end
+
+---Untrack a remote bookmark (`jj bookmark untrack name@remote`).
+function LogBuffer:_bookmark_untrack()
+	local cli = require("neojj.lib.jj.cli")
+
+	vim.ui.input({ prompt = "Untrack remote bookmark (name@remote): " }, function(ref)
+		if not ref or ref == "" then
+			return
+		end
+		self:_run_bookmark(cli.bookmark_untrack():arg(ref):cwd(self.repo.dir), "Untracked " .. ref)
 	end)
 end
 

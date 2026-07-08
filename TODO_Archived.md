@@ -5,6 +5,27 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-08 (change wzyyotwk)*
+
+# [x] Bookmark management (M)
+
+Wraps `jj bookmark create/move/delete/rename/track/untrack/list`. In the log
+buffer, `b` on a revision opens a small `vim.ui.select` menu: create bookmark
+here, move existing bookmark here, delete, rename, track remote. The log UI
+already parses and highlights bookmarks, so the display side exists — this adds
+the write operations. Without this you cannot prepare a push.
+
+Added revision-targeted bookmark write operations to the log view. Seven CLI
+factories (`bookmark_create/move/delete/rename/track/untrack/list`) in
+`cli.lua`, kept separate from tug's `--from/--to` builder. `b` in the log buffer
+opens a `vim.ui.select` menu backed by `LogBuffer:bookmark_menu()` and async
+`_run_bookmark`/`_fetch_bookmark_names` helpers: create/move target the cursor
+revision via `--revision` (move adds `--allow-backwards`); delete offers the
+cursor revision's bookmarks then the full list; rename selects-then-inputs;
+track/untrack prompt for a `name@remote` ref. Keybinding tables synced across
+the log help panel, README, and doc/neojj.txt; seven arg-vector assertions
+added to `tests/test_cli.lua`.
+
 *Archived: 2026-07-08 (change uulossmq)*
 
 # [x] Syntax Highlighting

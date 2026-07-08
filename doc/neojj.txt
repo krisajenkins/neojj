@@ -326,6 +326,9 @@ n                       Create new change after commit at cursor
 e                       Edit change at cursor (make it the working copy)
 x                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
+b                       Bookmark management: opens a menu to create, move,
+                        delete, rename, or track/untrack a bookmark relative to
+                        the change at cursor
 P                       Push to remote (jj git push): prompts for all tracked
                         bookmarks, a specific bookmark, or the change at cursor
                         (--change)
