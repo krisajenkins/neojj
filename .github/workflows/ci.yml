@@ -21,8 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Single-user install (store owned by the runner, not root). This is a hard
+      # requirement for cache-nix-action below: it restores the cache by untarring
+      # straight into /nix as the runner user, which a multi-user/daemon install
+      # (e.g. DeterminateSystems/nix-installer-action) forbids — every path fails
+      # with "Permission denied" and the store silently rebuilds from source.
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v16
+        uses: nixbuild/nix-quick-install-action@v30
+        with:
+          nix_conf: |
+            experimental-features = nix-command flakes
 
       # The overlays build jujutsu and neovim from source (they pin versions
       # newer than nixpkgs, so they aren't in cache.nixos.org). That compile is
