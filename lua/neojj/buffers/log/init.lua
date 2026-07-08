@@ -79,6 +79,22 @@ LogBuffer.__index = LogBuffer
 -- one underlying buffer).
 local instances = {}
 
+---Return the currently-valid log buffer instances tracked by this module.
+---
+---Lets callers outside this module (e.g. the auto-refresh watcher) fan a
+---refresh out to open log views without reaching into the private `instances`
+---map or scanning buffers by name.
+---@return LogBuffer[] instances Valid log buffer instances
+function LogBuffer.list_instances()
+	local result = {}
+	for _, inst in pairs(instances) do
+		if inst:is_valid() then
+			table.insert(result, inst)
+		end
+	end
+	return result
+end
+
 ---Create or get existing log buffer
 ---@param repo table Repository instance
 ---@param options? table Log options
@@ -155,6 +171,8 @@ function LogBuffer.new(repo, options)
 		-- handing back one whose underlying buffer is gone.
 		on_detach = function()
 			instances[repo_key] = nil
+			-- Tear the auto-refresh watcher down once no view for this root remains.
+			require("neojj.lib.watcher").cleanup(repo:get_root())
 		end,
 	})
 
@@ -386,6 +404,9 @@ end
 ---buffer, so revisiting the view moves the existing frame to the top rather
 ---than duplicating it.
 function LogBuffer:_push_frame()
+	-- Arm the external-change watcher for this repo. _push_frame is the single
+	-- choke point every display path routes through, and ensure() is idempotent.
+	require("neojj.lib.watcher").ensure(self.repo)
 	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
 		teardown = function()
 			self:close()

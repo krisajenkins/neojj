@@ -5,6 +5,27 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-08 (change rylpqplk)*
+
+# [x] Auto-refresh on repo change (S/M)
+
+Watch `.jj/repo/op_heads` with `vim.uv.fs_event` and refresh open NeoJJ buffers
+when the repo changes externally — the equivalent of neogit watching `.git`.
+This needs a little research - how good is the `vim.uv.fs_event support`? Will
+it work reliably? Across which platforms?
+
+New `lib/watcher.lua` lifecycle module keyed by repo root. `ensure(repo)`
+resolves `<jj_dir>/repo/op_heads/heads/` (following the workspace `.jj/repo`
+indirection, skipping cleanly when absent) and arms a libuv watch: `fs_poll` on
+macOS (kqueue/FSEvents stop delivering after jj replaces the op-head inode each
+operation) and `fs_event` with a poll fallback elsewhere. Events are debounced
+150ms and dispatched via `vim.schedule_wrap` to `:refresh()` on valid
+status/log/oplog instances matching the changed root. Wired into each buffer's
+`_push_frame` (arm) and `on_detach` (idle teardown), with `stop_all` on
+`VimLeavePre`. Added `LogBuffer`/`OplogBuffer.list_instances()` and 11
+deterministic watcher unit tests (no clock-dependent debounce test, to avoid
+flakiness).
+
 *Archived: 2026-07-08 (change wzyyotwk)*
 
 # [x] Bookmark management (M)

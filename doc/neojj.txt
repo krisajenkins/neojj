@@ -34,6 +34,12 @@ Jujutsu version control system, including:
 • Async operations for non-blocking UI
 • Vim-style keybindings throughout
 
+Open NeoJJ views (status, log and operation log) auto-refresh when the
+repository changes externally — for example a `jj` command run in another
+terminal, or a `jj git fetch`. NeoJJ watches the repository's operation heads
+and reloads the affected views automatically, so you never see stale state. No
+keybinding is involved; you can still refresh manually with `r` / <C-r>.
+
 ==============================================================================
 2. REQUIREMENTS                                            *neojj-requirements*
 

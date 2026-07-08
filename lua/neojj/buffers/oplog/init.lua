@@ -41,6 +41,22 @@ OplogBuffer.__index = OplogBuffer
 -- views for two different repos coexist instead of sharing one instance.
 local instances = {}
 
+---Return the currently-valid oplog buffer instances tracked by this module.
+---
+---Lets callers outside this module (e.g. the auto-refresh watcher) fan a
+---refresh out to open oplog views without reaching into the private `instances`
+---map or scanning buffers by name.
+---@return OplogBuffer[] instances Valid oplog buffer instances
+function OplogBuffer.list_instances()
+	local result = {}
+	for _, inst in pairs(instances) do
+		if inst:is_valid() then
+			table.insert(result, inst)
+		end
+	end
+	return result
+end
+
 ---Create or get existing oplog buffer
 ---@param repo table Repository instance
 ---@param options? table Oplog options
@@ -100,6 +116,8 @@ function OplogBuffer.new(repo, options)
 		-- OplogBuffer.new for the same repo rebuilds a fresh instance.
 		on_detach = function()
 			instances[repo_key] = nil
+			-- Tear the auto-refresh watcher down once no view for this root remains.
+			require("neojj.lib.watcher").cleanup(repo:get_root())
 		end,
 	})
 
@@ -239,6 +257,9 @@ end
 
 ---Register this view as the top frame of the drill-down view stack.
 function OplogBuffer:_push_frame()
+	-- Arm the external-change watcher for this repo. _push_frame is the single
+	-- choke point every display path routes through, and ensure() is idempotent.
+	require("neojj.lib.watcher").ensure(self.repo)
 	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
 		teardown = function()
 			self:close()

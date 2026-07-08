@@ -104,6 +104,8 @@ function StatusBuffer.new(repo, revision)
 		-- handing back one whose underlying buffer is gone.
 		on_detach = function()
 			instances[repo_key] = nil
+			-- Tear the auto-refresh watcher down once no view for this root remains.
+			require("neojj.lib.watcher").cleanup(repo:get_root())
 		end,
 	})
 
@@ -424,6 +426,9 @@ end
 ---buffer, so revisiting the view moves the existing frame to the top rather
 ---than duplicating it.
 function StatusBuffer:_push_frame()
+	-- Arm the external-change watcher for this repo. _push_frame is the single
+	-- choke point every display path routes through, and ensure() is idempotent.
+	require("neojj.lib.watcher").ensure(self.repo)
 	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
 		teardown = function()
 			self:close()
