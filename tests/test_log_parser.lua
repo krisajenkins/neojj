@@ -251,6 +251,43 @@ T["parse_log_output"]["extracts graph characters correctly"] = function()
 	end
 end
 
+T["parse_log_output"]["parses the optional unique-prefix fields"] = function()
+	-- The template appends jj's unique disambiguating prefixes for the change and
+	-- commit ids as two trailing fields (from id.shortest(8).prefix()). The parser
+	-- must surface them so the UI can brighten the prefix and dim the rest.
+	local output = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\031sq\031f\n"
+		.. "│  \030Adding jj log support.\n"
+
+	local result = log_parser.parse_log_output(output)
+
+	expect.equality(#result.revisions, 1)
+	local rev = result.revisions[1]
+	expect.equality(rev.change_id, "sqmvkywl")
+	expect.equality(rev.commit_id, "f35b8f36")
+	expect.equality(rev.change_id_prefix, "sq")
+	expect.equality(rev.commit_id_prefix, "f")
+	-- The prefix fields must not leak into the reconstructed display line.
+	expect.equality(result.raw_lines[1], "@  sqmvkywl user@example.com 2025-07-14 21:06:06 f35b8f36")
+end
+
+T["parse_log_output"]["leaves prefixes nil when the fields are absent or bogus"] = function()
+	-- Older fixtures captured before the prefix fields existed must still parse,
+	-- with the prefixes left nil (the UI then highlights the whole id).
+	local without = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\n"
+		.. "│  \030Adding jj log support.\n"
+	local rev = log_parser.parse_log_output(without).revisions[1]
+	expect.equality(rev.change_id_prefix, nil)
+	expect.equality(rev.commit_id_prefix, nil)
+
+	-- A prefix that is not a genuine leading substring of the id is rejected, so
+	-- the UI never mis-splits the id.
+	local bogus = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\031xy\031f\n"
+		.. "│  \030Adding jj log support.\n"
+	local rev2 = log_parser.parse_log_output(bogus).revisions[1]
+	expect.equality(rev2.change_id_prefix, nil)
+	expect.equality(rev2.commit_id_prefix, "f")
+end
+
 T["parse_log_output"]["preserves ANSI escapes inside fields"] = function()
 	-- Field splitting keys purely off the RECORD_SEP (\30) and UNIT_SEP (\31)
 	-- control characters, so any ANSI colour escapes that leak into a field are

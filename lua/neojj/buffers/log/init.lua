@@ -13,9 +13,17 @@ local log_parser = require("neojj.lib.jj.parsers.log_parser")
 --   "\x1f" (UNIT SEPARATOR) separates the fields within a commit header.
 -- Each commit spans two lines: a header record and a description record. The
 -- graph (`--graph`) gutter is kept so the gutter still renders.
+--
+-- The change and commit ids use `shortest(8)`, not `short(8)`: `shortest`
+-- returns the same 8-char text but lets us also ask jj for its *unique
+-- disambiguating prefix* via `.prefix()`. We emit that prefix as two extra
+-- trailing fields so the UI can brighten the unique prefix and dim the rest —
+-- the same trick `jj log` itself uses — without computing the prefix ourselves.
+-- The prefix fields are appended last so older captured fixtures (which lack
+-- them) still parse; the parser treats them as optional.
 local LOG_TEMPLATE = table.concat({
 	'"\\x1e"',
-	"change_id.short(8)",
+	"change_id.shortest(8)",
 	'"\\x1f"',
 	"author.email()",
 	'"\\x1f"',
@@ -30,9 +38,13 @@ local LOG_TEMPLATE = table.concat({
 	-- whitespace without colliding with the `*` / `@` decoration characters.
 	"bookmarks",
 	'"\\x1f"',
-	"commit_id.short(8)",
+	"commit_id.shortest(8)",
 	'"\\x1f"',
 	'if(conflict, "conflict", "")',
+	'"\\x1f"',
+	"change_id.shortest(8).prefix()",
+	'"\\x1f"',
+	"commit_id.shortest(8).prefix()",
 	'"\\n"',
 	'"\\x1e"',
 	'if(description.first_line() == "", "(no description set)", description.first_line())',

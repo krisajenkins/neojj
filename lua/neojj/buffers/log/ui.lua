@@ -183,8 +183,14 @@ end
 ---the previous field's end, so ordering is respected and the whitespace gaps
 ---between fields keep the neutral separator highlight. The working-copy row keeps
 ---its bold emphasis on the change id.
+---
+---The change and commit ids are further split into their unique disambiguating
+---prefix (bright) and the remaining characters (dimmed), using the prefixes jj
+---hands us on the revision (`change_id_prefix` / `commit_id_prefix`) — the same
+---visual treatment as `jj log`. When a prefix is absent the whole id is
+---highlighted as before.
 ---@param commit_text string The commit info portion of the line
----@param revision table Revision data with change_id/author/timestamp/bookmarks/commit_id fields
+---@param revision table Revision data with change_id/author/timestamp/bookmarks/commit_id (+ optional *_prefix) fields
 ---@param is_current_head boolean Whether this row is the working copy (@)
 ---@return table[] components List of text components
 function LogUI.create_commit_text_components(commit_text, revision, is_current_head)
@@ -192,8 +198,15 @@ function LogUI.create_commit_text_components(commit_text, revision, is_current_h
 	local pos = 1 -- 1-indexed cursor into commit_text
 	local separator_hl = "NeoJJLogCommit"
 
-	-- Emit the field `value` with `highlight`, preceded by any gap text (spaces
-	-- between fields) rendered with the neutral separator highlight.
+	-- Emit any gap text (spaces between fields) preceding position `s`, rendered
+	-- with the neutral separator highlight.
+	local function emit_gap(s)
+		if s > pos then
+			table.insert(components, Ui.text(commit_text:sub(pos, s - 1), { highlight = separator_hl }))
+		end
+	end
+
+	-- Emit the field `value` with `highlight`, preceded by any gap text.
 	local function emit_field(value, highlight)
 		if not value or value == "" then
 			return
@@ -202,21 +215,41 @@ function LogUI.create_commit_text_components(commit_text, revision, is_current_h
 		if not s then
 			return
 		end
-		if s > pos then
-			table.insert(components, Ui.text(commit_text:sub(pos, s - 1), { highlight = separator_hl }))
-		end
+		emit_gap(s)
 		table.insert(components, Ui.text(commit_text:sub(s, e), { highlight = highlight }))
 		pos = e + 1
 	end
 
+	-- Emit an id field split into its unique disambiguating prefix (bright) and
+	-- the remaining, non-unique characters (dimmed) — the way jj's own log does
+	-- it. `prefix` comes from jj (`id.shortest().prefix()`); when it's absent or
+	-- not a proper leading substring, fall back to highlighting the whole id.
+	local function emit_id_field(value, prefix, prefix_hl, rest_hl)
+		if not value or value == "" then
+			return
+		end
+		local s, e = commit_text:find(value, pos, true)
+		if not s then
+			return
+		end
+		emit_gap(s)
+		if prefix and prefix ~= "" and #prefix < #value and value:sub(1, #prefix) == prefix then
+			table.insert(components, Ui.text(commit_text:sub(s, s + #prefix - 1), { highlight = prefix_hl }))
+			table.insert(components, Ui.text(commit_text:sub(s + #prefix, e), { highlight = rest_hl }))
+		else
+			table.insert(components, Ui.text(commit_text:sub(s, e), { highlight = prefix_hl }))
+		end
+		pos = e + 1
+	end
+
 	local change_id_hl = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogChangeId"
-	emit_field(revision.change_id, change_id_hl)
+	emit_id_field(revision.change_id, revision.change_id_prefix, change_id_hl, "NeoJJLogChangeIdRest")
 	emit_field(revision.author, "NeoJJLogAuthor")
 	emit_field(revision.timestamp, "NeoJJLogTimestamp")
 	for _, bookmark in ipairs(revision.bookmarks or {}) do
 		emit_field(bookmark, "NeoJJLogBookmark")
 	end
-	emit_field(revision.commit_id, "NeoJJLogCommitId")
+	emit_id_field(revision.commit_id, revision.commit_id_prefix, "NeoJJLogCommitId", "NeoJJLogCommitIdRest")
 
 	-- Trailing text (e.g. " (conflict)").
 	if pos <= #commit_text then
@@ -300,9 +333,11 @@ function LogUI.create_test_ui()
 				graph = "@  ",
 				revision = {
 					change_id = "sqmvkywl",
+					change_id_prefix = "sq",
 					author = "krisajenkins@gmail.com",
 					timestamp = "2025-07-14 21:06:06",
 					commit_id = "f35b8f36",
+					commit_id_prefix = "f",
 					description = "Adding jj log support.",
 					bookmarks = {},
 					conflict = false,
@@ -315,9 +350,11 @@ function LogUI.create_test_ui()
 				graph = "○  ",
 				revision = {
 					change_id = "knsrwpnn",
+					change_id_prefix = "kn",
 					author = "krisajenkins@gmail.com",
 					timestamp = "2025-07-14 20:58:50",
 					commit_id = "1e062938",
+					commit_id_prefix = "1e",
 					description = "Implementing more status page functions - help/fold/reverse fold.",
 					bookmarks = {},
 					conflict = false,
@@ -330,9 +367,11 @@ function LogUI.create_test_ui()
 				graph = "○  ",
 				revision = {
 					change_id = "qysrkqoy",
+					change_id_prefix = "q",
 					author = "krisajenkins@gmail.com",
 					timestamp = "2025-07-14 14:46:13",
 					commit_id = "9ff01605",
+					commit_id_prefix = "9f",
 					description = 'Adding "open file" handling from the status page, and fixing a warning message.',
 					bookmarks = {},
 					conflict = false,
@@ -345,9 +384,11 @@ function LogUI.create_test_ui()
 				graph = "○  ",
 				revision = {
 					change_id = "pkosquwz",
+					change_id_prefix = "p",
 					author = "krisajenkins@gmail.com",
 					timestamp = "2025-07-14 14:46:02",
 					commit_id = "d4818d0b",
+					commit_id_prefix = "d4",
 					description = "Reorganising the markdown docs we're gathering.",
 					bookmarks = {},
 					conflict = false,

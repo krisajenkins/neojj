@@ -15,8 +15,14 @@
 ---
 ---Each commit occupies two templated lines:
 ---
----  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>
+---  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>\31<change_id_prefix>\31<commit_id_prefix>
 ---  <gutter>\30<description first line>
+---
+---The two trailing `*_prefix` fields carry jj's unique disambiguating prefix for
+---the change and commit ids (from `id.shortest(8).prefix()`), so the UI can
+---brighten the prefix and dim the rest without recomputing it. They are optional:
+---older fixtures captured before this template lack them, and the parser then
+---leaves the prefixes empty (the UI falls back to highlighting the whole id).
 ---
 ---A line is recognised as a commit header purely by the presence of a payload
 ---containing unit separators, never by matching a fixed set of graph glyphs.
@@ -82,6 +88,31 @@ function M.parse_log_output(output)
 			local bookmarks_field = fields[4] or ""
 			local commit_id = fields[5] or ""
 			local conflict = (fields[6] or "") == "conflict"
+			-- Optional trailing fields: jj's unique disambiguating prefixes. Only
+			-- keep a prefix when it is a genuine leading substring of the id (and
+			-- shorter than it), so the UI can safely split the id into
+			-- bright-prefix + dim-rest; otherwise leave it nil for whole-id
+			-- highlighting.
+			local change_id_prefix = fields[7]
+			if
+				not (
+					change_id_prefix
+					and change_id_prefix ~= ""
+					and change_id:sub(1, #change_id_prefix) == change_id_prefix
+				)
+			then
+				change_id_prefix = nil
+			end
+			local commit_id_prefix = fields[8]
+			if
+				not (
+					commit_id_prefix
+					and commit_id_prefix ~= ""
+					and commit_id:sub(1, #commit_id_prefix) == commit_id_prefix
+				)
+			then
+				commit_id_prefix = nil
+			end
 
 			local bookmarks = vim.split(bookmarks_field, "%s+", { trimempty = true })
 
@@ -91,6 +122,8 @@ function M.parse_log_output(output)
 				author = author,
 				timestamp = timestamp,
 				commit_id = commit_id,
+				change_id_prefix = change_id_prefix,
+				commit_id_prefix = commit_id_prefix,
 				bookmarks = bookmarks,
 				conflict = conflict,
 				description = "",

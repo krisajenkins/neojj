@@ -34,6 +34,8 @@
 ---@field author string Author email
 ---@field timestamp string Timestamp string
 ---@field commit_id string Commit ID
+---@field change_id_prefix string|nil jj's unique disambiguating prefix of change_id (leading substring), if known
+---@field commit_id_prefix string|nil jj's unique disambiguating prefix of commit_id (leading substring), if known
 ---@field description string First line of description
 ---@field bookmarks string[] Bookmark names pointing to this revision
 ---@field conflict boolean Whether this revision has conflicts

@@ -83,6 +83,10 @@ local default_highlights = {
 	NeoJJLogAuthor = { link = "String" },
 	NeoJJLogTimestamp = { link = "Comment" },
 	NeoJJLogCommitId = { link = "Special" },
+	-- Non-unique tail of a change/commit id, dimmed so the bright unique prefix
+	-- (NeoJJLogChangeId / NeoJJLogCommitId) stands out, mirroring jj's own log.
+	NeoJJLogChangeIdRest = { link = "NonText" },
+	NeoJJLogCommitIdRest = { link = "NonText" },
 	NeoJJLogStats = { link = "Comment" },
 	NeoJJLogStatsSummary = { link = "Number" },
 

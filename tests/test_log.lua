@@ -221,9 +221,11 @@ T.test_log_metadata_field_highlights = function()
 
 		local revision = {
 			change_id = "sqmvkywl",
+			change_id_prefix = "sq",
 			author = "krisajenkins@gmail.com",
 			timestamp = "2025-07-14 21:06:06",
 			commit_id = "f35b8f36",
+			commit_id_prefix = "f",
 			bookmarks = { "main" },
 			conflict = false,
 		}
@@ -233,27 +235,54 @@ T.test_log_metadata_field_highlights = function()
 			.. " " .. revision.bookmarks[1]
 			.. " " .. revision.commit_id
 
-		-- Non-current-head row: each field gets its own semantic highlight.
+		-- Non-current-head row: each field gets its own semantic highlight, and
+		-- the ids are split into a bright unique prefix + a dimmed remainder.
 		local comps = LogUI.create_commit_text_components(commit_text, revision, false)
 		local seen = {}
 		for _, c in ipairs(comps) do
 			seen[c:get_highlight()] = c:get_value()
 		end
-		expect.equality(seen["NeoJJLogChangeId"], "sqmvkywl")
+		expect.equality(seen["NeoJJLogChangeId"], "sq")
+		expect.equality(seen["NeoJJLogChangeIdRest"], "mvkywl")
 		expect.equality(seen["NeoJJLogAuthor"], "krisajenkins@gmail.com")
 		expect.equality(seen["NeoJJLogTimestamp"], "2025-07-14 21:06:06")
 		expect.equality(seen["NeoJJLogBookmark"], "main")
-		expect.equality(seen["NeoJJLogCommitId"], "f35b8f36")
+		expect.equality(seen["NeoJJLogCommitId"], "f")
+		expect.equality(seen["NeoJJLogCommitIdRest"], "35b8f36")
 
-		-- Working-copy (@) row keeps its bold emphasis on the change id.
+		-- Working-copy (@) row keeps its bold emphasis on the change-id prefix,
+		-- while the non-unique remainder still dims.
 		local head_comps = LogUI.create_commit_text_components(commit_text, revision, true)
 		local head_seen = {}
 		for _, c in ipairs(head_comps) do
 			head_seen[c:get_highlight()] = c:get_value()
 		end
-		expect.equality(head_seen["NeoJJLogCurrentHead"], "sqmvkywl")
+		expect.equality(head_seen["NeoJJLogCurrentHead"], "sq")
+		expect.equality(head_seen["NeoJJLogChangeIdRest"], "mvkywl")
 		expect.equality(head_seen["NeoJJLogChangeId"], nil)
-		expect.equality(head_seen["NeoJJLogCommitId"], "f35b8f36")
+		expect.equality(head_seen["NeoJJLogCommitId"], "f")
+
+		-- Without prefix data the whole id is highlighted as one span (fallback).
+		local no_prefix = {
+			change_id = "sqmvkywl",
+			author = "krisajenkins@gmail.com",
+			timestamp = "2025-07-14 21:06:06",
+			commit_id = "f35b8f36",
+			bookmarks = {},
+			conflict = false,
+		}
+		local plain = LogUI.create_commit_text_components(
+			"sqmvkywl krisajenkins@gmail.com 2025-07-14 21:06:06 f35b8f36",
+			no_prefix,
+			false
+		)
+		local plain_seen = {}
+		for _, c in ipairs(plain) do
+			plain_seen[c:get_highlight()] = c:get_value()
+		end
+		expect.equality(plain_seen["NeoJJLogChangeId"], "sqmvkywl")
+		expect.equality(plain_seen["NeoJJLogChangeIdRest"], nil)
+		expect.equality(plain_seen["NeoJJLogCommitId"], "f35b8f36")
 	]])
 end
 
