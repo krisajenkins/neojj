@@ -153,7 +153,7 @@ T.test_jj_command_completion = function()
 		-- Get subcommand completion options
 		local subcommands = vim.fn.getcompletion('JJ ', 'cmdline')
 		expect.equality(type(subcommands), 'table')
-		expect.equality(#subcommands, 6)  -- status, describe, log, new, annotate, split
+		expect.equality(#subcommands, 7)  -- status, describe, log, oplog, new, annotate, split
 
 		-- Get split completion options for status subcommand
 		local splits = vim.fn.getcompletion('JJ status ', 'cmdline')

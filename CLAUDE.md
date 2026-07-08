@@ -145,6 +145,7 @@ The renderer tracks the position of interactive components to enable cursor-base
 - `P`: Push to remote (`jj git push`)
 - `p`: Pull from remote (`jj git fetch`)
 - `l`: Open the log view
+- `o`: Open the operation log view
 - `q` / `<c-c>` / `<esc>`: Back (pop the view stack) / close
 - `?`: Toggle the help panel
 

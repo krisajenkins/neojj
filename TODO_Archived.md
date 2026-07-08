@@ -5,6 +5,30 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-08 (change lxuwvswl)*
+
+# [x] Undo and operation-log view (M)
+
+Wraps `jj undo`, `jj op log`, `jj op restore` — jj's universal safety net, and
+the thing that makes squash/abandon/rebase keys safe to press. New :JJ oplog`
+buffer cloning the log-buffer pattern (parser + ui + init) listing operations;
+`<cr>` or `r` on an operation runs `jj op restore` with confirmation.
+
+Added a new `:JJ oplog` view by cloning the log-buffer pattern: an
+`oplog_parser` reading a machine-readable `jj op log` template (same `\x1e`/`\x1f`
+control chars as the log parser), an `OplogBuffer` (`init.lua` + `ui.lua`)
+registered as a view-stack frame with `show`/`show_split`/`show_tab`, and the
+`oplog` subcommand wired into `:JJ` completion plus `M.jj_oplog`. Mappings:
+`<cr>`/`r` restore the operation at cursor (`jj op restore`, with confirmation),
+`u` runs `jj undo` (with confirmation), `<c-r>` refreshes, `y` yanks the op id,
+`q`/`<esc>`/`<c-c>` go back, `?` toggles help. Both the status and log views
+gained an `o` gesture that opens the oplog. New CLI builders (`op_log`,
+`op_restore`, `undo`), highlight groups (`NeoJJOplog*`), types, a parser fixture
+and tests (`test_oplog_parser.lua`, `test_oplog.lua`), and docs (`README.md`,
+`doc/neojj.txt` with tags regenerated, and the status help panel/screenshot).
+
+---
+
 *Archived: 2026-07-08 (change npzvktvn)*
 
 # [x] Commit gesture: describe + new (S)

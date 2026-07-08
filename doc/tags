@@ -3,6 +3,7 @@
 :JJ-describe	neojj.txt	/*:JJ-describe*
 :JJ-log	neojj.txt	/*:JJ-log*
 :JJ-new	neojj.txt	/*:JJ-new*
+:JJ-oplog	neojj.txt	/*:JJ-oplog*
 :JJ-split	neojj.txt	/*:JJ-split*
 :JJ-status	neojj.txt	/*:JJ-status*
 :checkhealth-neojj	neojj.txt	/*:checkhealth-neojj*
@@ -40,6 +41,13 @@ neojj-log-limit	neojj.txt	/*neojj-log-limit*
 neojj-log-mappings	neojj.txt	/*neojj-log-mappings*
 neojj-log-navigation	neojj.txt	/*neojj-log-navigation*
 neojj-log-refresh	neojj.txt	/*neojj-log-refresh*
+neojj-oplog	neojj.txt	/*neojj-oplog*
+neojj-oplog-actions	neojj.txt	/*neojj-oplog-actions*
+neojj-oplog-close	neojj.txt	/*neojj-oplog-close*
+neojj-oplog-display	neojj.txt	/*neojj-oplog-display*
+neojj-oplog-mappings	neojj.txt	/*neojj-oplog-mappings*
+neojj-oplog-navigation	neojj.txt	/*neojj-oplog-navigation*
+neojj-oplog-refresh	neojj.txt	/*neojj-oplog-refresh*
 neojj-project-links	neojj.txt	/*neojj-project-links*
 neojj-requirements	neojj.txt	/*neojj-requirements*
 neojj-setup-options	neojj.txt	/*neojj-setup-options*
@@ -56,6 +64,7 @@ neojj.jj_annotate()	neojj.txt	/*neojj.jj_annotate()*
 neojj.jj_describe()	neojj.txt	/*neojj.jj_describe()*
 neojj.jj_log()	neojj.txt	/*neojj.jj_log()*
 neojj.jj_new()	neojj.txt	/*neojj.jj_new()*
+neojj.jj_oplog()	neojj.txt	/*neojj.jj_oplog()*
 neojj.jj_split()	neojj.txt	/*neojj.jj_split()*
 neojj.jj_status()	neojj.txt	/*neojj.jj_status()*
 neojj.setup()	neojj.txt	/*neojj.setup()*

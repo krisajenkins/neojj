@@ -491,6 +491,7 @@ function StatusUI.create_help()
 		Ui.text("  d       - Describe current commit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  c       - Commit change (describe @ + jj new)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  l       - Open log view", { highlight = "NeoJJHelpText" }),
+		Ui.text("  o       - Open operation log view", { highlight = "NeoJJHelpText" }),
 		Ui.text("  q       - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <C-c>   - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  ?       - Show/hide this help", { highlight = "NeoJJHelpText" }),

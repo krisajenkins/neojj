@@ -3,6 +3,7 @@ local logger = require("neojj.logger")
 local StatusBuffer = require("neojj.buffers.status")
 local DescribeBuffer = require("neojj.buffers.describe")
 local LogBuffer = require("neojj.buffers.log")
+local OplogBuffer = require("neojj.buffers.oplog")
 local AnnotateBuffer = require("neojj.buffers.annotate")
 local Highlights = require("neojj.highlights")
 
@@ -118,6 +119,10 @@ function M.create_commands()
 				limit = tonumber(arg1)
 			end
 			M.jj_log(nil, split, limit)
+		elseif subcommand == "oplog" then
+			-- Accept an optional split type: `:JJ oplog`, `:JJ oplog vertical`.
+			local split = rest_args[1]
+			M.jj_oplog(nil, split)
 		elseif subcommand == "new" then
 			local revision = rest_args[1]
 			M.jj_new(nil, revision)
@@ -129,7 +134,7 @@ function M.create_commands()
 			M.jj_split(nil, revision)
 		else
 			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
-			vim.notify("Available: status, describe, log, new, annotate, split", vim.log.levels.INFO)
+			vim.notify("Available: status, describe, log, oplog, new, annotate, split", vim.log.levels.INFO)
 		end
 	end, {
 		-- "*" (not "+") so a bare `:JJ` is valid and routes to jj_back().
@@ -140,7 +145,7 @@ function M.create_commands()
 
 			-- If we're completing the first argument (subcommand)
 			if num_args <= 2 then
-				local subcommands = { "status", "describe", "log", "new", "annotate", "split" }
+				local subcommands = { "status", "describe", "log", "oplog", "new", "annotate", "split" }
 				return vim.tbl_filter(function(cmd)
 					return vim.startswith(cmd, arglead)
 				end, subcommands)
@@ -169,6 +174,13 @@ function M.create_commands()
 						return vim.startswith(split, arglead)
 					end, splits)
 				end
+			elseif subcommand == "oplog" then
+				if num_args == 3 then
+					local splits = { "horizontal", "vertical", "tab" }
+					return vim.tbl_filter(function(split)
+						return vim.startswith(split, arglead)
+					end, splits)
+				end
 			elseif subcommand == "describe" then
 				-- For describe, second arg could be revision or split
 				-- Third arg would be split
@@ -182,7 +194,7 @@ function M.create_commands()
 
 			return {}
 		end,
-		desc = "JJ commands (no arg: return to view stack; status, describe, log, new, annotate, split)",
+		desc = "JJ commands (no arg: return to view stack; status, describe, log, oplog, new, annotate, split)",
 	})
 end
 
@@ -302,6 +314,29 @@ function M.jj_log(dir, split, limit)
 		log_buffer:show_tab()
 	else
 		log_buffer:show()
+	end
+end
+
+---Open the JJ operation-log buffer UI
+---@param dir? string Directory path (defaults to current working directory)
+---@param split? string Split type ("horizontal", "vertical", "tab")
+function M.jj_oplog(dir, split)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local oplog_buffer = OplogBuffer.new(repo)
+
+	if split == "horizontal" then
+		oplog_buffer:show_split("horizontal")
+	elseif split == "vertical" then
+		oplog_buffer:show_split("vertical")
+	elseif split == "tab" then
+		oplog_buffer:show_tab()
+	else
+		oplog_buffer:show()
 	end
 end
 

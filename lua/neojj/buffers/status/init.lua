@@ -195,6 +195,10 @@ function StatusBuffer:_setup_mappings()
 	self.buffer:map("n", "l", function()
 		self:open_log_buffer()
 	end, { desc = "Open log view" })
+
+	self.buffer:map("n", "o", function()
+		self:open_oplog_buffer()
+	end, { desc = "Open operation log view" })
 end
 
 ---Get commit data for a specific revision using jj show
@@ -880,6 +884,17 @@ function StatusBuffer:open_log_buffer()
 
 	-- Show and refresh the log buffer
 	log_buffer:show()
+end
+
+---Open operation-log buffer while keeping status buffer context
+function StatusBuffer:open_oplog_buffer()
+	local OplogBuffer = require("neojj.buffers.oplog")
+
+	-- Get or create oplog buffer (singleton pattern)
+	local oplog_buffer = OplogBuffer.new(self.repo)
+
+	-- Show and refresh the oplog buffer
+	oplog_buffer:show()
 end
 
 ---Create a new change from the current commit

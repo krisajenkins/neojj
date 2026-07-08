@@ -9,12 +9,13 @@ CONTENTS                                                       *neojj-contents*
 4. Commands .......................... |neojj-commands|
 5. Status Buffer ..................... |neojj-status|
 6. Log Buffer ........................ |neojj-log|
-7. Describe Buffer ................... |neojj-describe|
-8. Annotate Buffer ................... |neojj-annotate-buffer|
-9. Configuration ..................... |neojj-configuration|
-10. Highlights ....................... |neojj-highlights|
-11. Lua API .......................... |neojj-api|
-12. About ............................ |neojj-about|
+7. Operation Log Buffer .............. |neojj-oplog|
+8. Describe Buffer ................... |neojj-describe|
+9. Annotate Buffer ................... |neojj-annotate-buffer|
+10. Configuration .................... |neojj-configuration|
+11. Highlights ....................... |neojj-highlights|
+12. Lua API .......................... |neojj-api|
+13. About ............................ |neojj-about|
 
 ==============================================================================
 1. INTRODUCTION                                            *neojj-introduction*
@@ -99,6 +100,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 With a subcommand, execute it. Available subcommands:
                 • status
                 • log
+                • oplog
                 • describe
                 • new
                 • annotate
@@ -138,6 +140,20 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ log vertical
                     :JJ log 50
                     :JJ log vertical 200
+<
+
+                                                                    *:JJ-oplog*
+:JJ oplog [split]
+                Open the operation-log buffer showing jj's operation history
+                (the universal undo/redo safety net). Each entry is a jj
+                operation you can restore the whole repository back to.
+
+                Optional split argument (same as status/log).
+
+                Examples: >
+                    :JJ oplog
+                    :JJ oplog vertical
+                    :JJ oplog tab
 <
 
                                                                  *:JJ-describe*
@@ -220,8 +236,9 @@ To walk back up:
                   to return to the status view. `:JJ` returns to the top of the
                   stack from anywhere.
 
-Only the log, status and file views participate in the stack. The describe,
-annotate and split-terminal views are transient and are not stacked.
+Only the log, operation-log, status and file views participate in the stack.
+The describe, annotate and split-terminal views are transient and are not
+stacked.
 
 ==============================================================================
 5. STATUS BUFFER                                                  *neojj-status*
@@ -266,6 +283,7 @@ P                       Push to remote (jj git push): prompts for all tracked
                         bookmarks, a specific bookmark, or this change (--change)
 p                       Pull from remote (jj git fetch)
 l                       Open log view
+o                       Open operation log view
 
                                                            *neojj-status-close*
 q                       Back: pop the view stack (reveal the view drilled down
@@ -313,6 +331,7 @@ P                       Push to remote (jj git push): prompts for all tracked
                         (--change)
 p                       Pull from remote (jj git fetch)
 s                       Open status view
+o                       Open operation log view
 y                       Yank change ID for commit at cursor
 
                                                              *neojj-log-close*
@@ -322,7 +341,53 @@ q                       Back: pop the view stack (reveal the view drilled down
 <C-c>                   Same as q
 
 ==============================================================================
-7. DESCRIBE BUFFER                                              *neojj-describe*
+7. OPERATION LOG BUFFER                                            *neojj-oplog*
+
+The operation-log buffer displays jj's operation history: every operation that
+has mutated the repository (commits, describes, rebases, pushes, undos, …). It
+is jj's universal safety net — you can restore the whole repository back to any
+listed operation, which is what makes destructive commands safe to run.
+
+Each operation shows:
+
+• Graph visualization (`@` marks the current operation)
+• Operation ID (abbreviated)
+• The user who performed it
+• Start timestamp
+• Operation description
+
+Open it with |:JJ-oplog| or |neojj.jj_oplog()|.
+
+OPLOG MAPPINGS                                            *neojj-oplog-mappings*
+
+The following keybindings are available in the operation-log buffer:
+
+                                                      *neojj-oplog-navigation*
+j                       Move cursor down
+k                       Move cursor up
+
+                                                         *neojj-oplog-display*
+?                       Toggle help text
+
+                                                         *neojj-oplog-refresh*
+<C-r>                   Refresh operation log
+
+                                                         *neojj-oplog-actions*
+<CR>                    Restore the repository to the operation at cursor
+                        (jj op restore), after a confirmation prompt
+r                       Same as <CR> (restore to operation at cursor)
+u                       Undo the last operation (jj undo), after a confirmation
+                        prompt
+y                       Yank the operation ID at cursor to the system clipboard
+
+                                                           *neojj-oplog-close*
+q                       Back: pop the view stack (reveal the view drilled down
+                        from); closes the oplog buffer if it is the last frame
+<Esc>                   Same as q
+<C-c>                   Same as q
+
+==============================================================================
+8. DESCRIBE BUFFER                                              *neojj-describe*
 
 The describe buffer is used to edit commit descriptions. It behaves similarly
 to Git commit message editors, with help text displayed as comments.
@@ -351,7 +416,7 @@ excluded from the final description. Ordinary lines starting with '#' (such as
 Markdown headings or issue references like '#123') are preserved.
 
 ==============================================================================
-8. ANNOTATE BUFFER                                       *neojj-annotate-buffer*
+9. ANNOTATE BUFFER                                       *neojj-annotate-buffer*
 
 The annotate buffer shows line-level blame for a file: for every line of the
 source, it displays the change that last modified it. It opens as a narrow
@@ -375,7 +440,7 @@ q                       Close annotate buffer
 <Esc>                   Close annotate buffer
 
 ==============================================================================
-9. CONFIGURATION                                          *neojj-configuration*
+10. CONFIGURATION                                         *neojj-configuration*
 
 NeoJJ can be configured by passing options to the setup function.
 
@@ -422,7 +487,7 @@ You can set up custom keybindings for NeoJJ commands:
 <
 
 ==============================================================================
-10. HIGHLIGHTS                                                *neojj-highlights*
+11. HIGHLIGHTS                                                *neojj-highlights*
 
 NeoJJ defines the following highlight groups. They link to standard Neovim
 highlight groups by default but can be customized.
@@ -453,6 +518,9 @@ NeoJJDiffDelete         Deleted lines in diffs
 NeoJJLogGraph           Graph characters in log view
                         Default: links to |hl-Special|
 
+NeoJJOplogGraph         Graph characters in the operation-log view
+                        Default: links to |hl-Special|
+
 NeoJJConflict           Conflict markers
                         Default: links to |hl-Error|
 
@@ -478,7 +546,7 @@ After calling setup, you can customize highlight groups:
 Note: Highlights are automatically reapplied when the colorscheme changes.
 
 ==============================================================================
-11. LUA API                                                          *neojj-api*
+12. LUA API                                                          *neojj-api*
 
 NeoJJ provides a Lua API for programmatic access to its functionality.
 
@@ -519,6 +587,13 @@ neojj.jj_log({dir}, {split}, {limit})                         *neojj.jj_log()*
                     {split} (string|nil) Split type
                     {limit} (number|nil) Revisions to show (default: the
                             configured |neojj-log-limit|)
+
+neojj.jj_oplog({dir}, {split})                             *neojj.jj_oplog()*
+                Open the operation-log buffer showing jj's operation history.
+
+                Parameters: ~
+                    {dir}   (string|nil) Directory path (default: cwd)
+                    {split} (string|nil) Split type
 
 neojj.jj_describe({dir}, {revision}, {split})            *neojj.jj_describe()*
                 Open the describe buffer to edit a commit description.
@@ -569,7 +644,7 @@ neojj.get_repo({dir})                                      *neojj.get_repo()*
                     • :get_working_copy() - Get working copy information
 
 ==============================================================================
-12. ABOUT                                                          *neojj-about*
+13. ABOUT                                                          *neojj-about*
 
 NeoJJ is inspired by Neogit and Magit, bringing a similar interactive
 experience to Jujutsu version control in Neovim.

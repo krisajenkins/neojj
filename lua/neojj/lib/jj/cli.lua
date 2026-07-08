@@ -273,6 +273,18 @@ function M.log()
 	return new_builder("jj"):arg("log")
 end
 
+function M.op_log()
+	return new_builder("jj"):arg("op"):arg("log")
+end
+
+function M.op_restore()
+	return new_builder("jj"):arg("op"):arg("restore")
+end
+
+function M.undo()
+	return new_builder("jj"):arg("undo")
+end
+
 function M.show()
 	return new_builder("jj"):arg("show")
 end

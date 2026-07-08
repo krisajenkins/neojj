@@ -51,6 +51,28 @@
 ---@field graph_data table<integer, GraphData> Map of line number to graph data
 ---@field raw_lines string[] Raw output lines
 
+---A single operation from jj op log
+---@class OpLogOperation
+---@field operation_id string Operation ID (abbreviated)
+---@field user string User who performed the operation
+---@field time_start string Operation start timestamp
+---@field time_end string Operation end timestamp
+---@field description string First line of the operation description
+---@field is_current boolean Whether this is the current operation (@)
+---@field graph string ASCII graph prefix for this operation
+---@field line_number integer Line number in the output where this operation appears
+
+---Graph data for a single line in op-log output
+---@class OpGraphData
+---@field graph string ASCII graph characters for this line
+---@field operation OpLogOperation|nil The operation at this line (nil for continuation lines)
+
+---Parsed op-log output
+---@class ParsedOpLog
+---@field operations OpLogOperation[] List of all operations
+---@field graph_data table<integer, OpGraphData> Map of line number to graph data
+---@field raw_lines string[] Raw output lines
+
 ---JSON output from jj log (using json(self) template)
 ---@class JjLogJson
 ---@field change_id string Change ID

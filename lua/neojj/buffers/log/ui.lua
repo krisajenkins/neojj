@@ -257,6 +257,7 @@ function LogUI.create_help()
 		Ui.text("  r         - Refresh log", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <C-r>     - Refresh log", { highlight = "NeoJJHelpText" }),
 		Ui.text("  s         - Open status view", { highlight = "NeoJJHelpText" }),
+		Ui.text("  o         - Open operation log view", { highlight = "NeoJJHelpText" }),
 		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  <C-c>     - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  ?         - Show/hide this help", { highlight = "NeoJJHelpText" }),

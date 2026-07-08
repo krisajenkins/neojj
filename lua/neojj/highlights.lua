@@ -78,6 +78,15 @@ local default_highlights = {
 	NeoJJLogCurrentHead = { bold = true }, -- Current head (working copy) in bold
 	NeoJJLogImmutable = { link = "Constant" },
 	NeoJJLogDescription = { link = "String" },
+
+	-- Operation-log display
+	NeoJJOplogGraph = { link = "Special" },
+	NeoJJOplogOperation = { link = "Normal" },
+	NeoJJOplogCurrent = { bold = true }, -- Current operation (@) in bold
+	NeoJJOplogId = { link = "Number" },
+	NeoJJOplogUser = { link = "String" },
+	NeoJJOplogTime = { link = "Comment" },
+	NeoJJOplogDescription = { link = "String" },
 }
 
 ---Apply default highlights

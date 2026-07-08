@@ -159,6 +159,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ                             " Return to the top of the view stack from anywhere
 :JJ status [change_id] [split]  " Open status buffer (working copy or specific change)
 :JJ log [split] [count]         " Open log buffer (optionally limit revisions shown)
+:JJ oplog [split]               " Open the operation log (undo / restore history)
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
 :JJ new [revision]              " Create new empty change
 :JJ annotate [filepath]         " Annotate/blame a file (defaults to current file)
@@ -178,6 +179,8 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ log vertical              " Open log in vertical split
 :JJ log 50                    " Open log limited to 50 revisions
 :JJ log vertical 50           " Vertical split, limited to 50 revisions
+:JJ oplog                     " Open the operation log
+:JJ oplog vertical            " Open the operation log in a vertical split
 :JJ describe                  " Describe current commit (@)
 :JJ describe @-               " Describe parent commit
 :JJ new                       " Create new change from working copy
@@ -204,6 +207,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `P`             | Push to remote (`jj git push`) |
 | `p`             | Pull from remote (`jj git fetch`) |
 | `l`             | Open log view                 |
+| `o`             | Open operation log view       |
 | `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
 | `?`             | Show/hide help                |
 
@@ -224,6 +228,19 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `y`           | Yank change ID          |
 | `r` / `<C-r>` | Refresh log             |
 | `s`           | Open status view        |
+| `o`           | Open operation log view |
+| `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
+| `?`           | Show/hide help          |
+
+### Operation Log Buffer Keybindings
+
+| Key           | Action                  |
+| ------------- | ----------------------- |
+| `j`/`k`       | Move cursor up/down     |
+| `<Enter>` / `r` | Restore repo to operation at cursor (`jj op restore`, with confirmation) |
+| `u`           | Undo the last operation (`jj undo`, with confirmation) |
+| `y`           | Yank operation ID       |
+| `<C-r>`       | Refresh operation log   |
 | `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
 | `?`           | Show/hide help          |
 
