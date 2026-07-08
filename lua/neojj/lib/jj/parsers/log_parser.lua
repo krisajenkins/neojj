@@ -15,7 +15,7 @@
 ---
 ---Each commit occupies two templated lines:
 ---
----  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>\31<change_id_prefix>\31<commit_id_prefix>
+---  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>\31<change_id_prefix>\31<commit_id_prefix>\31<empty>
 ---  <gutter>\30<description first line>
 ---
 ---The two trailing `*_prefix` fields carry jj's unique disambiguating prefix for
@@ -23,6 +23,11 @@
 ---brighten the prefix and dim the rest without recomputing it. They are optional:
 ---older fixtures captured before this template lack them, and the parser then
 ---leaves the prefixes empty (the UI falls back to highlighting the whole id).
+---
+---The final `empty` field carries jj's own emptiness flag ("empty" when the
+---commit is empty, "" otherwise). It too is optional and appended last, so
+---fixtures captured before it existed still parse (the parser treats a missing
+---field as not-empty).
 ---
 ---A line is recognised as a commit header purely by the presence of a payload
 ---containing unit separators, never by matching a fixed set of graph glyphs.
@@ -113,6 +118,9 @@ function M.parse_log_output(output)
 			then
 				commit_id_prefix = nil
 			end
+			-- Optional final field: jj's own emptiness flag. Absent in fixtures
+			-- captured before it existed, which then parse as not-empty.
+			local empty = (fields[9] or "") == "empty"
 
 			local bookmarks = vim.split(bookmarks_field, "%s+", { trimempty = true })
 
@@ -126,6 +134,7 @@ function M.parse_log_output(output)
 				commit_id_prefix = commit_id_prefix,
 				bookmarks = bookmarks,
 				conflict = conflict,
+				empty = empty,
 				description = "",
 				graph = gutter,
 				line_number = i,
@@ -141,6 +150,11 @@ function M.parse_log_output(output)
 				display = display .. " " .. bookmarks_field
 			end
 			display = display .. " " .. commit_id
+			-- Mirror jj's own ordering of the trailing markers: "(empty)" before
+			-- "(conflict)".
+			if empty then
+				display = display .. " (empty)"
+			end
 			if conflict then
 				display = display .. " (conflict)"
 			end

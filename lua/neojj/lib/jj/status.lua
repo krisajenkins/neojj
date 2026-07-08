@@ -35,11 +35,15 @@ function M.refresh(repo)
 			local modified_files = repo.state.working_copy.modified_files
 			local conflicts = repo.state.working_copy.conflicts
 			local is_empty = repo.state.working_copy.is_empty
+			-- jj's JSON template carries no emptiness flag, so preserve the one
+			-- the status parser derived from the "(empty)" marker.
+			local empty = repo.state.working_copy.empty
 
 			repo.state.working_copy = json_parser.json_to_working_copy(log_json)
 			repo.state.working_copy.modified_files = modified_files
 			repo.state.working_copy.conflicts = conflicts
 			repo.state.working_copy.is_empty = is_empty
+			repo.state.working_copy.empty = empty
 		else
 			logger.warn("Failed to parse working copy JSON: " .. tostring(err))
 		end

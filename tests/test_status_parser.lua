@@ -28,6 +28,9 @@ T["parse_working_copy_info"]["parses clean status"] = function()
 	expect.equality(#result.modified_files, 0)
 	expect.equality(#result.conflicts, 0)
 	expect.equality(result.is_empty, true)
+	-- The working-copy line carries jj's "(empty)" marker, so the authoritative
+	-- emptiness flag is set too.
+	expect.equality(result.empty, true)
 end
 
 T["parse_working_copy_info"]["parses modified files"] = function()
@@ -40,6 +43,8 @@ T["parse_working_copy_info"]["parses modified files"] = function()
 	expect.equality(result.author.email, "jane@example.com")
 	expect.equality(#result.modified_files, 3)
 	expect.equality(result.is_empty, false)
+	-- No "(empty)" marker on this working-copy line: the commit is not empty.
+	expect.equality(result.empty, false)
 
 	-- Check modified file
 	expect.equality(result.modified_files[1].status, "M")
@@ -75,6 +80,19 @@ T["parse_working_copy_info"]["parses conflicts"] = function()
 	expect.equality(result.conflicts[1].annotation, "2-sided conflict")
 
 	-- Presence of conflicts means the working copy is not "clean"
+	expect.equality(result.is_empty, false)
+end
+
+T["parse_working_copy_info"]["parses jj's authoritative (empty) marker on a conflicted merge"] = function()
+	-- An empty conflicted merge shows "(conflict) (empty)" on its working-copy
+	-- line. jj's own `empty` flag must be true even though the derived `is_empty`
+	-- is false (the unresolved conflicts make it non-clean).
+	local output = read_fixture("conflict-state-status.txt")
+	local lines = vim.split(output, "\n")
+	local result = status_parser.parse_working_copy_info(lines)
+
+	expect.equality(result.change_id, "myrmppvl")
+	expect.equality(result.empty, true)
 	expect.equality(result.is_empty, false)
 end
 

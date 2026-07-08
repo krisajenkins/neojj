@@ -19,6 +19,7 @@ function M.parse_working_copy_info(lines)
 		modified_files = {},
 		conflicts = {},
 		is_empty = true,
+		empty = false,
 	}
 
 	-- jj emits an "unresolved conflicts" warning block on stdout, e.g.:
@@ -58,6 +59,13 @@ function M.parse_working_copy_info(lines)
 			local change_id = line:match("Working copy%s+%(@%)%s*:%s*(%w+)") or line:match("Working copy%s*:%s*(%w+)")
 			if change_id then
 				working_copy.change_id = change_id
+			end
+			-- jj annotates an empty working-copy commit with a "(empty)" marker on
+			-- this line. This is jj's authoritative emptiness flag: unlike the
+			-- derived `is_empty` (which a conflicted merge makes false), it stays
+			-- true for an empty conflicted merge, matching what `jj status` shows.
+			if line:match("%(empty%)") then
+				working_copy.empty = true
 			end
 		elseif line:match("^Parent") then
 			-- Handle both formats:

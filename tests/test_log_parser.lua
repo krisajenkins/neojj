@@ -288,6 +288,50 @@ T["parse_log_output"]["leaves prefixes nil when the fields are absent or bogus"]
 	expect.equality(rev2.commit_id_prefix, "f")
 end
 
+T["parse_log_output"]["parses the optional empty field"] = function()
+	-- The template appends jj's own emptiness flag as a final field
+	-- (if(empty, "empty", "")), after the two unique-prefix fields. The parser
+	-- must surface it and reflect it in the reconstructed display line.
+	local empty = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\031\031\031empty\n"
+		.. "│  \030Adding jj log support.\n"
+
+	local rev = log_parser.parse_log_output(empty).revisions[1]
+	expect.equality(rev.change_id, "sqmvkywl")
+	expect.equality(rev.commit_id, "f35b8f36")
+	expect.equality(rev.empty, true)
+	expect.equality(rev.conflict, false)
+
+	-- A non-empty commit (final field blank, or absent) parses as not empty.
+	local nonempty = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\031\031\031\n"
+		.. "│  \030Adding jj log support.\n"
+	expect.equality(log_parser.parse_log_output(nonempty).revisions[1].empty, false)
+
+	-- Older fixtures captured before the field existed lack it entirely (only six
+	-- header fields); they must still parse as not empty.
+	local legacy = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\n"
+		.. "│  \030Adding jj log support.\n"
+	expect.equality(log_parser.parse_log_output(legacy).revisions[1].empty, false)
+end
+
+T["parse_log_output"]["appends (empty) before (conflict) in the display line"] = function()
+	-- jj orders its trailing markers "(empty)" before "(conflict)"; the parser's
+	-- reconstructed display line must mirror that.
+	local both = "×  \030myrmppvl\031user@example.com\0312025-07-14 21:06:06\031\0311ce52fde\031conflict\031\031\031empty\n"
+		.. "│  \030Merge: Add config versions\n"
+
+	local result = log_parser.parse_log_output(both)
+	local rev = result.revisions[1]
+	expect.equality(rev.empty, true)
+	expect.equality(rev.conflict, true)
+
+	local line = result.raw_lines[1]
+	local empty_at = line:find("(empty)", 1, true)
+	local conflict_at = line:find("(conflict)", 1, true)
+	expect.equality(empty_at ~= nil, true)
+	expect.equality(conflict_at ~= nil, true)
+	expect.equality(empty_at < conflict_at, true)
+end
+
 T["parse_log_output"]["preserves ANSI escapes inside fields"] = function()
 	-- Field splitting keys purely off the RECORD_SEP (\30) and UNIT_SEP (\31)
 	-- control characters, so any ANSI colour escapes that leak into a field are

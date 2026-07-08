@@ -189,6 +189,11 @@ end
 ---hands us on the revision (`change_id_prefix` / `commit_id_prefix`) — the same
 ---visual treatment as `jj log`. When a prefix is absent the whole id is
 ---highlighted as before.
+---
+---After the commit id, jj's trailing status markers are emitted with their own
+---highlights: "(empty)" (NeoJJEmpty) when `revision.empty`, then "(conflict)"
+---(NeoJJConflict) when `revision.conflict`, matching jj's ordering. Any residual
+---tail falls back to the neutral separator highlight.
 ---@param commit_text string The commit info portion of the line
 ---@param revision table Revision data with change_id/author/timestamp/bookmarks/commit_id (+ optional *_prefix) fields
 ---@param is_current_head boolean Whether this row is the working copy (@)
@@ -251,10 +256,19 @@ function LogUI.create_commit_text_components(commit_text, revision, is_current_h
 	end
 	emit_id_field(revision.commit_id, revision.commit_id_prefix, "NeoJJLogCommitId", "NeoJJLogCommitIdRest")
 
-	-- Trailing text (e.g. " (conflict)").
+	-- Trailing status markers. They are located (and emitted) in jj's own order —
+	-- "(empty)" before "(conflict)" — so each gets its distinct highlight rather
+	-- than the whole tail sharing one group.
+	if revision.empty then
+		emit_field("(empty)", "NeoJJEmpty")
+	end
+	if revision.conflict then
+		emit_field("(conflict)", "NeoJJConflict")
+	end
+
+	-- Any residual trailing text (unexpected shape) rendered neutrally.
 	if pos <= #commit_text then
-		local highlight = revision.conflict and "NeoJJConflict" or separator_hl
-		table.insert(components, Ui.text(commit_text:sub(pos), { highlight = highlight }))
+		table.insert(components, Ui.text(commit_text:sub(pos), { highlight = separator_hl }))
 	end
 
 	-- Fallback: if nothing matched (unexpected line shape), render as one span.

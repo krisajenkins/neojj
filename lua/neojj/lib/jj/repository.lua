@@ -20,6 +20,7 @@ local function empty_state()
 			modified_files = {},
 			conflicts = {},
 			is_empty = true,
+			empty = false,
 		},
 		bookmarks = {
 			local_bookmarks = {},

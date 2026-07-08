@@ -27,6 +27,7 @@
 ---@field modified_files ModifiedFile[] List of modified files
 ---@field conflicts Conflict[] List of conflicted files
 ---@field is_empty boolean Whether the working copy has no changes
+---@field empty boolean jj's own emptiness flag for the working-copy commit (parsed from its "(empty)" marker; unlike is_empty, true even for an empty conflicted merge)
 
 ---A single revision from jj log
 ---@class LogRevision
@@ -39,6 +40,7 @@
 ---@field description string First line of description
 ---@field bookmarks string[] Bookmark names pointing to this revision
 ---@field conflict boolean Whether this revision has conflicts
+---@field empty boolean Whether this revision is empty (jj's own emptiness flag)
 ---@field graph string ASCII graph prefix for this revision
 ---@field line_number integer Line number in the output where this revision appears
 

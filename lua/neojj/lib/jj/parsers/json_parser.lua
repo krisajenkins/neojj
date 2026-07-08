@@ -44,6 +44,7 @@ function M.json_to_working_copy(log_json)
 		modified_files = {},
 		conflicts = {},
 		is_empty = true, -- Will be determined by status parsing
+		empty = false, -- jj's JSON template has no emptiness flag; set from status
 	}
 
 	return working_copy

@@ -1,9 +1,5 @@
 # TODO
 
-# [ ]  Empty
-
-`jj log` and `jj status` will show you when a commit is empty. We should do the same, with special syntax highlighting.
-
 # [ ] `:JJ debug` command for bug reports (S/M)
 
 Errors currently live only in ephemeral `vim.notify` toasts — `logger.lua` is a

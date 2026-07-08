@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-08 (change mvyszttr)*
+
+# [x]  Empty
+
+`jj log` and `jj status` will show you when a commit is empty. We should do the same, with special syntax highlighting.
+
+Plumbed jj's `empty` flag end-to-end for the log and status views, mirroring the
+existing `conflict` handling. The log template carries a trailing `empty` field
+that `log_parser` reads; `status_parser` sets `working_copy.empty` from the
+authoritative `(empty)` marker on the Working-copy line (true even for an empty
+conflicted merge, unlike the derived `is_empty`), preserved across the JSON
+merge in `status.lua`. A shared `NeoJJEmpty` highlight (green, `link = DiffAdd`)
+renders `(empty)` as a distinct span after the commit id in the log and inline
+on the status Commit ID row.
+
+Note: the drilled-in single-revision status view (`:JJ status @`) builds from
+`jj show`/JSON, which carries no emptiness flag, so it does not yet show
+`(empty)` — surfacing it there would need `empty` added to the show/JSON
+template and parser.
+
 *Archived: 2026-07-08 (change rylpqplk)*
 
 # [x] Auto-refresh on repo change (S/M)

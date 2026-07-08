@@ -20,7 +20,13 @@ local log_parser = require("neojj.lib.jj.parsers.log_parser")
 -- trailing fields so the UI can brighten the unique prefix and dim the rest —
 -- the same trick `jj log` itself uses — without computing the prefix ourselves.
 -- The prefix fields are appended last so older captured fixtures (which lack
--- them) still parse; the parser treats them as optional.
+-- them) still parse; the parser treats them as optional. A final `empty` field
+-- (jj's own emptiness flag) is appended after them for the same reason: keeping
+-- it last preserves backward-compat with fixtures captured before it existed.
+--
+-- Field order within the header record:
+--   change_id, author, timestamp, bookmarks, commit_id, conflict,
+--   change_id_prefix, commit_id_prefix, empty
 local LOG_TEMPLATE = table.concat({
 	'"\\x1e"',
 	"change_id.shortest(8)",
@@ -45,6 +51,8 @@ local LOG_TEMPLATE = table.concat({
 	"change_id.shortest(8).prefix()",
 	'"\\x1f"',
 	"commit_id.shortest(8).prefix()",
+	'"\\x1f"',
+	'if(empty, "empty", "")',
 	'"\\n"',
 	'"\\x1e"',
 	'if(description.first_line() == "", "(no description set)", description.first_line())',

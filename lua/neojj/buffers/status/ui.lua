@@ -60,6 +60,10 @@ function StatusUI.create_header()
 end
 
 ---Create the working copy section with full metadata
+---
+---When jj reports the commit as empty (`working_copy.empty`), an inline
+---"(empty)" marker is appended to the Commit ID row with the shared NeoJJEmpty
+---highlight, mirroring jj's own inline annotation.
 ---@param working_copy table Working copy information
 ---@param is_working_copy? boolean True if showing working copy, false for specific revision
 ---@return table component Working copy section
@@ -72,9 +76,22 @@ function StatusUI.create_working_copy_section(working_copy, is_working_copy)
 		table.insert(metadata_items, Ui.text("Change ID: " .. working_copy.change_id, { highlight = "NeoJJChangeId" }))
 	end
 
-	-- Commit ID
+	-- Commit ID, with jj's inline "(empty)" marker when the commit is empty. We
+	-- use jj's authoritative `empty` flag (not the derived `is_empty`), so an
+	-- empty conflicted merge is still marked, matching `jj status`.
 	if working_copy.commit_id then
-		table.insert(metadata_items, Ui.text("Commit ID: " .. working_copy.commit_id, { highlight = "NeoJJCommitId" }))
+		local commit_id_text = Ui.text("Commit ID: " .. working_copy.commit_id, { highlight = "NeoJJCommitId" })
+		if working_copy.empty then
+			table.insert(
+				metadata_items,
+				Ui.row({
+					commit_id_text,
+					Ui.text(" (empty)", { highlight = "NeoJJEmpty" }),
+				})
+			)
+		else
+			table.insert(metadata_items, commit_id_text)
+		end
 	end
 
 	-- Author

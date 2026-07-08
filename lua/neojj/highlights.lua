@@ -25,6 +25,10 @@ local default_highlights = {
 	-- Conflicts
 	NeoJJConflict = { link = "Error" },
 
+	-- Empty commits (jj colours "empty" green; DiffAdd echoes that, theme-neutral).
+	-- Shared by the log and status views for their "(empty)" markers.
+	NeoJJEmpty = { link = "DiffAdd" },
+
 	-- Bookmarks (for future use)
 	NeoJJBookmarkMarker = { link = "Special" },
 	NeoJJBookmarkName = { link = "Function" },
