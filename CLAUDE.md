@@ -132,13 +132,25 @@ The renderer tracks the position of interactive components to enable cursor-base
 
 ### Status Buffer Keybindings
 
-- `r` / `<c-r>`: Refresh status buffer
+- `j` / `k`: Navigate up/down (standard vim navigation also works)
 - `<cr>`: Open file at cursor (if on a file entry)
-- `q` / `<c-c>` / `<esc>`: Close buffer
+- `<tab>`: Toggle the diff for the file at cursor
+- `<s-tab>`: Toggle all file diffs
+- `r` / `<c-r>`: Refresh status buffer
 - `d`: Describe current commit
+- `c`: Commit change (describe `@`, then `jj new` onto a fresh empty working copy)
+- `n`: Create a new change from the current commit
 - `x`: Run jj fix (format working copy `@`)
 - `t`: Tug (advance the closest bookmark up to `@`)
-- `j` / `k`: Navigate up/down (standard vim navigation also works)
+- `P`: Push to remote (`jj git push`)
+- `p`: Pull from remote (`jj git fetch`)
+- `l`: Open the log view
+- `q` / `<c-c>` / `<esc>`: Back (pop the view stack) / close
+- `?`: Toggle the help panel
+
+Keep this list in sync with `StatusBuffer:_setup_mappings()` in
+`lua/neojj/buffers/status/init.lua` — it is the source of truth. The user-facing
+tables in `README.md` and `doc/neojj.txt` must match too.
 
 ## Testing with MiniTest
 
