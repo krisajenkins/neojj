@@ -149,10 +149,15 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 <
 
                                                                     *:JJ-oplog*
-:JJ oplog [split]
+:JJ oplog [op_id] [split]
                 Open the operation-log buffer showing jj's operation history
                 (the universal undo/redo safety net). Each entry is a jj
                 operation you can restore the whole repository back to.
+
+                With an operation id, jump straight to that operation's
+                detail view (the equivalent of `jj op show <op_id>`) instead
+                of the log — the same view reached by pressing <CR> on an
+                operation in the log.
 
                 Optional split argument (same as status/log).
 
@@ -160,6 +165,8 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ oplog
                     :JJ oplog vertical
                     :JJ oplog tab
+                    :JJ oplog aff62571bf72
+                    :JJ oplog aff62571bf72 vertical
 <
 
                                                                  *:JJ-describe*
@@ -367,6 +374,10 @@ Each operation shows:
 
 Open it with |:JJ-oplog| or |neojj.jj_oplog()|.
 
+Press <CR> on an operation to drill into a read-only view of its details and
+diff (the equivalent of `jj op show <op_id>`); q/<Esc>/<C-c> returns to the
+operation log, l opens the commit log, and <C-r> refreshes.
+
 OPLOG MAPPINGS                                            *neojj-oplog-mappings*
 
 The following keybindings are available in the operation-log buffer:
@@ -382,12 +393,15 @@ k                       Move cursor up
 <C-r>                   Refresh operation log
 
                                                          *neojj-oplog-actions*
-<CR>                    Restore the repository to the operation at cursor
+<CR>                    Show the details of the operation at cursor
+                        (jj op show) in a new drill-down view; press q/<Esc>
+                        to return to the operation log
+r                       Restore the repository to the operation at cursor
                         (jj op restore), after a confirmation prompt
-r                       Same as <CR> (restore to operation at cursor)
 u                       Undo the last operation (jj undo), after a confirmation
                         prompt
 y                       Yank the operation ID at cursor to the system clipboard
+l                       Open the commit log view
 
                                                            *neojj-oplog-close*
 q                       Back: pop the view stack (reveal the view drilled down

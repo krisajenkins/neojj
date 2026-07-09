@@ -40,6 +40,24 @@ T.test_oplog_buffer_creation = function()
 	]])
 end
 
+---The oplog view maps `l` to open the commit log view.
+T.test_oplog_maps_l_to_log = function()
+	child.lua([[
+		local OplogBuffer = require('neojj.buffers.oplog')
+		local oplog_buffer = OplogBuffer.new({
+			dir = vim.fn.getcwd(),
+			is_jj_repo = function() return true end
+		})
+
+		local mapped = false
+		for _, m in ipairs(vim.api.nvim_buf_get_keymap(oplog_buffer:get_handle(), "n")) do
+			if m.lhs == "l" then mapped = true end
+		end
+		expect.equality(mapped, true)
+		expect.equality(type(oplog_buffer.open_log), "function")
+	]])
+end
+
 ---Test that reusing an oplog buffer returns the same instance.
 T.test_oplog_buffer_reuse = function()
 	child.lua([[

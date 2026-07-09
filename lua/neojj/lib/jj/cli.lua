@@ -281,6 +281,10 @@ function M.op_restore()
 	return new_builder("jj"):arg("op"):arg("restore")
 end
 
+function M.op_show()
+	return new_builder("jj"):arg("op"):arg("show")
+end
+
 function M.undo()
 	return new_builder("jj"):arg("undo")
 end

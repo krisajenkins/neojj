@@ -160,7 +160,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ                             " Return to the top of the view stack from anywhere
 :JJ status [change_id] [split]  " Open status buffer (working copy or specific change)
 :JJ log [split] [count]         " Open log buffer (optionally limit revisions shown)
-:JJ oplog [split]               " Open the operation log (undo / restore history)
+:JJ oplog [op_id] [split]       " Open the operation log; with an op_id, jump to its detail view
 :JJ describe [revision] [split] " Edit commit description (defaults to @)
 :JJ new [revision]              " Create new empty change
 :JJ annotate [filepath]         " Annotate/blame a file (defaults to current file)
@@ -182,6 +182,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ log vertical 50           " Vertical split, limited to 50 revisions
 :JJ oplog                     " Open the operation log
 :JJ oplog vertical            " Open the operation log in a vertical split
+:JJ oplog aff62571bf72        " Jump to an operation's detail view (jj op show)
 :JJ describe                  " Describe current commit (@)
 :JJ describe @-               " Describe parent commit
 :JJ new                       " Create new change from working copy
@@ -239,9 +240,11 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | Key           | Action                  |
 | ------------- | ----------------------- |
 | `j`/`k`       | Move cursor up/down     |
-| `<Enter>` / `r` | Restore repo to operation at cursor (`jj op restore`, with confirmation) |
+| `<Enter>`     | Show operation details (`jj op show`) |
+| `r`           | Restore repo to operation at cursor (`jj op restore`, with confirmation) |
 | `u`           | Undo the last operation (`jj undo`, with confirmation) |
 | `y`           | Yank operation ID       |
+| `l`           | Open the log view       |
 | `<C-r>`       | Refresh operation log   |
 | `q` / `<Esc>` / `<C-c>` | Back (pop view stack) / close |
 | `?`           | Show/hide help          |

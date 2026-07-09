@@ -120,9 +120,17 @@ function M.create_commands()
 			end
 			M.jj_log(nil, split, limit)
 		elseif subcommand == "oplog" then
-			-- Accept an optional split type: `:JJ oplog`, `:JJ oplog vertical`.
-			local split = rest_args[1]
-			M.jj_oplog(nil, split)
+			-- `:JJ oplog [split]` opens the operation log; `:JJ oplog <op_id> [split]`
+			-- jumps straight to that operation's op-show view. Disambiguate the first
+			-- arg the way `:JJ log` does — a known split keyword is a split, anything
+			-- else is an operation id.
+			local arg1 = rest_args[1]
+			local oplog_split_types = { "horizontal", "vertical", "tab" }
+			if arg1 and not vim.tbl_contains(oplog_split_types, arg1) then
+				M.jj_opshow(nil, arg1, rest_args[2])
+			else
+				M.jj_oplog(nil, arg1)
+			end
 		elseif subcommand == "new" then
 			local revision = rest_args[1]
 			M.jj_new(nil, revision)
@@ -337,6 +345,33 @@ function M.jj_oplog(dir, split)
 		oplog_buffer:show_tab()
 	else
 		oplog_buffer:show()
+	end
+end
+
+---Open the op-show view for a specific operation (`jj op show <op_id>`). This is
+---the same view reached by pressing <CR> on an operation in the oplog; exposing
+---it here lets `:JJ oplog <op_id>` jump straight to it.
+---@param dir? string Directory to resolve the repo from
+---@param op_id string Operation id to show
+---@param split? string Optional split type ("horizontal", "vertical", "tab")
+function M.jj_opshow(dir, op_id, split)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	local OpShowBuffer = require("neojj.buffers.opshow")
+	local opshow_buffer = OpShowBuffer.new(repo, op_id)
+
+	if split == "horizontal" then
+		opshow_buffer:show_split("horizontal")
+	elseif split == "vertical" then
+		opshow_buffer:show_split("vertical")
+	elseif split == "tab" then
+		opshow_buffer:show_tab()
+	else
+		opshow_buffer:show()
 	end
 end
 

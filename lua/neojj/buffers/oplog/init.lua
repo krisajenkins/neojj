@@ -139,12 +139,13 @@ function OplogBuffer:_setup_mappings()
 		end, { desc = "Back (pop view stack) / close oplog" })
 	end
 
-	-- Restore to the operation at cursor. `r` doubles as the restore key here
-	-- (unlike the commit log where `r` refreshes); refresh is on <C-r>.
+	-- Drill into the operation at cursor (jj op show <op_id>).
 	self.buffer:map("n", "<cr>", function()
-		self:restore_operation_at_cursor()
-	end, { desc = "Restore repo to operation at cursor" })
+		self:show_operation_at_cursor()
+	end, { desc = "Show operation details (jj op show)" })
 
+	-- Restore to the operation at cursor. `r` is the restore key here (unlike the
+	-- commit log where `r` refreshes); refresh is on <C-r>.
 	self.buffer:map("n", "r", function()
 		self:restore_operation_at_cursor()
 	end, { desc = "Restore repo to operation at cursor" })
@@ -164,10 +165,21 @@ function OplogBuffer:_setup_mappings()
 		self:yank_operation_id_at_cursor()
 	end, { desc = "Yank operation ID" })
 
+	-- Open the commit log view.
+	self.buffer:map("n", "l", function()
+		self:open_log()
+	end, { desc = "Open the log view" })
+
 	-- Help mapping.
 	self.buffer:map("n", "?", function()
 		self:toggle_help()
 	end, { desc = "Toggle help" })
+end
+
+---Open the commit log view, keeping this oplog view on the stack beneath it.
+function OplogBuffer:open_log()
+	local LogBuffer = require("neojj.buffers.log")
+	LogBuffer.new(self.repo):show()
 end
 
 ---Refresh the oplog buffer
@@ -343,6 +355,19 @@ function OplogBuffer:restore_operation_at_cursor()
 			end
 		end)
 	end)
+end
+
+---Drill into the operation at the cursor, opening a new op-show view
+---(equivalent to `jj op show <op_id>`) as a fresh view-stack frame.
+function OplogBuffer:show_operation_at_cursor()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.operation_id then
+		vim.notify("No operation at cursor", vim.log.levels.WARN)
+		return
+	end
+
+	local OpShowBuffer = require("neojj.buffers.opshow")
+	OpShowBuffer.new(self.repo, item.operation_id):show()
 end
 
 ---Undo the last operation (jj undo).
