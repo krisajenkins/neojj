@@ -32,15 +32,6 @@ at cursor; in the status buffer, `x` with no file under the cursor abandons the
 working-copy change. Needs a `vim.fn.confirm` y/n since it's destructive-ish
 (though undoable — see the undo item, which makes all these keys trustworthy).
 
-# [ ] Undo and operation-log view (M; undo alone is S)
-
-Wraps `jj undo`, `jj op log`, `jj op restore` — jj's universal safety net, and
-the thing that makes squash/abandon/rebase keys safe to press. `u` in
-status/log runs `jj undo` with a notification of what was undone. New
-:JJ oplog` buffer cloning the log-buffer pattern (parser + ui + init) listing
-operations; `<cr>` or `r` on an operation runs `jj op restore` with
-confirmation.
-
 ## Tier 2 — needed weekly, expected of a magit-alike
 
 # [ ] Rebase (L; M for a prompt-based version)
