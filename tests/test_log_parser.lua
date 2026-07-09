@@ -291,7 +291,8 @@ end
 T["parse_log_output"]["parses the optional empty field"] = function()
 	-- The template appends jj's own emptiness flag as a final field
 	-- (if(empty, "empty", "")), after the two unique-prefix fields. The parser
-	-- must surface it and reflect it in the reconstructed display line.
+	-- must surface it on the revision (its rendering lives on the description
+	-- line, covered by a separate test).
 	local empty = "@  \030sqmvkywl\031user@example.com\0312025-07-14 21:06:06\031\031f35b8f36\031\031\031\031empty\n"
 		.. "│  \030Adding jj log support.\n"
 
@@ -313,9 +314,11 @@ T["parse_log_output"]["parses the optional empty field"] = function()
 	expect.equality(log_parser.parse_log_output(legacy).revisions[1].empty, false)
 end
 
-T["parse_log_output"]["appends (empty) before (conflict) in the display line"] = function()
-	-- jj orders its trailing markers "(empty)" before "(conflict)"; the parser's
-	-- reconstructed display line must mirror that.
+T["parse_log_output"]["keeps (conflict) on the metadata row and (empty) on the description line"] = function()
+	-- Matching `jj log`: "(conflict)" stays on the metadata row, while "(empty)"
+	-- is rendered at the head of the description line below (never on the metadata
+	-- row). The continuation line's graph_data is flagged so the UI can highlight
+	-- the marker distinctly.
 	local both = "×  \030myrmppvl\031user@example.com\0312025-07-14 21:06:06\031\0311ce52fde\031conflict\031\031\031empty\n"
 		.. "│  \030Merge: Add config versions\n"
 
@@ -324,12 +327,15 @@ T["parse_log_output"]["appends (empty) before (conflict) in the display line"] =
 	expect.equality(rev.empty, true)
 	expect.equality(rev.conflict, true)
 
-	local line = result.raw_lines[1]
-	local empty_at = line:find("(empty)", 1, true)
-	local conflict_at = line:find("(conflict)", 1, true)
-	expect.equality(empty_at ~= nil, true)
-	expect.equality(conflict_at ~= nil, true)
-	expect.equality(empty_at < conflict_at, true)
+	-- Metadata row: "(conflict)" present, "(empty)" absent.
+	local meta = result.raw_lines[1]
+	expect.equality(meta:find("(conflict)", 1, true) ~= nil, true)
+	expect.equality(meta:find("(empty)", 1, true), nil)
+
+	-- Description row: "(empty)" prefixes the description text, flagged for the UI.
+	local desc = result.raw_lines[2]
+	expect.equality(desc:find("(empty) Merge: Add config versions", 1, true) ~= nil, true)
+	expect.equality(result.graph_data[2].empty_marker, true)
 end
 
 T["parse_log_output"]["preserves ANSI escapes inside fields"] = function()

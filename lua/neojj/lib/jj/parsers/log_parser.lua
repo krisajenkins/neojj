@@ -27,7 +27,9 @@
 ---The final `empty` field carries jj's own emptiness flag ("empty" when the
 ---commit is empty, "" otherwise). It too is optional and appended last, so
 ---fixtures captured before it existed still parse (the parser treats a missing
----field as not-empty).
+---field as not-empty). Matching `jj log`, the "(empty)" marker is rendered at
+---the head of the description line below (not on the metadata row); the
+---metadata row keeps only "(conflict)".
 ---
 ---A line is recognised as a commit header purely by the presence of a payload
 ---containing unit separators, never by matching a fixed set of graph glyphs.
@@ -150,11 +152,9 @@ function M.parse_log_output(output)
 				display = display .. " " .. bookmarks_field
 			end
 			display = display .. " " .. commit_id
-			-- Mirror jj's own ordering of the trailing markers: "(empty)" before
-			-- "(conflict)".
-			if empty then
-				display = display .. " (empty)"
-			end
+			-- jj keeps "(conflict)" on the metadata row but prints "(empty)" at the
+			-- head of the description line below (emitted on the continuation line),
+			-- so only the conflict marker is appended here.
 			if conflict then
 				display = display .. " (conflict)"
 			end
@@ -162,12 +162,19 @@ function M.parse_log_output(output)
 
 			graph_data[i] = { graph = gutter, revision = current_revision }
 		else
-			-- Description continuation line: payload is the description text.
+			-- Description continuation line: payload is the description text. jj
+			-- prints its "(empty)" marker at the head of this line (not on the
+			-- metadata row above) for empty commits, so mirror that here and flag it
+			-- for the UI to highlight distinctly.
 			if current_revision and current_revision.description == "" then
 				current_revision.description = payload
 			end
+			local empty_marker = current_revision ~= nil and current_revision.empty
+			if empty_marker then
+				payload = "(empty) " .. payload
+			end
 			raw_lines[i] = gutter .. payload
-			graph_data[i] = { graph = gutter, revision = nil }
+			graph_data[i] = { graph = gutter, revision = nil, empty_marker = empty_marker }
 		end
 
 		::continue::

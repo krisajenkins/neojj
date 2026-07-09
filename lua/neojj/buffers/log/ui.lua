@@ -59,7 +59,8 @@ function LogUI.create_log_components(log_state, log_buffer)
 			else
 				-- This is a description line or graph continuation
 				local graph_prefix = graph_info and graph_info.graph
-				table.insert(components, LogUI.create_graph_line(line, graph_prefix))
+				local empty_marker = graph_info and graph_info.empty_marker
+				table.insert(components, LogUI.create_graph_line(line, graph_prefix, empty_marker))
 			end
 		end
 	end
@@ -151,8 +152,9 @@ end
 ---Create a graph line component (non-interactive)
 ---@param line string The raw line content
 ---@param graph_prefix? string The graph gutter recorded by the parser
+---@param empty_marker? boolean True when the description is prefixed with jj's "(empty)" marker
 ---@return table component Graph line component
-function LogUI.create_graph_line(line, graph_prefix)
+function LogUI.create_graph_line(line, graph_prefix, empty_marker)
 	local graph_part, desc_part
 	if graph_prefix ~= nil then
 		-- The parser recorded the exact gutter; split there so any graph glyph
@@ -168,10 +170,19 @@ function LogUI.create_graph_line(line, graph_prefix)
 		end
 	end
 
-	return Ui.row({
-		Ui.text(graph_part, { highlight = "NeoJJLogGraph" }),
-		Ui.text(desc_part, { highlight = "NeoJJLogDescription" }),
-	})
+	local children = { Ui.text(graph_part, { highlight = "NeoJJLogGraph" }) }
+
+	-- jj renders the "(empty)" marker at the head of the description line in its
+	-- own (green) colour, with the description text following. Split it off so it
+	-- gets the shared NeoJJEmpty highlight rather than the neutral description one.
+	if empty_marker and desc_part:sub(1, 8) == "(empty) " then
+		table.insert(children, Ui.text("(empty)", { highlight = "NeoJJEmpty" }))
+		table.insert(children, Ui.text(desc_part:sub(8), { highlight = "NeoJJLogDescription" }))
+	else
+		table.insert(children, Ui.text(desc_part, { highlight = "NeoJJLogDescription" }))
+	end
+
+	return Ui.row(children)
 end
 
 ---Create highlighted text components for the commit info, colouring each
@@ -190,10 +201,10 @@ end
 ---visual treatment as `jj log`. When a prefix is absent the whole id is
 ---highlighted as before.
 ---
----After the commit id, jj's trailing status markers are emitted with their own
----highlights: "(empty)" (NeoJJEmpty) when `revision.empty`, then "(conflict)"
----(NeoJJConflict) when `revision.conflict`, matching jj's ordering. Any residual
----tail falls back to the neutral separator highlight.
+---After the commit id, jj's "(conflict)" marker (NeoJJConflict) is emitted when
+---`revision.conflict`. The "(empty)" marker lives on the description line below
+---(see create_graph_line), matching `jj log`. Any residual tail falls back to
+---the neutral separator highlight.
 ---@param commit_text string The commit info portion of the line
 ---@param revision table Revision data with change_id/author/timestamp/bookmarks/commit_id (+ optional *_prefix) fields
 ---@param is_current_head boolean Whether this row is the working copy (@)
@@ -256,12 +267,8 @@ function LogUI.create_commit_text_components(commit_text, revision, is_current_h
 	end
 	emit_id_field(revision.commit_id, revision.commit_id_prefix, "NeoJJLogCommitId", "NeoJJLogCommitIdRest")
 
-	-- Trailing status markers. They are located (and emitted) in jj's own order —
-	-- "(empty)" before "(conflict)" — so each gets its distinct highlight rather
-	-- than the whole tail sharing one group.
-	if revision.empty then
-		emit_field("(empty)", "NeoJJEmpty")
-	end
+	-- Trailing status marker. jj keeps "(conflict)" on the metadata row (the
+	-- "(empty)" marker is rendered on the description line below instead).
 	if revision.conflict then
 		emit_field("(conflict)", "NeoJJConflict")
 	end

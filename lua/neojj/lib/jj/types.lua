@@ -48,6 +48,7 @@
 ---@class GraphData
 ---@field graph string ASCII graph characters for this line
 ---@field revision LogRevision|nil The revision at this line (nil for graph continuation lines)
+---@field empty_marker boolean|nil True when this is a description line prefixed with jj's "(empty)" marker
 
 ---Parsed log output
 ---@class ParsedLog
