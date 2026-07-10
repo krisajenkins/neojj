@@ -1,9 +1,5 @@
 # TODO
 
-# [ ] Can we move the status toaster to the bottom-right?
-
-...instead of top-right.
-
 # [ ] New with multiple parents — merge (S/M)
 
 Extends the existing `n`. In the log buffer, a mark-then-`n` flow runs `jj new

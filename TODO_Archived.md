@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-10 (change qknzsrmz) — closed as out of scope*
+
+# [x] Can we move the status toaster to the bottom-right?
+
+...instead of top-right.
+
+Closed without a code change: NeoJJ has no toaster of its own. It only calls
+`vim.notify()` (plus a thin `logger.lua` wrapper over it); the top-right toast
+is drawn and positioned entirely by whichever notification backend the user has
+installed (nvim-notify, snacks.nvim, mini.notify, noice, fidget, …), via *its*
+config, not by this plugin. Built-in `vim.notify` doesn't even produce a corner
+toast, so the top-right toast confirms an external notifier is intercepting it.
+
+To move it to the bottom-right, configure that notifier — e.g. nvim-notify:
+`require("notify").setup({ top_down = false })`; snacks.nvim: set the notifier's
+`top_down = false`. This belongs in the user's Neovim config, not in NeoJJ. (A
+plugin-owned custom toaster — its own `SE`-anchored float + timer, routing all
+notifications through it — would be a substantial new feature that duplicates
+the user's notifier; parked, not pursued.)
+
 *Archived: 2026-07-10 (change ksxkqwyw)*
 
 # [x] Sort the help
