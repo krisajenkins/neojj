@@ -1,5 +1,31 @@
 # TODO
 
+# [ ] Sort the help
+
+We should probably sort the keybindings help alphabetically. It's looking a bit
+haphazard at the moment.
+
+# [ ]  Look at change `nkslttzo` and verify it was done correctly.
+
+...and thoroughly.
+
+# [ ] Can we move the status toaster to the bottom-right?
+
+...instead of top-right.
+
+# [ ] New with multiple parents — merge (S/M)
+
+Extends the existing `n`. In the log buffer, a mark-then-`n` flow runs `jj new
+<rev1> <rev2>`, creating a merge change (jj's merge is just a new change with
+2+ parents). 
+
+I'm thinking `N` can toggle the marks, `n` executes them. 
+
+If we write the logic so that `n` includes the change under the cursor in the
+marks, then immediately creates a new change with the marked parents, if should
+work out neatly.
+
+
 # [ ] `:JJ debug` command for bug reports (S/M)
 
 Errors currently live only in ephemeral `vim.notify` toasts — `logger.lua` is a

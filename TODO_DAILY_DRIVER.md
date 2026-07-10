@@ -25,12 +25,13 @@ it into its parent; a variant prompts for an `--into` target change ID.
 Confirm before executing, refresh after. Reuses
 `get_item_at_cursor().change_id` and the CLI builder — both already in place.
 
-# [ ] Abandon (S)
+# [ ] Real diff view (M)
 
-Wraps `jj abandon <rev>`. In the log buffer, `x` (or `a`) abandons the revision
-at cursor; in the status buffer, `x` with no file under the cursor abandons the
-working-copy change. Needs a `vim.fn.confirm` y/n since it's destructive-ish
-(though undoable — see the undo item, which makes all these keys trustworthy).
+Wraps `jj diff -r <rev> [path]`, later `--from/--to`. Implement what the
+removed `D` stub promised: a proper diff buffer (filetype `diff`, `q` closes)
+for the file at cursor in the status buffer; `D` in the log buffer shows the
+whole revision's diff. The diff-fetching code already exists in
+`get_file_diff()` — this is mostly a presentation buffer.
 
 ## Tier 2 — needed weekly, expected of a magit-alike
 
@@ -44,6 +45,13 @@ executes. Choose `-r` vs `-s` vs `-b` via prompt (default `-s`). Post-rebase
 conflicts are fine — jj commits them and the status buffer shows them (once the
 status-parser conflict fix from TODO.md is in).
 
+# [ ] Abandon (S)
+
+Wraps `jj abandon <rev>`. In the log buffer, `x` (or `a`) abandons the revision
+at cursor; in the status buffer, `x` with no file under the cursor abandons the
+working-copy change. Needs a `vim.fn.confirm` y/n since it's destructive-ish
+(though undoable — see the undo item, which makes all these keys trustworthy).
+
 # [ ] Restore / discard file changes (S)
 
 Wraps `jj restore <path>` (and bare `jj restore` for everything). In the status
@@ -51,14 +59,6 @@ buffer, `x` on a file item discards that file's working-copy changes with
 confirmation; on a section header, restores all. The neogit-discard equivalent,
 and the last piece of the stage/unstage replacement story (squash = keep,
 restore = discard, split = divide).
-
-# [ ] Real diff view (M)
-
-Wraps `jj diff -r <rev> [path]`, later `--from/--to`. Implement what the
-removed `D` stub promised: a proper diff buffer (filetype `diff`, `q` closes)
-for the file at cursor in the status buffer; `D` in the log buffer shows the
-whole revision's diff. The diff-fetching code already exists in
-`get_file_diff()` — this is mostly a presentation buffer.
 
 # [ ] Log revsets and limit control (S/M)
 
@@ -89,12 +89,6 @@ jj's cherry-pick and revert. In the log buffer: `C` runs
 `jj duplicate <rev> [-d <dest>]` (optionally prompt for destination); `V` runs
 `jj backout -r <rev>` (newer jj spells it `jj revert`). Both act on the
 revision at cursor.
-
-# [ ] New with multiple parents — merge (S/M)
-
-Extends the existing `n`. In the log buffer, visual-mode selection or a
-mark-then-`n` flow runs `jj new <rev1> <rev2>`, creating a merge change (jj's
-merge is just a new change with 2+ parents).
 
 # [ ] Native split UI (L)
 
