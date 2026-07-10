@@ -1,10 +1,5 @@
 # TODO
 
-# [ ] Sort the help
-
-We should probably sort the keybindings help alphabetically. It's looking a bit
-haphazard at the moment.
-
 # [ ] Can we move the status toaster to the bottom-right?
 
 ...instead of top-right.

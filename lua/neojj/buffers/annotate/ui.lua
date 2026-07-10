@@ -194,12 +194,12 @@ function AnnotateUI.create_help()
 		Ui.text("NeoJJ Annotate Help", { highlight = "NeoJJTitle" }),
 		Ui.empty_line(),
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  <Enter>   - Open change at cursor", { highlight = "NeoJJHelpText" }),
-		Ui.text("  y         - Copy change ID at cursor", { highlight = "NeoJJHelpText" }),
-		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Esc>     - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-c>     - Quit", { highlight = "NeoJJHelpText" }),
 		Ui.text("  ?         - Show/hide this help", { highlight = "NeoJJHelpText" }),
+		Ui.text("  <C-c>     - Quit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  <Enter>   - Open change at cursor", { highlight = "NeoJJHelpText" }),
+		Ui.text("  <Esc>     - Quit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),
+		Ui.text("  y         - Copy change ID at cursor", { highlight = "NeoJJHelpText" }),
 		Ui.empty_line(),
 	})
 end

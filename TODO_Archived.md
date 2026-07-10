@@ -5,6 +5,20 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-10 (change ksxkqwyw)*
+
+# [x] Sort the help
+
+We should probably sort the keybindings help alphabetically. It's looking a bit
+haphazard at the moment.
+
+Sorted the keybinding entries within each section of all four `create_help()`
+panels (status, log, oplog, annotate), keeping the section headers and the
+graph-symbols legends in place. Sort is by key, case-insensitive (lowercase
+before uppercase on ties, so `p` Pull sits just before `P` Push), with
+angle-bracket keys sorted by their inner text (`<C-c>`, `<Enter>`, `<S-Tab>`,
+`<Esc>`) and multi-key lines sorted by their first key.
+
 *Archived: 2026-07-10 (change xtvpozxp)*
 
 # [x]  Look at change `nkslttzo` and verify it was done correctly.
