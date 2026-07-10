@@ -5,6 +5,24 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-10 (change xtvpozxp)*
+
+# [x]  Look at change `nkslttzo` and verify it was done correctly.
+
+...and thoroughly.
+
+Verified change `nkslttzo` ("Rebinding the `jj fix` key to `f`."). The keymap
+rebind itself was complete and correct: both `StatusBuffer:_setup_mappings()`
+and `LogBuffer:_setup_mappings()` map fix to `f`, both help panels show `f`, the
+old `x` binding is gone everywhere in `lua/`, `f` has no collision, and the
+integration-test screenshot was updated. The oplog/annotate buffers have no fix
+binding, so nothing to change there.
+
+The one gap: the change never updated the user-facing docs, which CLAUDE.md
+requires to match the source of truth. Fixed `x` → `f` in README.md (status +
+log tables), doc/neojj.txt (status-actions + log-actions), and the CLAUDE.md
+Status Buffer Keybindings list.
+
 *Archived: 2026-07-08 (change mvyszttr)*
 
 # [x]  Empty

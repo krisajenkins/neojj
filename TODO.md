@@ -5,10 +5,6 @@
 We should probably sort the keybindings help alphabetically. It's looking a bit
 haphazard at the moment.
 
-# [ ]  Look at change `nkslttzo` and verify it was done correctly.
-
-...and thoroughly.
-
 # [ ] Can we move the status toaster to the bottom-right?
 
 ...instead of top-right.
