@@ -29,6 +29,8 @@ Feel free to use it. What it does, it does well. It doesn't cover every `jj` fea
 - **Rich UI** - Syntax-highlighted buffers with intuitive navigation
 - **Status View** - See working copy changes, conflicts, and file diffs
 - **Log View** - Browse commit history with graph visualization
+- **Operation Log** - Browse the `jj op log`, drill into an operation (`jj op show`), and undo/restore
+- **Bookmark Management** - Create, move, delete, rename, and track bookmarks from the log view
 - **View Stacks** - Drill down from log → status → file, then `q` or `:JJ` back out
 - **Annotate/Blame** - See which change last touched each line of a file
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
@@ -488,9 +490,10 @@ installed.
 - [x] Describe buffer for editing commit descriptions
 - [x] Commit detail buffer
 - [x] Syntax highlighting
+- [x] Operation log with undo/restore
+- [x] Bookmark management
 - [ ] Commit picker for advanced operations
 - [ ] Rebase/squash operations
-- [ ] Bookmark management
 - [ ] Conflict resolution UI
 - [ ] Integration with telescope.nvim
 - [ ] Custom templates for commit descriptions
