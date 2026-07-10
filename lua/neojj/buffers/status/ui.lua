@@ -499,7 +499,7 @@ function StatusUI.create_help()
 		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
 		Ui.text("  <Enter> - Open file at cursor", { highlight = "NeoJJHelpText" }),
 		Ui.text("  n       - Create new change from current commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  x       - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
+		Ui.text("  f       - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  t       - Tug bookmark to @", { highlight = "NeoJJHelpText" }),
 		Ui.text("  P       - Push to remote (jj git push)", { highlight = "NeoJJHelpText" }),
 		Ui.text("  p       - Pull from remote (jj git fetch)", { highlight = "NeoJJHelpText" }),

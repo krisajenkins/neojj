@@ -9,7 +9,7 @@
 08|Actions:                                                                                                                
 09|  <Enter> - Open file at cursor                                                                                         
 10|  n       - Create new change from current commit                                                                       
-11|  x       - Run jj fix (format @)                                                                                       
+11|  f       - Run jj fix (format @)                                                                                       
 12|  t       - Tug bookmark to @                                                                                           
 13|  P       - Push to remote (jj git push)                                                                                
 14|  p       - Pull from remote (jj git fetch)                                                                             

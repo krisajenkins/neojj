@@ -174,7 +174,7 @@ function StatusBuffer:_setup_mappings()
 	end, { desc = "Create new change from current commit" })
 
 	-- Run jj fix on the working copy
-	self.buffer:map("n", "x", function()
+	self.buffer:map("n", "f", function()
 		self:fix()
 	end, { desc = "Run jj fix (format working copy)" })
 
