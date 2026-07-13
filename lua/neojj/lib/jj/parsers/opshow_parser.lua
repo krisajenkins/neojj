@@ -14,10 +14,9 @@
 -- the leading "+"/"-" diff signs). We classify each line into one of a handful
 -- of element kinds that the UI knows how to colour.
 
-local M = {}
+local Separators = require("neojj.lib.jj.separators")
 
-local RS = "\30" -- \x1e RECORD SEPARATOR
-local US = "\31" -- \x1f UNIT SEPARATOR
+local M = {}
 
 ---Return `prefix` when it is a genuine leading substring of `id` (jj's unique
 ---disambiguating prefix), else nil so the UI highlights the whole id.
@@ -36,7 +35,7 @@ end
 ---@param body string
 ---@return table commit Structured commit-change fields
 local function parse_commit_record(body)
-	local f = vim.split(body, US, { plain = true })
+	local f = vim.split(body, Separators.UNIT, { plain = true })
 	local change_id = f[1] or ""
 	local commit_id = f[4] or ""
 	return {
@@ -71,16 +70,16 @@ function M.parse(output)
 	for _, line in ipairs(vim.split(output or "", "\n", { plain = true })) do
 		if line == "" then
 			table.insert(elements, { kind = "blank" })
-		elseif line:sub(1, 1) == RS then
+		elseif line:sub(1, 1) == Separators.RECORD then
 			-- Operation-header record.
-			local f = vim.split(line:sub(2), US, { plain = true })
+			local f = vim.split(line:sub(2), Separators.UNIT, { plain = true })
 			table.insert(elements, {
 				kind = "operation",
 				operation_id = f[1] or "",
 				user = f[2] or "",
 				time = f[3] or "",
 			})
-		elseif (line:sub(1, 2) == "+ " or line:sub(1, 2) == "- ") and line:sub(3, 3) == RS then
+		elseif (line:sub(1, 2) == "+ " or line:sub(1, 2) == "- ") and line:sub(3, 3) == Separators.RECORD then
 			-- Op-diff changed-commit record: a jj "+"/"- " sign, then our record.
 			local commit = parse_commit_record(line:sub(4))
 			commit.kind = "commit_change"

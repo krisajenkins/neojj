@@ -2,6 +2,7 @@ local Buffer = require("neojj.lib.buffer")
 local LogUI = require("neojj.buffers.log.ui")
 local logger = require("neojj.logger")
 local log_parser = require("neojj.lib.jj.parsers.log_parser")
+local Separators = require("neojj.lib.jj.separators")
 
 -- Explicit machine-oriented template for `jj log`. Rather than parse jj's
 -- fragile human-facing output, we ask for an unambiguous layout keyed on two
@@ -30,13 +31,13 @@ local log_parser = require("neojj.lib.jj.parsers.log_parser")
 --   change_id, author, timestamp, bookmarks, commit_id, conflict,
 --   change_id_prefix, commit_id_prefix, empty, tags
 local LOG_TEMPLATE = table.concat({
-	'"\\x1e"',
+	Separators.RECORD_TEMPLATE,
 	"change_id.shortest(8)",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"author.email()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'committer.timestamp().local().format("%Y-%m-%d %H:%M:%S")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	-- Use the `bookmarks` keyword (not `local_bookmarks`) so jj applies its
 	-- native tracking decorations: a bookmark ahead of / differing from its
 	-- remote renders as `name*`, and a remote-tracking bookmark shown on the
@@ -45,23 +46,23 @@ local LOG_TEMPLATE = table.concat({
 	-- remote names never contain spaces, so the parser can split the field on
 	-- whitespace without colliding with the `*` / `@` decoration characters.
 	"bookmarks",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"commit_id.shortest(8)",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(conflict, "conflict", "")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"change_id.shortest(8).prefix()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"commit_id.shortest(8).prefix()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(empty, "empty", "")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	-- Tag names on this commit. Like `bookmarks`, jj's default string form joins
 	-- entries with a single space, and tag names never contain spaces, so the
 	-- parser can split the field on whitespace.
 	"tags",
 	'"\\n"',
-	'"\\x1e"',
+	Separators.RECORD_TEMPLATE,
 	'if(description.first_line() == "", "(no description set)", description.first_line())',
 	'"\\n"',
 }, " ++ ")

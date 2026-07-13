@@ -5,6 +5,23 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change stqxkuly)*
+
+# [x] Is it worth extracting this "\\x1e"/"\\x1f" pattern into a helper?
+
+Yes. The two delimiter bytes (0x1e RECORD SEPARATOR, 0x1f UNIT SEPARATOR) were
+spread across six files in two representations that had to stay in sync: the
+jj-template escape text (`"\x1e"`/`"\x1f"`) in the log / oplog / opshow builders,
+and the raw bytes (`"\30"`/`"\31"`) redefined locally in each of the three
+parsers (inconsistently named `RECORD_SEP`/`UNIT_SEP` vs `RS`/`US`).
+
+Extracted a single source of truth: `lua/neojj/lib/jj/separators.lua`, exposing
+`RECORD`/`UNIT` (raw bytes, for parsing) and `RECORD_TEMPLATE`/`UNIT_TEMPLATE`
+(the `--template` literals, for the builders). All six files now source their
+delimiters from it.
+
+---
+
 *Archived: 2026-07-10 (change qknzsrmz) — closed as out of scope*
 
 # [x] Can we move the status toaster to the bottom-right?

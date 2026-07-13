@@ -2,6 +2,7 @@ local Buffer = require("neojj.lib.buffer")
 local OplogUI = require("neojj.buffers.oplog.ui")
 local logger = require("neojj.logger")
 local oplog_parser = require("neojj.lib.jj.parsers.oplog_parser")
+local Separators = require("neojj.lib.jj.separators")
 
 -- Explicit machine-oriented template for `jj op log`, mirroring the commit-log
 -- template (see neojj.buffers.log.init). Rather than parse jj's fragile
@@ -15,16 +16,16 @@ local oplog_parser = require("neojj.lib.jj.parsers.oplog_parser")
 -- Each operation spans two lines: a header record and a description record. The
 -- graph gutter is kept so the gutter still renders.
 local OPLOG_TEMPLATE = table.concat({
-	'"\\x1e"',
+	Separators.RECORD_TEMPLATE,
 	"self.id().short(12)",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"self.user()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'self.time().start().format("%Y-%m-%d %H:%M:%S")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'self.time().end().format("%Y-%m-%d %H:%M:%S")',
 	'"\\n"',
-	'"\\x1e"',
+	Separators.RECORD_TEMPLATE,
 	'if(self.description() == "", "(no description)", self.description().first_line())',
 	'"\\n"',
 }, " ++ ")

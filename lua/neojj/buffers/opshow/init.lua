@@ -2,6 +2,7 @@ local Buffer = require("neojj.lib.buffer")
 local OpShowUI = require("neojj.buffers.opshow.ui")
 local opshow_parser = require("neojj.lib.jj.parsers.opshow_parser")
 local logger = require("neojj.logger")
+local Separators = require("neojj.lib.jj.separators")
 
 -- Explicit machine-oriented template for the *operation* half of `jj op show`
 -- (`-T`), mirroring the log/oplog templates. The operation header is emitted as
@@ -9,11 +10,11 @@ local logger = require("neojj.logger")
 -- description and `args:` metadata follow as plain prose lines (no separators),
 -- exactly as jj lays them out. See neojj.lib.jj.parsers.opshow_parser.
 local OPSHOW_OP_TEMPLATE = table.concat({
-	'"\\x1e"',
+	Separators.RECORD_TEMPLATE,
 	"self.id().short(12)",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"self.user()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'self.time().start().format("%Y-%m-%d %H:%M:%S")',
 	'"\\n"',
 	'if(self.description() != "", self.description() ++ "\\n", "")',
@@ -31,23 +32,23 @@ local OPSHOW_OP_TEMPLATE = table.concat({
 -- divergent commits carry a "/N" suffix (e.g. `ymlkrvkx/1`) that disambiguates
 -- which commit of a change is meant; the UI appends it to the change id.
 local OPSHOW_COMMIT_TEMPLATE = table.concat({
-	'"\\x1e"',
+	Separators.RECORD_TEMPLATE,
 	"change_id.shortest(8)",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"change_id.shortest(8).prefix()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(hidden || divergent, "/" ++ change_offset, "")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"commit_id.shortest(8)",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	"commit_id.shortest(8).prefix()",
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(empty, "empty", "")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(hidden, "hidden", "")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(conflict, "conflict", "")',
-	'"\\x1f"',
+	Separators.UNIT_TEMPLATE,
 	'if(description == "", "(no description set)", description.first_line())',
 }, " ++ ")
 

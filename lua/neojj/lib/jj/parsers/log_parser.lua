@@ -41,17 +41,16 @@
 ---Graph-only connector lines (e.g. `├─╮`) carry no record separator and are
 ---preserved as gutter for rendering.
 
-local M = {}
+local Separators = require("neojj.lib.jj.separators")
 
-local RECORD_SEP = "\30" -- 0x1e, separates graph gutter from templated payload
-local UNIT_SEP = "\31" -- 0x1f, separates fields within a header payload
+local M = {}
 
 ---Split a raw log line into its graph gutter and templated payload.
 ---@param line string A single line of jj log output
 ---@return string gutter The graph characters drawn to the left of the payload
 ---@return string|nil payload The templated payload, or nil if the line is graph-only
 local function split_gutter(line)
-	local gutter, payload = line:match("^(.-)" .. RECORD_SEP .. "(.*)$")
+	local gutter, payload = line:match("^(.-)" .. Separators.RECORD .. "(.*)$")
 	if gutter == nil then
 		-- No record separator: this is a pure graph/connector line.
 		return line, nil
@@ -91,9 +90,9 @@ function M.parse_log_output(output)
 			goto continue
 		end
 
-		if payload:find(UNIT_SEP, 1, true) then
+		if payload:find(Separators.UNIT, 1, true) then
 			-- Commit header line: fields are unit-separated.
-			local fields = vim.split(payload, UNIT_SEP, { plain = true })
+			local fields = vim.split(payload, Separators.UNIT, { plain = true })
 			local change_id = fields[1] or ""
 			local author = fields[2] or ""
 			local timestamp = fields[3] or ""
