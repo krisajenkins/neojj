@@ -50,3 +50,75 @@ higher-value version also adds a recent-command ring to `cli.lua` — the last N
 jj invocations with argv + exit code + stderr — which is what actually pins
 down failures like the `jj bookmark move --revision` bug. Complements the
 existing static `:checkhealth neojj` (`health.lua`) with the runtime half.
+
+# [ ] Extract the duplicated jj-action boilerplate shared by the buffers (M)
+
+`StatusBuffer` and `LogBuffer` carry byte-for-byte identical copies of five
+jj-action methods: `fix()`, `tug()`, `_run_push(opts)`, `push()`'s `_run_push`
+tail, and `fetch()`. Each repeats the same skeleton — `async.run` →
+`cli.X():cwd(self.repo.dir):call_async()` → `vim.schedule(notify success/failure
++ self:refresh())` — differing only in the builder, an optional "pending"
+notice, the success message, and the failure prefix. This is one layer *above*
+`cli.lua` (the command builders there are already DRY); the duplication is in
+the two buffer classes.
+
+Extract a small free-function helper — a new `lua/neojj/lib/jj/action.lua`
+exposing `M.run(view, opts)` — rather than a base class. The classes use
+hand-rolled metatables, and each action needs only `view.repo.dir` and
+`view:refresh()` from `self`, so a duck-typed helper avoids entangling the
+view-stack lifecycle code that a shared superclass would drag in.
+
+```lua
+---@param view table  -- StatusBuffer | LogBuffer (needs .repo.dir + :refresh())
+---@param opts { builder, pending?: string, success: string|fun(result):string, failure: string }
+function M.run(view, opts)
+    local async = require("plenary.async")
+    if opts.pending then vim.notify(opts.pending, vim.log.levels.INFO) end
+    async.run(function()
+        local result = opts.builder:cwd(view.repo.dir):call_async()
+        vim.schedule(function()
+            if result.success then
+                local msg = type(opts.success) == "function" and opts.success(result) or opts.success
+                vim.notify(msg, vim.log.levels.INFO)
+                view:refresh()
+            else
+                vim.notify(opts.failure .. ": " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
+            end
+        end)
+    end)
+end
+```
+
+Each call site collapses to a declaration (builder + messages):
+
+```lua
+function StatusBuffer:fix()
+    action.run(self, {
+        builder = require("neojj.lib.jj.cli").fix(),
+        success = function(result)
+            local msg = vim.trim(result.stderr or "")
+            return msg ~= "" and msg or "Ran jj fix"
+        end,
+        failure = "Failed to run jj fix",
+    })
+end
+
+function StatusBuffer:fetch()
+    action.run(self, {
+        builder = require("neojj.lib.jj.cli").git_fetch(),
+        pending = "Fetching from remote...",
+        success = "Fetched from remote",
+        failure = "Failed to fetch",
+    })
+end
+```
+
+`push()`'s `vim.ui.select` prompt stays as UI; only its `_run_push` async tail
+delegates to `action.run`, passing a pre-built `cli.git_push()` builder with the
+`bookmark`/`change` option already applied. The `success`-as-function hatch is
+what lets `fix()` return its trimmed-stderr message through the same helper.
+
+Possible follow-on (separate item, riskier): the view-stack/lifecycle plumbing
+(`show`/`show_split`/`show_tab`/`close`/`toggle_help`/`go_back`/`_push_frame`/
+`is_valid`/`get_handle`) is *also* duplicated across the two classes, but that
+touches `view_stack.lua` and is a bigger extraction — don't fold it in here.
