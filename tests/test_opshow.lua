@@ -1,16 +1,9 @@
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 
-local T = MiniTest.new_set({
-	hooks = {
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-			child.lua([[ expect = require('mini.test').expect ]])
-			child.lua([[ UI = require('neojj.buffers.opshow.ui') ]])
-		end,
-		post_once = child.stop,
-	},
+local T = new_set({
+	pre_case = function()
+		child.lua([[ UI = require('neojj.buffers.opshow.ui') ]])
+	end,
 })
 
 ---Op-show buffer creation yields a valid buffer keyed on the operation id.

@@ -1,6 +1,6 @@
 local T = MiniTest.new_set()
 local expect = MiniTest.expect
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 
 -- Test suite for annotation buffer
 T["AnnotateUI"] = MiniTest.new_set()
@@ -165,16 +165,11 @@ end
 
 -- Cursor parsing tests need a real buffer/window so component position tracking
 -- and cursor movement are exercised, so they run in a child Neovim.
-T["cursor"] = MiniTest.new_set({
-	hooks = {
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-			child.lua([[ expect = require('mini.test').expect ]])
-			-- Helper: render annotate output into a real buffer wrapped in a
-			-- minimal AnnotateBuffer, then return its change id at a given line.
-			child.lua([[
+T["cursor"] = new_set({
+	pre_case = function()
+		-- Helper: render annotate output into a real buffer wrapped in a
+		-- minimal AnnotateBuffer, then return its change id at a given line.
+		child.lua([[
 				local AnnotateUI = require('neojj.buffers.annotate.ui')
 				local AnnotateBuffer = require('neojj.buffers.annotate')
 				local Buffer = require('neojj.lib.buffer')
@@ -197,9 +192,7 @@ T["cursor"] = MiniTest.new_set({
 					return id
 				end
 			]])
-		end,
-		post_once = child.stop,
-	},
+	end,
 })
 
 T["cursor"]["no annotations line yields no change id"] = function()

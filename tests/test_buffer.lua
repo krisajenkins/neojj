@@ -1,25 +1,12 @@
----@type table
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 
 ---@type table
-local T = MiniTest.new_set({
-	hooks = {
-		---Pre-test hook to set up child Neovim instance
-		---@return nil
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-			child.lua([[ M = require('neojj') ]])
-			child.lua([[ M.setup() ]])
-			child.lua([[ expect = require('mini.test').expect ]])
-			child.lua([[ Buffer = require('neojj.lib.buffer') ]])
-		end,
-		---Post-test cleanup
-		---@return nil
-		post_once = child.stop,
-	},
+local T = new_set({
+	pre_case = function()
+		child.lua([[ M = require('neojj') ]])
+		child.lua([[ M.setup() ]])
+		child.lua([[ Buffer = require('neojj.lib.buffer') ]])
+	end,
 })
 
 ---A name that is a prefix of an existing buffer must NOT match it (regression

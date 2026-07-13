@@ -2,21 +2,14 @@
 -- Buffer:get_item_at_cursor. Both read the cursor via Buffer:get_cursor, which
 -- needs a VISIBLE window (it falls back to {1, 0} when the buffer isn't shown),
 -- so these are child-nvim tests that render into a real split window.
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 local expect = MiniTest.expect
 
-local T = MiniTest.new_set({
-	hooks = {
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-			child.o.lines = 40
-			child.o.columns = 120
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-			child.lua([[ expect = require('mini.test').expect ]])
-		end,
-		post_once = child.stop,
-	},
+local T = new_set({
+	pre_case = function()
+		child.o.lines = 40
+		child.o.columns = 120
+	end,
 })
 
 ---Render StatusUI.create_test_ui into a fresh Buffer shown in a split window.

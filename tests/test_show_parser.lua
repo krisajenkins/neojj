@@ -6,16 +6,7 @@ local expect = MiniTest.expect
 -- so we invoke it as a plain function with a nil `self`.
 local StatusBuffer = require("neojj.buffers.status")
 
-local function read_fixture(filename)
-	local path = "tests/fixtures/jj-outputs/" .. filename
-	local file = io.open(path, "r")
-	if not file then
-		error("Could not open fixture file: " .. path)
-	end
-	local content = file:read("*all")
-	file:close()
-	return content
-end
+local read_fixture = require("tests.helpers.fixtures").read_fixture
 
 local function parse(filename)
 	-- parse_show_output never touches `self`, so we invoke it statically with nil.

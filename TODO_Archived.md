@@ -5,6 +5,41 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change rxuuztwt)*
+
+# [x] Lift the repeated test scaffolding into shared helpers (S)
+
+A `jscpd` run over `tests/` (26 lua clones, 4.21%) showed scaffolding was the
+dominant test duplication, in two distinct clusters:
+
+1. **Child-Neovim setup (integration tests).** Thirteen files (`test_annotate`,
+   `test_buffer`, `test_commands`, `test_cursor`, `test_describe`,
+   `test_integration_workflows`, `test_log`, `test_main`, `test_oplog`,
+   `test_opshow`, `test_opshow_parser`, `test_status`, `test_ui`) opened with the
+   same ~10-line block: `MiniTest.new_child_neovim()` plus a `pre_case` hook
+   that `child.restart({ "-u", "scripts/minimal_init.lua" })`, sets
+   `readonly = false`, adds plenary to `rtp`, and installs
+   `expect = require('mini.test').expect`, with `post_once = child.stop`.
+
+2. **Parser-test setup (pure unit tests, no child).** `test_json_parser`,
+   `test_log_parser`, `test_oplog_parser`, `test_show_parser` and
+   `test_status_parser` each carried a byte-identical `read_fixture(filename)`
+   helper alongside the same `MiniTest.new_set()` / `expect` / `require(<parser>)`
+   preamble.
+
+Added `tests/helpers/child.lua` (a factory returning `local child, new_set =
+require("tests.helpers.child")()`; `new_set` installs the standard hooks and
+accepts optional `pre_case`/`post_once` to *append* extra setup or override
+cleanup — so the divergent cases still fit: `test_annotate`'s nested `cursor`
+set and `test_integration_workflows`'s custom `post_once`) and
+`tests/helpers/fixtures.lua` (the shared `read_fixture`). The 5 parser tests and
+13 child-Neovim tests now require the helpers instead of redefining the block.
+Net −92 lines; all 239 test cases still pass, `make format`/`make typecheck`
+clean. Left the jj-output `.txt` fixtures, the `CLAUDE.md` ↔ `test_describe.lua`
+doc clone, and the diffuse in-file setup blocks alone as agreed.
+
+---
+
 *Archived: 2026-07-13 (change rowvlkxv)*
 
 # [x] Extract the duplicated jj-action boilerplate shared by the buffers (M)

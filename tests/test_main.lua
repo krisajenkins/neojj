@@ -2,33 +2,22 @@
 local expect = MiniTest.expect
 
 ---@type table
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 
 ---@type table
-local T = MiniTest.new_set({
-	hooks = {
-		---Pre-test hook to set up child Neovim instance
-		---@return nil
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-			child.o.lines = 40
-			child.o.columns = 160
+local T = new_set({
+	pre_case = function()
+		child.o.lines = 40
+		child.o.columns = 160
 
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-			child.lua([[ M = require('neojj') ]])
-			child.lua([[ expect = require('mini.test').expect ]])
+		child.lua([[ M = require('neojj') ]])
 
-			-- Defines slurp_test_data(filename) -> string[] in the child nvim;
-			-- annotations kept as plain comments since the body lives in a string.
-			child.lua([=[ function slurp_test_data(filename)
+		-- Defines slurp_test_data(filename) -> string[] in the child nvim;
+		-- annotations kept as plain comments since the body lives in a string.
+		child.lua([=[ function slurp_test_data(filename)
           return vim.fn.readfile('tests/'..filename)
       end ]=])
-		end,
-		---Post-test cleanup
-		---@return nil
-		post_once = child.stop,
-	},
+	end,
 })
 
 ---Integration test for jj status functionality (requires JJ repo)

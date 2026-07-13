@@ -1,16 +1,11 @@
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 
-local T = MiniTest.new_set({
-	hooks = {
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-			child.lua([[ expect = require('mini.test').expect ]])
-			child.lua([[ P = require('neojj.lib.jj.parsers.opshow_parser') ]])
-			-- A representative templated `jj op show` capture: RS = \x1e leads the
-			-- operation record and each commit record; US = \x1f separates fields.
-			child.lua([=[
+local T = new_set({
+	pre_case = function()
+		child.lua([[ P = require('neojj.lib.jj.parsers.opshow_parser') ]])
+		-- A representative templated `jj op show` capture: RS = \x1e leads the
+		-- operation record and each commit record; US = \x1f separates fields.
+		child.lua([=[
 				RS = "\30"
 				US = "\31"
 				-- Commit record fields, in order: change_id, change_id_prefix,
@@ -28,9 +23,7 @@ local T = MiniTest.new_set({
 						.. US .. "" .. US .. "hidden" .. US .. "" .. US .. "Add op-show view",
 				}, "\n")
 			]=])
-		end,
-		post_once = child.stop,
-	},
+	end,
 })
 
 ---The operation-header record is parsed into id / user / time.

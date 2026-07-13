@@ -4,16 +4,7 @@ local expect = MiniTest.expect
 
 local status_parser = require("neojj.lib.jj.parsers.status_parser")
 
-local function read_fixture(filename)
-	local path = "tests/fixtures/jj-outputs/" .. filename
-	local file = io.open(path, "r")
-	if not file then
-		error("Could not open fixture file: " .. path)
-	end
-	local content = file:read("*all")
-	file:close()
-	return content
-end
+local read_fixture = require("tests.helpers.fixtures").read_fixture
 
 T["parse_working_copy_info"] = MiniTest.new_set()
 

@@ -73,44 +73,6 @@ trailing fields, `(empty)`-marker handling and a different display-line
 assembly, so unifying the loop bodies buys little for a lot of callback
 plumbing. Just extract the two leaf helpers.
 
-# [ ] Lift the repeated test scaffolding into shared helpers (S)
-
-A `jscpd` run over `tests/` (26 lua clones, 4.21%) shows scaffolding is the
-dominant test duplication, in two distinct clusters:
-
-1. **Child-Neovim setup (integration tests).** Thirteen files (`test_annotate`,
-   `test_buffer`, `test_commands`, `test_cursor`, `test_describe`,
-   `test_integration_workflows`, `test_log`, `test_main`, `test_oplog`,
-   `test_opshow`, `test_opshow_parser`, `test_status`, `test_ui`) open with the
-   same ~10-line block: `MiniTest.new_child_neovim()` plus a `pre_case` hook
-   that `child.restart({ "-u", "scripts/minimal_init.lua" })`, sets
-   `readonly = false`, adds plenary to `rtp`, and installs
-   `expect = require('mini.test').expect`, with `post_once = child.stop`.
-   → `tests/helpers/child.lua` returning the child plus a `new_set` factory that
-   installs the standard hooks, so each file drops to
-   `local child, new_set = require('tests.helpers.child')()`. Watch the couple
-   of files that add extra `pre_case` steps (e.g. `test_annotate.lua` restarts
-   inside a nested set) — the helper must allow *appending* hooks, not just
-   replacing them.
-
-2. **Parser-test setup (pure unit tests, no child).** `test_json_parser`,
-   `test_log_parser`, `test_oplog_parser`, `test_show_parser` and
-   `test_status_parser` each carry a byte-identical `read_fixture(filename)`
-   helper (opens `tests/fixtures/jj-outputs/<name>`, errors if missing, reads
-   all, closes) alongside the same `MiniTest.new_set()` / `expect` /
-   `require(<parser>)` preamble. → a shared `tests/helpers/fixtures.lua`
-   exposing `read_fixture`; each parser test requires it instead of redefining.
-
-Pure test-side, very low risk. Do both in one item.
-
-Not refactor targets (recording so they aren't "fixed"): the jj-output
-**fixtures** themselves duplicate 6-line preambles across `.txt` files (11%),
-but fixtures are standalone sample data — deduping them hurts readability, leave
-them. And the 30-line `CLAUDE.md` ↔ `test_describe.lua` clone is documentation
-quoting a real test pattern, not code to share. There are also a few in-file
-repeated setup/assertion blocks (e.g. `test_describe.lua`, `test_oplog.lua`) —
-diffuse local-helper cleanups, not worth a dedicated pass.
-
 # [ ] Share a `ViewBuffer` base for the stack-frame buffers (L)
 
 The view-stack / lifecycle plumbing is duplicated across all four stack-frame

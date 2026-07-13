@@ -2,23 +2,16 @@
 local expect = MiniTest.expect
 
 ---@type table
-local child = MiniTest.new_child_neovim()
+local child, new_set = require("tests.helpers.child")()
 
 ---@type table
-local T = MiniTest.new_set({
-	hooks = {
-		---Pre-test hook to set up child Neovim instance
-		---@return nil
-		pre_case = function()
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			child.bo.readonly = false
-			child.o.lines = 40
-			child.o.columns = 120
+local T = new_set({
+	pre_case = function()
+		child.o.lines = 40
+		child.o.columns = 120
 
-			child.cmd([[ set rtp+=deps/plenary.nvim ]])
-
-			-- Set up the mock CLI before loading neojj
-			child.lua([[
+		-- Set up the mock CLI before loading neojj
+		child.lua([[
 				-- Get absolute paths
 				local cwd = vim.fn.getcwd()
 				local fixtures_dir = cwd .. '/tests/fixtures/jj-outputs'
@@ -56,32 +49,31 @@ local T = MiniTest.new_set({
 				end
 			]])
 
-			-- Now load neojj (it will use our mock CLI)
-			child.lua([[ M = require('neojj') ]])
-			child.lua([[ M.setup() ]])
-			child.lua([[ expect = require('mini.test').expect ]])
+		-- Now load neojj (it will use our mock CLI)
+		child.lua([[ M = require('neojj') ]])
+		child.lua([[ M.setup() ]])
 
-			-- Pin the per-repo buffer namespace to a constant.
-			--
-			-- Buffer names are namespaced per repo: they embed a short sha256 hash
-			-- of the repo root path, and that name is shown in the window statusline
-			-- captured by the reference screenshots. The hash is *path*-dependent, so
-			-- it varies by machine and even by platform: on macOS `/tmp` is a symlink
-			-- to `/private/tmp` (and getcwd() resolves it), so the same mock repo
-			-- hashes differently under Linux CI than on a developer's Mac — the
-			-- screenshots could then never match across both. Stubbing the namespace
-			-- to a fixed value makes the captured statusline identical everywhere.
-			-- (repo_namespace's real behaviour is covered by tests/test_util.lua.)
-			child.lua([[
+		-- Pin the per-repo buffer namespace to a constant.
+		--
+		-- Buffer names are namespaced per repo: they embed a short sha256 hash
+		-- of the repo root path, and that name is shown in the window statusline
+		-- captured by the reference screenshots. The hash is *path*-dependent, so
+		-- it varies by machine and even by platform: on macOS `/tmp` is a symlink
+		-- to `/private/tmp` (and getcwd() resolves it), so the same mock repo
+		-- hashes differently under Linux CI than on a developer's Mac — the
+		-- screenshots could then never match across both. Stubbing the namespace
+		-- to a fixed value makes the captured statusline identical everywhere.
+		-- (repo_namespace's real behaviour is covered by tests/test_util.lua.)
+		child.lua([[
 				local util = require('neojj.lib.jj.util')
 				util.repo_namespace = function() return 'neojj_integration_test_repo' end
 			]])
 
-			-- Provide a pure-Lua clipboard provider so the `+` (system clipboard)
-			-- register works headlessly. CI Linux has no clipboard tool (xclip/
-			-- wl-clipboard), so without this vim.fn.setreg("+", ...) silently no-ops
-			-- and the yank test reads back an empty string.
-			child.lua([[
+		-- Provide a pure-Lua clipboard provider so the `+` (system clipboard)
+		-- register works headlessly. CI Linux has no clipboard tool (xclip/
+		-- wl-clipboard), so without this vim.fn.setreg("+", ...) silently no-ops
+		-- and the yank test reads back an empty string.
+		child.lua([[
 				local clip = {}
 				vim.g.clipboard = {
 					name = "neojj-test-clipboard",
@@ -96,9 +88,9 @@ local T = MiniTest.new_set({
 				}
 			]])
 
-			-- Create a fake repo directory for testing at a fixed path so the mock
-			-- repository has a real `.jj` for find_jj_dir/get_root to resolve.
-			child.lua([[
+		-- Create a fake repo directory for testing at a fixed path so the mock
+		-- repository has a real `.jj` for find_jj_dir/get_root to resolve.
+		child.lua([[
 				local mock_repo_dir = vim.fn.fnamemodify(vim.fn.resolve('/tmp'), ':p') .. 'neojj_integration_test_repo'
 				vim.fn.delete(mock_repo_dir, 'rf')
 				vim.fn.mkdir(mock_repo_dir, 'p')
@@ -108,20 +100,19 @@ local T = MiniTest.new_set({
 				vim.cmd('cd ' .. mock_repo_dir)
 				_G.mock_repo_dir = mock_repo_dir
 			]])
-		end,
+	end,
 
-		---Post-test cleanup
-		---@return nil
-		post_once = function()
-			-- Clean up temp directory
-			child.lua([[
+	---Post-test cleanup
+	---@return nil
+	post_once = function()
+		-- Clean up temp directory
+		child.lua([[
 				if _G.mock_repo_dir then
 					vim.fn.delete(_G.mock_repo_dir, 'rf')
 				end
 			]])
-			child.stop()
-		end,
-	},
+		child.stop()
+	end,
 })
 
 ---Test basic status display workflow
