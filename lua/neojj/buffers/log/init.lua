@@ -562,24 +562,14 @@ function LogBuffer:create_new_change()
 		return
 	end
 
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	async.run(function()
-		-- Create new change after the selected revision
-		local builder = cli.new():arg(item.change_id):cwd(self.repo.dir)
-		local result = builder:call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Created new change after " .. item.change_id:sub(1, 8), vim.log.levels.INFO)
-				-- Refresh the log buffer
-				self:refresh()
-			else
-				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	-- Create new change after the selected revision
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").new():arg(item.change_id),
+		success = function()
+			return "Created new change after " .. item.change_id:sub(1, 8)
+		end,
+		failure = "Failed to create new change",
+	})
 end
 
 ---Edit the change at cursor, making it the working copy (jj's checkout)
@@ -590,24 +580,14 @@ function LogBuffer:edit_change()
 		return
 	end
 
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	async.run(function()
-		-- Make the selected revision the working copy
-		local builder = cli.edit():arg(item.change_id):cwd(self.repo.dir)
-		local result = builder:call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Now editing " .. item.change_id:sub(1, 8), vim.log.levels.INFO)
-				-- Refresh the log buffer
-				self:refresh()
-			else
-				vim.notify("Failed to edit change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	-- Make the selected revision the working copy
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").edit():arg(item.change_id),
+		success = function()
+			return "Now editing " .. item.change_id:sub(1, 8)
+		end,
+		failure = "Failed to edit change",
+	})
 end
 
 ---Run `jj fix` on the working copy (formats/fixes the `@` change). This always

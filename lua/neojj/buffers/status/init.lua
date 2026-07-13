@@ -869,27 +869,17 @@ end
 
 ---Create a new change from the current commit
 function StatusBuffer:create_new_change()
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
+	-- Create new change from the current revision (or working copy if no revision specified)
+	local builder = require("neojj.lib.jj.cli").new()
+	if self.revision then
+		builder:arg(self.revision)
+	end
 
-	async.run(function()
-		-- Create new change from the current revision (or working copy if no revision specified)
-		local builder = cli.new():cwd(self.repo.dir)
-		if self.revision then
-			builder:arg(self.revision)
-		end
-		local result = builder:call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Created new change", vim.log.levels.INFO)
-				-- Refresh the status buffer
-				self:refresh()
-			else
-				vim.notify("Failed to create new change: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = builder,
+		success = "Created new change",
+		failure = "Failed to create new change",
+	})
 end
 
 return StatusBuffer

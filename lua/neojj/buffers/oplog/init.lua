@@ -1,4 +1,5 @@
 local Buffer = require("neojj.lib.buffer")
+local action = require("neojj.lib.jj.action")
 local OplogUI = require("neojj.buffers.oplog.ui")
 local logger = require("neojj.logger")
 local oplog_parser = require("neojj.lib.jj.parsers.oplog_parser")
@@ -341,21 +342,13 @@ function OplogBuffer:restore_operation_at_cursor()
 		return
 	end
 
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	async.run(function()
-		local result = cli.op_restore():arg(op_id):cwd(self.repo.dir):call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Restored to operation " .. op_id, vim.log.levels.INFO)
-				self:refresh()
-			else
-				vim.notify("Failed to restore operation: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").op_restore():arg(op_id),
+		success = function()
+			return "Restored to operation " .. op_id
+		end,
+		failure = "Failed to restore operation",
+	})
 end
 
 ---Drill into the operation at the cursor, opening a new op-show view
@@ -378,21 +371,11 @@ function OplogBuffer:undo()
 		return
 	end
 
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	async.run(function()
-		local result = cli.undo():cwd(self.repo.dir):call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Undid the last operation", vim.log.levels.INFO)
-				self:refresh()
-			else
-				vim.notify("Failed to undo: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").undo(),
+		success = "Undid the last operation",
+		failure = "Failed to undo",
+	})
 end
 
 ---Yank the operation ID at the cursor.
