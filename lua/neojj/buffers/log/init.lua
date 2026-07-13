@@ -89,6 +89,7 @@ end
 ---@field state table Current log state
 ---@field options table Log options (e.g. revset/limit) passed at construction
 ---@field expanded_revisions table<string, { description: string[], stats: string[] }> Cached details per expanded revision, keyed by change id (absent when collapsed)
+---@field _cursor_initialized? boolean Set once the cursor has been placed on the working-copy (@) row on first render
 local LogBuffer = setmetatable({}, { __index = ViewBuffer })
 LogBuffer.__index = LogBuffer
 LogBuffer.frame_name = "log"
@@ -385,6 +386,32 @@ function LogBuffer:render()
 	end
 
 	self.buffer:render(components)
+
+	-- On the first render after load, drop the cursor onto the working-copy (@)
+	-- change so the log opens focused on "you are here" rather than the header.
+	-- Guarded by a flag so later refreshes (and re-showing the kept-alive buffer
+	-- from the view stack) preserve wherever the user has since moved.
+	if not self._cursor_initialized then
+		self._cursor_initialized = self:_focus_working_copy()
+	end
+end
+
+---Move the cursor to the working-copy (@) change, if it is present in the
+---rendered log. The working-copy row is the interactive commit whose graph
+---gutter carries jj's `@` glyph.
+---@return boolean placed True if an @ row was found and the cursor moved there
+function LogBuffer:_focus_working_copy()
+	for line_idx, comp in pairs(self.buffer.component_positions or {}) do
+		if comp:is_interactive() then
+			local item = comp:get_item()
+			if item and item.graph and item.graph:find("@", 1, true) then
+				-- component_positions is 0-indexed; set_cursor wants 1-indexed.
+				self.buffer:set_cursor(line_idx + 1, 0)
+				return true
+			end
+		end
+	end
+	return false
 end
 
 -- Lifecycle plumbing (_push_frame, go_back, show, show_split, show_tab, close)

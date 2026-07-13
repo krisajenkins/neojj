@@ -276,4 +276,58 @@ T.test_log_metadata_field_highlights = function()
 	]])
 end
 
+---The log view should open with the cursor on the working-copy (@) change, not
+---on the header line above it.
+---@return nil
+T.test_log_cursor_starts_on_working_copy = function()
+	child.lua([[
+		local LogBuffer = require('neojj.buffers.log')
+		local Highlights = require('neojj.highlights')
+		Highlights.setup()
+
+		local mock_repo = {
+			dir = vim.fn.getcwd(),
+			is_jj_repo = function() return true end,
+		}
+
+		local log_buffer = LogBuffer.new(mock_repo)
+		log_buffer.buffer:open()
+
+		-- @ is the SECOND revision here, so a correct implementation must move the
+		-- cursor past the header AND the first (non-@) commit to land on it.
+		log_buffer.state = {
+			revisions = {},
+			raw_lines = {
+				"○  \030knsrwpnn user@example.com 2025-07-14 20:58:50 1e062938",
+				"│  A regular commit above the working copy.",
+				"@  \030sqmvkywl user@example.com 2025-07-14 21:06:06 f35b8f36",
+				"│  The working-copy change.",
+			},
+			graph_data = {
+				[1] = { graph = "○  ", revision = {
+					change_id = "knsrwpnn", author = "user@example.com",
+					timestamp = "2025-07-14 20:58:50", commit_id = "1e062938",
+					bookmarks = {}, conflict = false, graph = "○  ",
+				} },
+				[2] = { graph = "│  ", revision = nil },
+				[3] = { graph = "@  ", revision = {
+					change_id = "sqmvkywl", author = "user@example.com",
+					timestamp = "2025-07-14 21:06:06", commit_id = "f35b8f36",
+					bookmarks = {}, conflict = false, graph = "@  ",
+				} },
+				[4] = { graph = "│  ", revision = nil },
+			},
+		}
+
+		log_buffer:render()
+
+		-- The cursor should have landed on the @ commit row: the item under the
+		-- cursor must be the working-copy revision.
+		local item = log_buffer.buffer:get_item_at_cursor()
+		expect.equality(item ~= nil, true)
+		expect.equality(item.change_id, "sqmvkywl")
+		expect.equality(log_buffer._cursor_initialized, true)
+	]])
+end
+
 return T
