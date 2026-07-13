@@ -16,10 +16,6 @@ require("neojj").setup({
 })
 ```
 
-# [ ] For `jj fix`, I'd like to see the response message in the notification window
-
-`jj fix` prints `Fixed 0 commits of 3 checked.`, and that's quite interesting.
-
 # [ ] New with multiple parents — merge (S/M)
 
 Extends the existing `n`. In the log buffer, a mark-then-`n` flow runs `jj new

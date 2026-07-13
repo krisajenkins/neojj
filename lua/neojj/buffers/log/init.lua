@@ -620,7 +620,13 @@ function LogBuffer:fix()
 
 		vim.schedule(function()
 			if result.success then
-				vim.notify("Ran jj fix", vim.log.levels.INFO)
+				-- jj fix reports its outcome (e.g. "Fixed 0 commits of 3 checked.")
+				-- on stderr; surface it, falling back to a generic confirmation.
+				local message = vim.trim(result.stderr or "")
+				if message == "" then
+					message = "Ran jj fix"
+				end
+				vim.notify(message, vim.log.levels.INFO)
 				self:refresh()
 			else
 				vim.notify("Failed to run jj fix: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)

@@ -5,6 +5,14 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change spznvvtv)*
+
+# [x] For `jj fix`, I'd like to see the response message in the notification window
+
+`jj fix` prints `Fixed 0 commits of 3 checked.`, and that's quite interesting.
+
+---
+
 *Archived: 2026-07-13 (change stqxkuly)*
 
 # [x] Is it worth extracting this "\\x1e"/"\\x1f" pattern into a helper?
