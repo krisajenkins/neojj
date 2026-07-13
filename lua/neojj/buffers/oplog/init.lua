@@ -1,4 +1,5 @@
 local Buffer = require("neojj.lib.buffer")
+local ViewBuffer = require("neojj.lib.view_buffer")
 local action = require("neojj.lib.jj.action")
 local OplogUI = require("neojj.buffers.oplog.ui")
 local logger = require("neojj.logger")
@@ -31,13 +32,14 @@ local OPLOG_TEMPLATE = table.concat({
 	'"\\n"',
 }, " ++ ")
 
----@class OplogBuffer
+---@class OplogBuffer : ViewBuffer
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
 ---@field state table Current oplog state
 ---@field options table Oplog options (e.g. limit) passed at construction
-local OplogBuffer = {}
+local OplogBuffer = setmetatable({}, { __index = ViewBuffer })
 OplogBuffer.__index = OplogBuffer
+OplogBuffer.frame_name = "oplog"
 
 -- Per-repo instance tracking. Keyed by the normalized repo dir so that oplog
 -- views for two different repos coexist instead of sharing one instance.
@@ -50,13 +52,7 @@ local instances = {}
 ---map or scanning buffers by name.
 ---@return OplogBuffer[] instances Valid oplog buffer instances
 function OplogBuffer.list_instances()
-	local result = {}
-	for _, inst in pairs(instances) do
-		if inst:is_valid() then
-			table.insert(result, inst)
-		end
-	end
-	return result
+	return ViewBuffer.list_valid(instances)
 end
 
 ---Create or get existing oplog buffer
@@ -68,78 +64,70 @@ function OplogBuffer.new(repo, options)
 
 	local repo_key = vim.fs.normalize(repo.dir)
 
-	-- Return existing instance if available for this repo
-	if instances[repo_key] and instances[repo_key]:is_valid() then
-		instances[repo_key].options = vim.tbl_extend("force", instances[repo_key].options or {}, options or {})
-		return instances[repo_key]
-	end
-
-	local new_instance = setmetatable({
-		repo = repo,
-		state = {
-			operations = {},
-			graph_data = {},
-		},
-		options = options,
-		show_help = false,
-	}, OplogBuffer)
-
-	-- Create buffer with a per-repo namespaced name (reuse if exists).
-	local util = require("neojj.lib.jj.util")
-	local buffer = Buffer.create({
-		name = "NeoJJ Operation Log (" .. util.repo_namespace(repo) .. ")",
-		filetype = "neojj-oplog",
-		kind = "replace",
-		modifiable = false,
-		readonly = true,
-		-- Stay alive when a drilled-into frame replaces us in the window, so the
-		-- view stack can reveal us again on pop.
-		bufhidden = "hide",
-		cwd = repo.dir,
-		context_highlight = true,
-		active_item_highlight = true,
-		foldmarkers = false,
-		disable_line_numbers = true,
-		disable_relative_line_numbers = true,
-		disable_signs = false,
-		spell_check = false,
-		autocmds = {
-			{
-				event = "BufWinEnter",
-				callback = function()
-					vim.cmd("setlocal cursorline")
-				end,
+	return ViewBuffer.get_or_create(instances, repo_key, function()
+		local new_instance = setmetatable({
+			repo = repo,
+			state = {
+				operations = {},
+				graph_data = {},
 			},
-		},
-		render = function()
-			return nil
-		end,
-		-- Drop the module-level instance when the buffer is wiped so a later
-		-- OplogBuffer.new for the same repo rebuilds a fresh instance.
-		on_detach = function()
-			instances[repo_key] = nil
-			-- Tear the auto-refresh watcher down once no view for this root remains.
-			require("neojj.lib.watcher").cleanup(repo:get_root())
-		end,
-	})
+			options = options,
+			show_help = false,
+		}, OplogBuffer)
 
-	new_instance.buffer = buffer
+		-- Create buffer with a per-repo namespaced name (reuse if exists).
+		local util = require("neojj.lib.jj.util")
+		local buffer = Buffer.create({
+			name = "NeoJJ Operation Log (" .. util.repo_namespace(repo) .. ")",
+			filetype = "neojj-oplog",
+			kind = "replace",
+			modifiable = false,
+			readonly = true,
+			-- Stay alive when a drilled-into frame replaces us in the window, so the
+			-- view stack can reveal us again on pop.
+			bufhidden = "hide",
+			cwd = repo.dir,
+			context_highlight = true,
+			active_item_highlight = true,
+			foldmarkers = false,
+			disable_line_numbers = true,
+			disable_relative_line_numbers = true,
+			disable_signs = false,
+			spell_check = false,
+			autocmds = {
+				{
+					event = "BufWinEnter",
+					callback = function()
+						vim.cmd("setlocal cursorline")
+					end,
+				},
+			},
+			render = function()
+				return nil
+			end,
+			-- Drop the module-level instance when the buffer is wiped so a later
+			-- OplogBuffer.new for the same repo rebuilds a fresh instance.
+			on_detach = function()
+				instances[repo_key] = nil
+				-- Tear the auto-refresh watcher down once no view for this root remains.
+				require("neojj.lib.watcher").cleanup(repo:get_root())
+			end,
+		})
 
-	new_instance:_setup_mappings()
+		new_instance.buffer = buffer
 
-	instances[repo_key] = new_instance
+		new_instance:_setup_mappings()
 
-	return new_instance
+		return new_instance
+	end, function(existing)
+		existing.options = vim.tbl_extend("force", existing.options or {}, options or {})
+	end)
 end
 
 ---Setup oplog-specific key mappings
 function OplogBuffer:_setup_mappings()
 	-- Pop one frame off the view stack, revealing the view drilled down from.
-	for _, key in ipairs({ "q", "<esc>", "<c-c>" }) do
-		self.buffer:map("n", key, function()
-			self:go_back()
-		end, { desc = "Back (pop view stack) / close oplog" })
-	end
+	self:_map_back_keys()
 
 	-- Drill into the operation at cursor (jj op show <op_id>).
 	self.buffer:map("n", "<cr>", function()
@@ -269,57 +257,8 @@ function OplogBuffer:render()
 	self.buffer:render(components)
 end
 
----Register this view as the top frame of the drill-down view stack.
-function OplogBuffer:_push_frame()
-	-- Arm the external-change watcher for this repo. _push_frame is the single
-	-- choke point every display path routes through, and ensure() is idempotent.
-	require("neojj.lib.watcher").ensure(self.repo)
-	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
-		teardown = function()
-			self:close()
-		end,
-	})
-end
-
----Go back: pop this frame off the view stack, revealing the frame beneath.
-function OplogBuffer:go_back()
-	local view_stack = require("neojj.lib.view_stack")
-	local top = view_stack.top()
-	if top and top.bufnr == self.buffer:get_handle() then
-		view_stack.pop()
-	else
-		self.buffer:close()
-	end
-end
-
----Show the oplog buffer
----@param kind? string Display mode override
-function OplogBuffer:show(kind)
-	self.buffer:open(kind)
-	self:_push_frame()
-	self:refresh()
-end
-
----Show the oplog buffer in a split
----@param split_type? string Split type ("horizontal" or "vertical")
-function OplogBuffer:show_split(split_type)
-	local kind = split_type == "vertical" and "vsplit" or "split"
-	self.buffer:open(kind)
-	self:_push_frame()
-	self:refresh()
-end
-
----Show the oplog buffer in a new tab
-function OplogBuffer:show_tab()
-	self.buffer:open("tab")
-	self:_push_frame()
-	self:refresh()
-end
-
----Close the oplog buffer
-function OplogBuffer:close()
-	self.buffer:close()
-end
+-- Lifecycle plumbing (_push_frame, go_back, show, show_split, show_tab, close)
+-- is inherited from ViewBuffer.
 
 ---Toggle help display
 function OplogBuffer:toggle_help()
@@ -390,16 +329,6 @@ function OplogBuffer:yank_operation_id_at_cursor()
 	vim.notify("Copied operation ID: " .. item.operation_id, vim.log.levels.INFO)
 end
 
----Check if buffer is valid
----@return boolean valid True if buffer is valid
-function OplogBuffer:is_valid()
-	return self.buffer:is_valid()
-end
-
----Get buffer handle
----@return number handle Buffer handle
-function OplogBuffer:get_handle()
-	return self.buffer:get_handle()
-end
+-- is_valid / get_handle are inherited from ViewBuffer.
 
 return OplogBuffer

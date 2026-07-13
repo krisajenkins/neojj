@@ -5,6 +5,39 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change rswptxky)*
+
+# [x] Share a `ViewBuffer` base for the stack-frame buffers (L)
+
+The view-stack / lifecycle plumbing was duplicated across all four stack-frame
+buffer classes (`status`, `log`, `oplog`, `opshow`): `go_back`, `show`,
+`show_split`, `show_tab`, `close`, `is_valid`, `get_handle` were byte-identical
+modulo the class name, `_push_frame` was identical in status/log/oplog, and the
+per-view singleton bookkeeping (`instances`, `list_instances`, the `.new()`
+prologue + `on_detach`) plus the `fix`/`tug`/`_run_push`/`push`/`fetch`
+jj-action wrappers and their keymap rows were copied between StatusBuffer and
+LogBuffer.
+
+Extracted `lua/neojj/lib/view_buffer.lua` as a shared base; all four stack-frame
+classes now `setmetatable({}, { __index = ViewBuffer })` and inherit the
+lifecycle, the singleton helpers (`list_valid` / `get_or_create(map, key,
+factory, on_reuse)` — the factory still owns each buffer's full `Buffer.create`
+config and `on_detach`), the shared back/jj-action keymap registrations, and the
+jj-action wrappers. Each subclass supplies only its own factory, `refresh`,
+`frame_name`, view-specific keymaps and small hooks: opshow sets
+`arms_watcher = false` (inherited `_push_frame` skips the watcher), and `push`
+reads a per-view `push_change_label` + `_push_change_target()` (status returns
+`self.revision or "@"`; log returns the cursor's change or aborts). The
+transient describe/annotate buffers were deliberately left off the base — they
+aren't frames and their show/close paths differ fundamentally.
+
+Net −178 lines. `---@class … : ViewBuffer` inheritance annotations were added so
+lua-language-server resolves the inherited methods/fields. All 239 test cases
+pass; `make format`/`typecheck` clean; a jscpd re-run confirms the targeted
+lifecycle/singleton/jj-action clone cluster is eliminated.
+
+---
+
 *Archived: 2026-07-13 (change rxuuztwt)*
 
 # [x] Lift the repeated test scaffolding into shared helpers (S)

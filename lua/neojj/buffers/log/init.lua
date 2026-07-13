@@ -1,4 +1,5 @@
 local Buffer = require("neojj.lib.buffer")
+local ViewBuffer = require("neojj.lib.view_buffer")
 local LogUI = require("neojj.buffers.log.ui")
 local logger = require("neojj.logger")
 local log_parser = require("neojj.lib.jj.parsers.log_parser")
@@ -82,14 +83,18 @@ local function local_bookmark_names(item)
 	return names
 end
 
----@class LogBuffer
+---@class LogBuffer : ViewBuffer
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
 ---@field state table Current log state
 ---@field options table Log options (e.g. revset/limit) passed at construction
 ---@field expanded_revisions table<string, { description: string[], stats: string[] }> Cached details per expanded revision, keyed by change id (absent when collapsed)
-local LogBuffer = {}
+local LogBuffer = setmetatable({}, { __index = ViewBuffer })
 LogBuffer.__index = LogBuffer
+LogBuffer.frame_name = "log"
+-- Third `jj git push` menu choice: the log view pushes a bookmark for the change
+-- under the cursor (see LogBuffer:_push_change_target).
+LogBuffer.push_change_label = "Change at cursor (--change)"
 
 -- Per-repo instance tracking. Keyed by the normalized repo dir so that log
 -- views for two different repos coexist instead of sharing one instance (and
@@ -103,13 +108,7 @@ local instances = {}
 ---map or scanning buffers by name.
 ---@return LogBuffer[] instances Valid log buffer instances
 function LogBuffer.list_instances()
-	local result = {}
-	for _, inst in pairs(instances) do
-		if inst:is_valid() then
-			table.insert(result, inst)
-		end
-	end
-	return result
+	return ViewBuffer.list_valid(instances)
 end
 
 ---Create or get existing log buffer
@@ -121,98 +120,89 @@ function LogBuffer.new(repo, options)
 
 	local repo_key = vim.fs.normalize(repo.dir)
 
-	-- Return existing instance if available for this repo
-	if instances[repo_key] and instances[repo_key]:is_valid() then
+	return ViewBuffer.get_or_create(instances, repo_key, function()
+		local new_instance = setmetatable({
+			repo = repo,
+			state = {
+				revisions = {},
+				graph_data = {},
+			},
+			options = options,
+			show_help = false,
+			expanded_revisions = {},
+		}, LogBuffer)
+
+		-- Create buffer with a per-repo namespaced name (reuse if exists). Two
+		-- different repos must not share the same underlying buffer.
+		local util = require("neojj.lib.jj.util")
+		local buffer = Buffer.create({
+			name = "NeoJJ Log (" .. util.repo_namespace(repo) .. ")",
+			filetype = "neojj-log",
+			kind = "replace", -- Default to replace current view
+			modifiable = false,
+			readonly = true,
+			-- Stay alive when a drilled-into frame (a change's status view) replaces us
+			-- in the window, so the view stack can reveal us again on pop.
+			bufhidden = "hide",
+			cwd = repo.dir,
+			context_highlight = true,
+			active_item_highlight = true,
+			foldmarkers = false,
+			disable_line_numbers = true,
+			disable_relative_line_numbers = true,
+			disable_signs = false,
+			spell_check = false,
+			autocmds = {
+				{
+					event = "BufWinEnter",
+					callback = function()
+						vim.cmd("setlocal cursorline")
+					end,
+				},
+				{
+					event = "BufWinLeave",
+					callback = function()
+						-- Save cursor position or state if needed
+					end,
+				},
+			},
+			render = function()
+				-- This will be called during buffer:open()
+				-- Return nil here since we'll call refresh separately
+				return nil
+			end,
+			after = function()
+				-- Additional setup after buffer is displayed
+			end,
+			-- Drop the module-level instance when the buffer is wiped so a later
+			-- LogBuffer.new for the same repo rebuilds a fresh instance instead of
+			-- handing back one whose underlying buffer is gone.
+			on_detach = function()
+				instances[repo_key] = nil
+				-- Tear the auto-refresh watcher down once no view for this root remains.
+				require("neojj.lib.watcher").cleanup(repo:get_root())
+			end,
+		})
+
+		new_instance.buffer = buffer
+
+		-- Add log-specific key mappings
+		new_instance:_setup_mappings()
+
+		return new_instance
+	end, function(existing)
 		-- Merge (rather than replace) options on the existing instance so that a
 		-- reuse which omits a previously-configured limit/revset keeps the old
 		-- value instead of silently discarding it.
-		instances[repo_key].options = vim.tbl_extend("force", instances[repo_key].options or {}, options or {})
-		return instances[repo_key]
-	end
-
-	local new_instance = setmetatable({
-		repo = repo,
-		state = {
-			revisions = {},
-			graph_data = {},
-		},
-		options = options,
-		show_help = false,
-		expanded_revisions = {},
-	}, LogBuffer)
-
-	-- Create buffer with a per-repo namespaced name (reuse if exists). Two
-	-- different repos must not share the same underlying buffer.
-	local util = require("neojj.lib.jj.util")
-	local buffer = Buffer.create({
-		name = "NeoJJ Log (" .. util.repo_namespace(repo) .. ")",
-		filetype = "neojj-log",
-		kind = "replace", -- Default to replace current view
-		modifiable = false,
-		readonly = true,
-		-- Stay alive when a drilled-into frame (a change's status view) replaces us
-		-- in the window, so the view stack can reveal us again on pop.
-		bufhidden = "hide",
-		cwd = repo.dir,
-		context_highlight = true,
-		active_item_highlight = true,
-		foldmarkers = false,
-		disable_line_numbers = true,
-		disable_relative_line_numbers = true,
-		disable_signs = false,
-		spell_check = false,
-		autocmds = {
-			{
-				event = "BufWinEnter",
-				callback = function()
-					vim.cmd("setlocal cursorline")
-				end,
-			},
-			{
-				event = "BufWinLeave",
-				callback = function()
-					-- Save cursor position or state if needed
-				end,
-			},
-		},
-		render = function()
-			-- This will be called during buffer:open()
-			-- Return nil here since we'll call refresh separately
-			return nil
-		end,
-		after = function()
-			-- Additional setup after buffer is displayed
-		end,
-		-- Drop the module-level instance when the buffer is wiped so a later
-		-- LogBuffer.new for the same repo rebuilds a fresh instance instead of
-		-- handing back one whose underlying buffer is gone.
-		on_detach = function()
-			instances[repo_key] = nil
-			-- Tear the auto-refresh watcher down once no view for this root remains.
-			require("neojj.lib.watcher").cleanup(repo:get_root())
-		end,
-	})
-
-	new_instance.buffer = buffer
-
-	-- Add log-specific key mappings
-	new_instance:_setup_mappings()
-
-	-- Store instance for reuse
-	instances[repo_key] = new_instance
-
-	return new_instance
+		existing.options = vim.tbl_extend("force", existing.options or {}, options or {})
+	end)
 end
 
 ---Setup log-specific key mappings
 function LogBuffer:_setup_mappings()
 	-- Pop one frame off the view stack, revealing the view drilled down from.
 	-- Only when this view is the last frame does it close.
-	for _, key in ipairs({ "q", "<esc>", "<c-c>" }) do
-		self.buffer:map("n", key, function()
-			self:go_back()
-		end, { desc = "Back (pop view stack) / close log" })
-	end
+	self:_map_back_keys()
 
 	-- Refresh mapping
 	self.buffer:map("n", "r", function()
@@ -258,30 +248,13 @@ function LogBuffer:_setup_mappings()
 		self:edit_change()
 	end, { desc = "Edit change at cursor (make it the working copy)" })
 
-	-- Run jj fix on the working copy
-	self.buffer:map("n", "f", function()
-		self:fix()
-	end, { desc = "Run jj fix (format working copy)" })
-
-	-- Tug: advance the closest bookmark up to @
-	self.buffer:map("n", "t", function()
-		self:tug()
-	end, { desc = "Tug: advance closest bookmark to @" })
+	-- Shared jj-action keys: f=fix, t=tug, P=push, p=fetch.
+	self:_map_jj_actions()
 
 	-- Bookmark management menu (create/move/delete/rename/track/untrack)
 	self.buffer:map("n", "b", function()
 		self:bookmark_menu()
 	end, { desc = "Bookmark management" })
-
-	-- Push to the remote (jj git push)
-	self.buffer:map("n", "P", function()
-		self:push()
-	end, { desc = "Push to remote (jj git push)" })
-
-	-- Pull (fetch) from the remote (jj git fetch)
-	self.buffer:map("n", "p", function()
-		self:fetch()
-	end, { desc = "Pull from remote (jj git fetch)" })
 
 	-- Yank change ID
 	self.buffer:map("n", "y", function()
@@ -414,63 +387,8 @@ function LogBuffer:render()
 	self.buffer:render(components)
 end
 
----Register this view as the top frame of the drill-down view stack.
----
----Called from every display entry point so navigating into the log view (from
----a status view, or via `:JJ log`) stacks it as a live frame. Uses the same
----buffer, so revisiting the view moves the existing frame to the top rather
----than duplicating it.
-function LogBuffer:_push_frame()
-	-- Arm the external-change watcher for this repo. _push_frame is the single
-	-- choke point every display path routes through, and ensure() is idempotent.
-	require("neojj.lib.watcher").ensure(self.repo)
-	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
-		teardown = function()
-			self:close()
-		end,
-	})
-end
-
----Go back: pop this frame off the view stack, revealing the frame beneath. If
----this view is not the current stack top (an unexpected state), close it.
-function LogBuffer:go_back()
-	local view_stack = require("neojj.lib.view_stack")
-	local top = view_stack.top()
-	if top and top.bufnr == self.buffer:get_handle() then
-		view_stack.pop()
-	else
-		self.buffer:close()
-	end
-end
-
----Show the log buffer
----@param kind? string Display mode override
-function LogBuffer:show(kind)
-	self.buffer:open(kind)
-	self:_push_frame()
-	self:refresh()
-end
-
----Show the log buffer in a split
----@param split_type? string Split type ("horizontal" or "vertical")
-function LogBuffer:show_split(split_type)
-	local kind = split_type == "vertical" and "vsplit" or "split"
-	self.buffer:open(kind)
-	self:_push_frame()
-	self:refresh()
-end
-
----Show the log buffer in a new tab
-function LogBuffer:show_tab()
-	self.buffer:open("tab")
-	self:_push_frame()
-	self:refresh()
-end
-
----Close the log buffer
-function LogBuffer:close()
-	self.buffer:close()
-end
+-- Lifecycle plumbing (_push_frame, go_back, show, show_split, show_tab, close)
+-- is inherited from ViewBuffer.
 
 ---Toggle help display
 function LogBuffer:toggle_help()
@@ -520,17 +438,7 @@ function LogBuffer:describe_commit_at_cursor()
 	describe_buffer:show()
 end
 
----Check if buffer is valid
----@return boolean valid True if buffer is valid
-function LogBuffer:is_valid()
-	return self.buffer:is_valid()
-end
-
----Get buffer handle
----@return number handle Buffer handle
-function LogBuffer:get_handle()
-	return self.buffer:get_handle()
-end
+-- is_valid / get_handle are inherited from ViewBuffer.
 
 ---Open status buffer while keeping log buffer context
 function LogBuffer:open_status_buffer()
@@ -590,31 +498,7 @@ function LogBuffer:edit_change()
 	})
 end
 
----Run `jj fix` on the working copy (formats/fixes the `@` change). This always
----targets the working copy and ignores the cursor, matching jj's default.
-function LogBuffer:fix()
-	action.run(self, {
-		builder = require("neojj.lib.jj.cli").fix(),
-		-- jj fix reports its outcome (e.g. "Fixed 0 commits of 3 checked.") on
-		-- stderr; surface it, falling back to a generic confirmation.
-		success = function(result)
-			local message = vim.trim(result.stderr or "")
-			return message ~= "" and message or "Ran jj fix"
-		end,
-		failure = "Failed to run jj fix",
-	})
-end
-
----Advance ("tug") the closest bookmark that is an ancestor of `@` up to the
----closest pushable revision at/under `@`. Both revsets are inlined so this works
----regardless of the user's jj config or revset aliases.
-function LogBuffer:tug()
-	action.run(self, {
-		builder = require("neojj.lib.jj.cli").tug(),
-		success = "Tugged bookmark to @",
-		failure = "Failed to tug bookmark",
-	})
-end
+-- fix / tug are inherited from ViewBuffer (shared with the status view).
 
 ---Run a prepared `jj bookmark …` builder asynchronously, notifying and
 ---refreshing on success and surfacing stderr on failure. Modeled on
@@ -829,71 +713,20 @@ function LogBuffer:_bookmark_untrack()
 	end)
 end
 
----Run `jj git push` with the given options, asynchronously. `opts.bookmark`
----pushes a single named bookmark; `opts.change` pushes/creates a bookmark for a
----revision (`--change`); neither pushes all tracked bookmarks. Notifies on
----start, refreshes on success and surfaces stderr (auth errors, bookmark
----conflicts) on failure.
----@param opts { bookmark?: string, change?: string }
-function LogBuffer:_run_push(opts)
-	local builder = require("neojj.lib.jj.cli").git_push()
-	if opts.bookmark then
-		builder:option("bookmark", opts.bookmark)
-	elseif opts.change then
-		builder:option("change", opts.change)
+-- _run_push / push / fetch are inherited from ViewBuffer. push() calls the hook
+-- below for its "this change" target.
+
+---Resolve the change the `--change` push option targets: the change under the
+---cursor. Notifies and returns nil when the cursor is not on a commit, which
+---aborts the push.
+---@return string|nil change_id
+function LogBuffer:_push_change_target()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return nil
 	end
-
-	action.run(self, {
-		builder = builder,
-		pending = "Pushing to remote...",
-		success = "Pushed to remote",
-		failure = "Failed to push",
-	})
-end
-
----Push to the remote. Prompts for what to push: all tracked bookmarks, a
----specific bookmark by name, or a bookmark for the change at the cursor
----(`--change`).
-function LogBuffer:push()
-	local choices = {
-		"All tracked bookmarks",
-		"A specific bookmark...",
-		"Change at cursor (--change)",
-	}
-
-	vim.ui.select(choices, { prompt = "jj git push:" }, function(_, idx)
-		if not idx then
-			return
-		end
-		if idx == 1 then
-			self:_run_push({})
-		elseif idx == 2 then
-			vim.ui.input({ prompt = "Bookmark name: " }, function(name)
-				if not name or name == "" then
-					return
-				end
-				self:_run_push({ bookmark = name })
-			end)
-		elseif idx == 3 then
-			local item = self.buffer:get_item_at_cursor()
-			if not item or not item.change_id then
-				vim.notify("No commit at cursor", vim.log.levels.WARN)
-				return
-			end
-			self:_run_push({ change = item.change_id })
-		end
-	end)
-end
-
----Fetch from the remote (`jj git fetch`), asynchronously. Notifies on start,
----refreshes on success and surfaces stderr on failure.
-function LogBuffer:fetch()
-	action.run(self, {
-		builder = require("neojj.lib.jj.cli").git_fetch(),
-		pending = "Fetching from remote...",
-		success = "Fetched from remote",
-		failure = "Failed to fetch",
-	})
+	return item.change_id
 end
 
 ---Yank the change ID of the commit at cursor

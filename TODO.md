@@ -73,39 +73,6 @@ trailing fields, `(empty)`-marker handling and a different display-line
 assembly, so unifying the loop bodies buys little for a lot of callback
 plumbing. Just extract the two leaf helpers.
 
-# [ ] Share a `ViewBuffer` base for the stack-frame buffers (L)
-
-The view-stack / lifecycle plumbing is duplicated across all four stack-frame
-buffer classes (`status`, `log`, `oplog`, `opshow`): `go_back`, `show`,
-`show_split`, `show_tab`, `close`, `is_valid`, `get_handle` are byte-identical
-modulo the class name (~80-90 lines per class), and `_push_frame` is identical
-in status/log/oplog (opshow's omits the `watcher.ensure` line). The transient
-`describe`/`annotate` buffers carry near-copies of `show`/`close`/`is_valid`/
-`get_handle` too (no `_push_frame`, since they aren't frames).
-
-Extract a shared `ViewBuffer` base (or mixin) that owns the lifecycle + view-
-stack methods; each buffer class sets its own frame-kind / options and inherits
-the rest. Fold in the per-view singleton bookkeeping while you're there — every
-buffer re-implements a module-level `instances = {}`, a byte-identical
-`list_instances()`, and a `.new()` prologue that returns an existing valid
-instance and installs an `on_detach` cleanup; those want a shared
-`get_or_create(map, key, factory)` / `list_valid(map)` too.
-
-A `jscpd` run confirms this is the biggest remaining cluster and that it reaches
-further than the lifecycle methods: after the `action.run` extraction the
-per-buffer *wrapper* methods `fix()`/`tug()`/`_run_push()`/`push()` are still
-byte-identical between `StatusBuffer` and `LogBuffer`, and so are their
-`_setup_mappings` keymap rows (`f`→fix, `t`→tug, `P`→push, `p`→fetch). Those
-only collapse once the methods live on the shared base — so hoist the jj-action
-wrappers and their common keymap registrations onto `ViewBuffer` as well, not
-just the lifecycle plumbing.
-
-Riskier than the action.run work: it touches `view_stack.lua` and the buffer-
-construction / `on_detach` teardown path (which also drives watcher cleanup in
-oplog), so the factory callback must still own each buffer's `Buffer.create`
-config. Keep the transient describe/annotate buffers out of the frame-specific
-parts.
-
 # [ ] Share the "empty working copy" default struct (S)
 
 `status_parser.lua` (~:13-23) and `repository.lua` (~:14-24) both hand-build an

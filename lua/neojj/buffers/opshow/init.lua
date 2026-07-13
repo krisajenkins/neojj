@@ -1,4 +1,5 @@
 local Buffer = require("neojj.lib.buffer")
+local ViewBuffer = require("neojj.lib.view_buffer")
 local OpShowUI = require("neojj.buffers.opshow.ui")
 local opshow_parser = require("neojj.lib.jj.parsers.opshow_parser")
 local logger = require("neojj.logger")
@@ -52,13 +53,17 @@ local OPSHOW_COMMIT_TEMPLATE = table.concat({
 	'if(description == "", "(no description set)", description.first_line())',
 }, " ++ ")
 
----@class OpShowBuffer
+---@class OpShowBuffer : ViewBuffer
 ---@field buffer Buffer Buffer instance
 ---@field repo table Repository instance
 ---@field op_id string Operation id this view shows
 ---@field options table Options passed at construction
-local OpShowBuffer = {}
+local OpShowBuffer = setmetatable({}, { __index = ViewBuffer })
 OpShowBuffer.__index = OpShowBuffer
+OpShowBuffer.frame_name = "op show"
+-- Op-show views don't participate in the auto-refresh watcher (their operation
+-- id is fixed), so they neither arm nor tear it down.
+OpShowBuffer.arms_watcher = false
 
 -- Per (repo, operation) instance tracking. Keyed by the normalized repo dir and
 -- the operation id so that op-show views for two different operations (or repos)
@@ -79,61 +84,52 @@ function OpShowBuffer.new(repo, op_id, options)
 
 	local key = instance_key(repo, op_id)
 
-	-- Return existing instance if available for this (repo, operation).
-	if instances[key] and instances[key]:is_valid() then
-		return instances[key]
-	end
+	return ViewBuffer.get_or_create(instances, key, function()
+		local new_instance = setmetatable({
+			repo = repo,
+			op_id = op_id,
+			options = options,
+		}, OpShowBuffer)
 
-	local new_instance = setmetatable({
-		repo = repo,
-		op_id = op_id,
-		options = options,
-	}, OpShowBuffer)
+		local util = require("neojj.lib.jj.util")
+		local buffer = Buffer.create({
+			name = "NeoJJ Operation " .. op_id .. " (" .. util.repo_namespace(repo) .. ")",
+			filetype = "neojj-opshow",
+			kind = "replace",
+			modifiable = false,
+			readonly = true,
+			-- Stay alive when a drilled-into frame replaces us in the window, so the
+			-- view stack can reveal us again on pop.
+			bufhidden = "hide",
+			cwd = repo.dir,
+			context_highlight = true,
+			foldmarkers = false,
+			disable_line_numbers = true,
+			disable_relative_line_numbers = true,
+			disable_signs = false,
+			spell_check = false,
+			render = function()
+				return nil
+			end,
+			-- Drop the module-level instance when the buffer is wiped so a later
+			-- OpShowBuffer.new for the same operation rebuilds a fresh instance.
+			on_detach = function()
+				instances[key] = nil
+			end,
+		})
 
-	local util = require("neojj.lib.jj.util")
-	local buffer = Buffer.create({
-		name = "NeoJJ Operation " .. op_id .. " (" .. util.repo_namespace(repo) .. ")",
-		filetype = "neojj-opshow",
-		kind = "replace",
-		modifiable = false,
-		readonly = true,
-		-- Stay alive when a drilled-into frame replaces us in the window, so the
-		-- view stack can reveal us again on pop.
-		bufhidden = "hide",
-		cwd = repo.dir,
-		context_highlight = true,
-		foldmarkers = false,
-		disable_line_numbers = true,
-		disable_relative_line_numbers = true,
-		disable_signs = false,
-		spell_check = false,
-		render = function()
-			return nil
-		end,
-		-- Drop the module-level instance when the buffer is wiped so a later
-		-- OpShowBuffer.new for the same operation rebuilds a fresh instance.
-		on_detach = function()
-			instances[key] = nil
-		end,
-	})
+		new_instance.buffer = buffer
 
-	new_instance.buffer = buffer
+		new_instance:_setup_mappings()
 
-	new_instance:_setup_mappings()
-
-	instances[key] = new_instance
-
-	return new_instance
+		return new_instance
+	end)
 end
 
 ---Setup op-show-specific key mappings
 function OpShowBuffer:_setup_mappings()
 	-- Pop one frame off the view stack, revealing the view drilled down from.
-	for _, key in ipairs({ "q", "<esc>", "<c-c>" }) do
-		self.buffer:map("n", key, function()
-			self:go_back()
-		end, { desc = "Back (pop view stack) / close op show" })
-	end
+	self:_map_back_keys()
 
 	self.buffer:map("n", "<c-r>", function()
 		self:refresh()
@@ -206,65 +202,8 @@ function OpShowBuffer:render(output)
 	self.buffer:render(OpShowUI.create(opshow_parser.parse(output)))
 end
 
----Register this view as the top frame of the drill-down view stack.
-function OpShowBuffer:_push_frame()
-	require("neojj.lib.view_stack").push(self.buffer:get_handle(), {
-		teardown = function()
-			self:close()
-		end,
-	})
-end
-
----Go back: pop this frame off the view stack, revealing the frame beneath.
-function OpShowBuffer:go_back()
-	local view_stack = require("neojj.lib.view_stack")
-	local top = view_stack.top()
-	if top and top.bufnr == self.buffer:get_handle() then
-		view_stack.pop()
-	else
-		self.buffer:close()
-	end
-end
-
----Show the op-show buffer
----@param kind? string Display mode override
-function OpShowBuffer:show(kind)
-	self.buffer:open(kind)
-	self:_push_frame()
-	self:refresh()
-end
-
----Show the op-show buffer in a split
----@param split_type? string Split type ("horizontal" or "vertical")
-function OpShowBuffer:show_split(split_type)
-	local kind = split_type == "vertical" and "vsplit" or "split"
-	self.buffer:open(kind)
-	self:_push_frame()
-	self:refresh()
-end
-
----Show the op-show buffer in a new tab
-function OpShowBuffer:show_tab()
-	self.buffer:open("tab")
-	self:_push_frame()
-	self:refresh()
-end
-
----Close the op-show buffer
-function OpShowBuffer:close()
-	self.buffer:close()
-end
-
----Check if buffer is valid
----@return boolean valid True if buffer is valid
-function OpShowBuffer:is_valid()
-	return self.buffer:is_valid()
-end
-
----Get buffer handle
----@return number handle Buffer handle
-function OpShowBuffer:get_handle()
-	return self.buffer:get_handle()
-end
+-- Lifecycle plumbing (_push_frame, go_back, show, show_split, show_tab, close,
+-- is_valid, get_handle) is inherited from ViewBuffer. Op-show sets
+-- `arms_watcher = false`, so its inherited _push_frame skips the file watcher.
 
 return OpShowBuffer
