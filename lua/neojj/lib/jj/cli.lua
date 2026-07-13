@@ -53,9 +53,21 @@ function Cli:cwd(dir)
 	return self
 end
 
+---The structured result every jj invocation resolves to. `:call()` and
+---`:call_async()` always hand back one of these (never nil); `stdout`/`stderr`
+---are nil on the infrastructure-failure paths (jj missing, spawn error, timeout).
+---@class neojj.CliResult
+---@field success boolean True when jj exited 0.
+---@field exit_code integer Process exit code (-1 for infrastructure failures).
+---@field stdout string? Captured stdout, joined with newlines.
+---@field stderr string? Captured stderr, or the error message on failure.
+
 -- Resolve the command to an absolute path, failing loudly (rather than with a
 -- raw plenary stack trace) when jj isn't on PATH. Returns the resolved command
 -- on success, or (nil, failure_table) when jj is missing.
+---@param cmd string
+---@return string? command Resolved command path, or nil when jj is missing.
+---@return neojj.CliResult? failure Failure result when jj is missing.
 local function resolve_command(cmd)
 	if cmd ~= "jj" then
 		return cmd
@@ -83,6 +95,7 @@ end
 -- Build the structured result table from a finished job. `stdout` may be passed
 -- in (the synchronous path gets it back from job:sync); otherwise it's read
 -- from the job's recorded stdout (the async path).
+---@return neojj.CliResult
 local function build_result(job, stdout)
 	local exit_code = job.code
 	stdout = stdout or job:result() or {}
@@ -108,6 +121,8 @@ local function build_result(job, stdout)
 	}
 end
 
+---Run the jj command synchronously, blocking until it exits.
+---@return neojj.CliResult result Structured result (never nil).
 function Cli:call()
 	local cmd_args = vim.deepcopy(self.args)
 	local cwd = self.options.cwd or vim.fn.getcwd()
