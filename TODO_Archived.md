@@ -5,6 +5,34 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change rowvlkxv)*
+
+# [x] Extract the duplicated jj-action boilerplate shared by the buffers (M)
+
+`StatusBuffer` and `LogBuffer` carried byte-for-byte identical copies of five
+jj-action methods: `fix()`, `tug()`, `_run_push(opts)`, `push()`'s `_run_push`
+tail, and `fetch()`. Each repeated the same skeleton — `async.run` →
+`cli.X():cwd(self.repo.dir):call_async()` → `vim.schedule(notify success/failure
++ self:refresh())` — differing only in the builder, an optional "pending"
+notice, the success message, and the failure prefix.
+
+Extracted a small free-function helper — `lua/neojj/lib/jj/action.lua` exposing
+`M.run(view, opts)` — rather than a base class. It is duck-typed on `view`
+(needs only `view.repo.dir` and `view:refresh()`), so it avoids entangling the
+view-stack lifecycle code a shared superclass would drag in. Both buffers' five
+call sites collapsed to declarations (builder + messages); `push()`'s
+`vim.ui.select` prompt stayed as UI, with only its `_run_push` async tail
+delegating to the helper. The `success`-as-function hatch lets `fix()` return
+its trimmed-stderr message through the same path. Net −54 lines across the two
+buffer files.
+
+Follow-on still open (separate, riskier item): the view-stack/lifecycle plumbing
+(`show`/`show_split`/`show_tab`/`close`/`toggle_help`/`go_back`/`_push_frame`/
+`is_valid`/`get_handle`) is also duplicated across the two classes, but that
+touches `view_stack.lua` and is a bigger extraction.
+
+---
+
 *Archived: 2026-07-13 (change spznvvtv)*
 
 # [x] For `jj fix`, I'd like to see the response message in the notification window

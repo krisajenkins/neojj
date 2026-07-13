@@ -3,6 +3,7 @@ local LogUI = require("neojj.buffers.log.ui")
 local logger = require("neojj.logger")
 local log_parser = require("neojj.lib.jj.parsers.log_parser")
 local Separators = require("neojj.lib.jj.separators")
+local action = require("neojj.lib.jj.action")
 
 -- Explicit machine-oriented template for `jj log`. Rather than parse jj's
 -- fragile human-facing output, we ask for an unambiguous layout keyed on two
@@ -612,48 +613,27 @@ end
 ---Run `jj fix` on the working copy (formats/fixes the `@` change). This always
 ---targets the working copy and ignores the cursor, matching jj's default.
 function LogBuffer:fix()
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	async.run(function()
-		local result = cli.fix():cwd(self.repo.dir):call_async()
-
-		vim.schedule(function()
-			if result.success then
-				-- jj fix reports its outcome (e.g. "Fixed 0 commits of 3 checked.")
-				-- on stderr; surface it, falling back to a generic confirmation.
-				local message = vim.trim(result.stderr or "")
-				if message == "" then
-					message = "Ran jj fix"
-				end
-				vim.notify(message, vim.log.levels.INFO)
-				self:refresh()
-			else
-				vim.notify("Failed to run jj fix: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").fix(),
+		-- jj fix reports its outcome (e.g. "Fixed 0 commits of 3 checked.") on
+		-- stderr; surface it, falling back to a generic confirmation.
+		success = function(result)
+			local message = vim.trim(result.stderr or "")
+			return message ~= "" and message or "Ran jj fix"
+		end,
+		failure = "Failed to run jj fix",
+	})
 end
 
 ---Advance ("tug") the closest bookmark that is an ancestor of `@` up to the
 ---closest pushable revision at/under `@`. Both revsets are inlined so this works
 ---regardless of the user's jj config or revset aliases.
 function LogBuffer:tug()
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	async.run(function()
-		local result = cli.tug():cwd(self.repo.dir):call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Tugged bookmark to @", vim.log.levels.INFO)
-				self:refresh()
-			else
-				vim.notify("Failed to tug bookmark: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").tug(),
+		success = "Tugged bookmark to @",
+		failure = "Failed to tug bookmark",
+	})
 end
 
 ---Run a prepared `jj bookmark …` builder asynchronously, notifying and
@@ -876,29 +856,19 @@ end
 ---conflicts) on failure.
 ---@param opts { bookmark?: string, change?: string }
 function LogBuffer:_run_push(opts)
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
+	local builder = require("neojj.lib.jj.cli").git_push()
+	if opts.bookmark then
+		builder:option("bookmark", opts.bookmark)
+	elseif opts.change then
+		builder:option("change", opts.change)
+	end
 
-	vim.notify("Pushing to remote...", vim.log.levels.INFO)
-
-	async.run(function()
-		local builder = cli.git_push():cwd(self.repo.dir)
-		if opts.bookmark then
-			builder:option("bookmark", opts.bookmark)
-		elseif opts.change then
-			builder:option("change", opts.change)
-		end
-		local result = builder:call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Pushed to remote", vim.log.levels.INFO)
-				self:refresh()
-			else
-				vim.notify("Failed to push: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = builder,
+		pending = "Pushing to remote...",
+		success = "Pushed to remote",
+		failure = "Failed to push",
+	})
 end
 
 ---Push to the remote. Prompts for what to push: all tracked bookmarks, a
@@ -938,23 +908,12 @@ end
 ---Fetch from the remote (`jj git fetch`), asynchronously. Notifies on start,
 ---refreshes on success and surfaces stderr on failure.
 function LogBuffer:fetch()
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	vim.notify("Fetching from remote...", vim.log.levels.INFO)
-
-	async.run(function()
-		local result = cli.git_fetch():cwd(self.repo.dir):call_async()
-
-		vim.schedule(function()
-			if result.success then
-				vim.notify("Fetched from remote", vim.log.levels.INFO)
-				self:refresh()
-			else
-				vim.notify("Failed to fetch: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-			end
-		end)
-	end)
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").git_fetch(),
+		pending = "Fetching from remote...",
+		success = "Fetched from remote",
+		failure = "Failed to fetch",
+	})
 end
 
 ---Yank the change ID of the commit at cursor
