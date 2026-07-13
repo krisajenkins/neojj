@@ -75,6 +75,7 @@ local default_highlights = {
 
 	-- Log display
 	NeoJJLogBookmark = { link = "Keyword" },
+	NeoJJLogTag = { link = "Keyword" },
 	NeoJJLogGraph = { link = "Special" },
 	NeoJJLogGraphLine = { link = "Comment" },
 	NeoJJLogWorkingCopy = { link = "DiffAdd" },

@@ -339,6 +339,8 @@ vim.api.nvim_set_hl(0, "NeoJJSectionHeader", { link = "Type" })
 | `NeoJJDiffAdd`       | `DiffAdd`    | Added lines in diffs   |
 | `NeoJJDiffDelete`    | `DiffDelete` | Deleted lines in diffs |
 | `NeoJJLogGraph`      | `Special`    | Log graph characters   |
+| `NeoJJLogBookmark`   | `Keyword`    | Bookmark names in log  |
+| `NeoJJLogTag`        | `Keyword`    | Tag names in log       |
 | `NeoJJConflict`      | `Error`      | Conflict markers       |
 
 See `lua/neojj/highlights.lua` for the complete list.

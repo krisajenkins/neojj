@@ -15,7 +15,7 @@
 ---
 ---Each commit occupies two templated lines:
 ---
----  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>\31<change_id_prefix>\31<commit_id_prefix>\31<empty>
+---  <gutter>\30<change_id>\31<author>\31<timestamp>\31<bookmarks>\31<commit_id>\31<conflict>\31<change_id_prefix>\31<commit_id_prefix>\31<empty>\31<tags>
 ---  <gutter>\30<description first line>
 ---
 ---The two trailing `*_prefix` fields carry jj's unique disambiguating prefix for
@@ -30,6 +30,11 @@
 ---field as not-empty). Matching `jj log`, the "(empty)" marker is rendered at
 ---the head of the description line below (not on the metadata row); the
 ---metadata row keeps only "(conflict)".
+---
+---A `tags` field (jj's tag names for the commit, space-joined like bookmarks) is
+---appended after `empty`. It too is optional, so fixtures captured before it
+---existed still parse (the parser then leaves the tag list empty). Tags render on
+---the metadata row after the bookmarks, mirroring `jj log`.
 ---
 ---A line is recognised as a commit header purely by the presence of a payload
 ---containing unit separators, never by matching a fixed set of graph glyphs.
@@ -123,8 +128,12 @@ function M.parse_log_output(output)
 			-- Optional final field: jj's own emptiness flag. Absent in fixtures
 			-- captured before it existed, which then parse as not-empty.
 			local empty = (fields[9] or "") == "empty"
+			-- Optional trailing field: jj's tag names for this commit. Absent in
+			-- fixtures captured before it existed, which then parse as untagged.
+			local tags_field = fields[10] or ""
 
 			local bookmarks = vim.split(bookmarks_field, "%s+", { trimempty = true })
+			local tags = vim.split(tags_field, "%s+", { trimempty = true })
 
 			---@type LogRevision
 			current_revision = {
@@ -135,6 +144,7 @@ function M.parse_log_output(output)
 				change_id_prefix = change_id_prefix,
 				commit_id_prefix = commit_id_prefix,
 				bookmarks = bookmarks,
+				tags = tags,
 				conflict = conflict,
 				empty = empty,
 				description = "",
@@ -144,12 +154,16 @@ function M.parse_log_output(output)
 			table.insert(revisions, current_revision)
 
 			-- Rebuild a clean, control-character-free line for display. The
-			-- order (change_id author timestamp [bookmarks] commit_id) keeps
-			-- the bookmark-highlighting logic in log/ui.lua working, which
-			-- locates bookmarks between the timestamp and commit_id substrings.
+			-- order (change_id author timestamp [bookmarks] [tags] commit_id)
+			-- keeps the field-highlighting logic in log/ui.lua working, which
+			-- locates each field between the timestamp and commit_id substrings.
+			-- Tags follow bookmarks, matching `jj log`.
 			local display = gutter .. change_id .. " " .. author .. " " .. timestamp
 			if bookmarks_field ~= "" then
 				display = display .. " " .. bookmarks_field
+			end
+			if tags_field ~= "" then
+				display = display .. " " .. tags_field
 			end
 			display = display .. " " .. commit_id
 			-- jj keeps "(conflict)" on the metadata row but prints "(empty)" at the

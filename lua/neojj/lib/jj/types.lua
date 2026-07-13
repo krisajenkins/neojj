@@ -39,6 +39,7 @@
 ---@field commit_id_prefix string|nil jj's unique disambiguating prefix of commit_id (leading substring), if known
 ---@field description string First line of description
 ---@field bookmarks string[] Bookmark names pointing to this revision
+---@field tags string[] Tag names pointing to this revision
 ---@field conflict boolean Whether this revision has conflicts
 ---@field empty boolean Whether this revision is empty (jj's own emptiness flag)
 ---@field graph string ASCII graph prefix for this revision

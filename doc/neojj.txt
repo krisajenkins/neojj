@@ -541,6 +541,12 @@ NeoJJDiffDelete         Deleted lines in diffs
 NeoJJLogGraph           Graph characters in log view
                         Default: links to |hl-Special|
 
+NeoJJLogBookmark        Bookmark names in the log view
+                        Default: links to |hl-Keyword|
+
+NeoJJLogTag             Tag names in the log view
+                        Default: links to |hl-Keyword|
+
 NeoJJOplogGraph         Graph characters in the operation-log view
                         Default: links to |hl-Special|
 

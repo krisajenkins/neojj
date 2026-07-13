@@ -186,8 +186,8 @@ function LogUI.create_graph_line(line, graph_prefix, empty_marker)
 end
 
 ---Create highlighted text components for the commit info, colouring each
----metadata field (change id, author, timestamp, bookmarks, commit id) with its
----own highlight group so the columns read distinctly.
+---metadata field (change id, author, timestamp, bookmarks, tags, commit id)
+---with its own highlight group so the columns read distinctly.
 ---
 ---The fields are located by walking left-to-right through the line: each field's
 ---value (recorded verbatim on the revision by the parser) is found starting from
@@ -206,7 +206,7 @@ end
 ---(see create_graph_line), matching `jj log`. Any residual tail falls back to
 ---the neutral separator highlight.
 ---@param commit_text string The commit info portion of the line
----@param revision table Revision data with change_id/author/timestamp/bookmarks/commit_id (+ optional *_prefix) fields
+---@param revision table Revision data with change_id/author/timestamp/bookmarks/tags/commit_id (+ optional *_prefix) fields
 ---@param is_current_head boolean Whether this row is the working copy (@)
 ---@return table[] components List of text components
 function LogUI.create_commit_text_components(commit_text, revision, is_current_head)
@@ -264,6 +264,9 @@ function LogUI.create_commit_text_components(commit_text, revision, is_current_h
 	emit_field(revision.timestamp, "NeoJJLogTimestamp")
 	for _, bookmark in ipairs(revision.bookmarks or {}) do
 		emit_field(bookmark, "NeoJJLogBookmark")
+	end
+	for _, tag in ipairs(revision.tags or {}) do
+		emit_field(tag, "NeoJJLogTag")
 	end
 	emit_id_field(revision.commit_id, revision.commit_id_prefix, "NeoJJLogCommitId", "NeoJJLogCommitIdRest")
 

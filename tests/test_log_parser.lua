@@ -97,6 +97,50 @@ T["parse_log_output"]["parses bookmarks from commit lines"] = function()
 	expect.equality(rev4.bookmarks[1], "release-v1.0")
 end
 
+T["parse_log_output"]["parses tags from commit lines"] = function()
+	-- The log template emits jj's `tags` keyword as a trailing field. Tags are
+	-- space-joined like bookmarks and render on the metadata row after them.
+	local output = log_parser.parse_log_output(read_fixture("log-graph-tags.txt"))
+
+	expect.equality(#output.revisions, 3)
+
+	-- First revision: one tag and one bookmark.
+	local rev1 = output.revisions[1]
+	expect.equality(rev1.change_id, "qpvuntsm")
+	expect.equality(#rev1.bookmarks, 1)
+	expect.equality(rev1.bookmarks[1], "main")
+	expect.equality(#rev1.tags, 1)
+	expect.equality(rev1.tags[1], "v0.2.0")
+
+	-- Second revision: two tags, no bookmarks.
+	local rev2 = output.revisions[2]
+	expect.equality(rev2.change_id, "rlvkpnrz")
+	expect.equality(#rev2.bookmarks, 0)
+	expect.equality(#rev2.tags, 2)
+	expect.equality(rev2.tags[1], "v0.1.0")
+	expect.equality(rev2.tags[2], "v0.1.0-rc1")
+
+	-- Third revision: no tags.
+	local rev3 = output.revisions[3]
+	expect.equality(rev3.change_id, "tknwxqrs")
+	expect.equality(#rev3.tags, 0)
+
+	-- Tags appear in the rebuilt display line, after the bookmarks and before
+	-- the commit id.
+	local display1 = output.raw_lines[rev1.line_number]
+	expect.equality(display1:find("main v0.2.0 230dd059", 1, true) ~= nil, true)
+end
+
+T["parse_log_output"]["treats a missing tags field as untagged"] = function()
+	-- Fixtures captured before the tags field existed lack it entirely; the
+	-- parser must still parse them, leaving the tag list empty.
+	local output = log_parser.parse_log_output(read_fixture("log-graph-bookmarks.txt"))
+
+	for _, rev in ipairs(output.revisions) do
+		expect.equality(#rev.tags, 0)
+	end
+end
+
 T["parse_log_output"]["preserves tracking decorations on bookmarks"] = function()
 	-- The log template uses jj's `bookmarks` keyword, so bookmarks carry jj's
 	-- native tracking decorations: `name*` when a local bookmark is ahead of or

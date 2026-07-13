@@ -23,10 +23,12 @@ local log_parser = require("neojj.lib.jj.parsers.log_parser")
 -- them) still parse; the parser treats them as optional. A final `empty` field
 -- (jj's own emptiness flag) is appended after them for the same reason: keeping
 -- it last preserves backward-compat with fixtures captured before it existed.
+-- A `tags` field (jj's tag names for the commit) is likewise appended last, for
+-- the same backward-compat reason.
 --
 -- Field order within the header record:
 --   change_id, author, timestamp, bookmarks, commit_id, conflict,
---   change_id_prefix, commit_id_prefix, empty
+--   change_id_prefix, commit_id_prefix, empty, tags
 local LOG_TEMPLATE = table.concat({
 	'"\\x1e"',
 	"change_id.shortest(8)",
@@ -53,6 +55,11 @@ local LOG_TEMPLATE = table.concat({
 	"commit_id.shortest(8).prefix()",
 	'"\\x1f"',
 	'if(empty, "empty", "")',
+	'"\\x1f"',
+	-- Tag names on this commit. Like `bookmarks`, jj's default string form joins
+	-- entries with a single space, and tag names never contain spaces, so the
+	-- parser can split the field on whitespace.
+	"tags",
 	'"\\n"',
 	'"\\x1e"',
 	'if(description.first_line() == "", "(no description set)", description.first_line())',
