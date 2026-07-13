@@ -5,6 +5,36 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change nyqqskqq)*
+
+# [x] Share the UI help-panel and span-emitter rendering (M)
+
+Two families of copy-pasted UI construction lived in `lua/neojj/buffers/*/ui.lua`:
+the hand-built help-panel rows/sections (repeated across log, oplog, status and
+annotate) plus their near-identical `create_header`, and the closure-based
+positional span emitter shared by `LogUI.create_commit_text_components` and
+`OplogUI.create_operation_text_components` (with log's `emit_id_field` a variant
+of the same prefix-bright/rest-dim id renderer).
+
+Extracted the shared formatting into `lua/neojj/lib/ui/init.lua` — `Ui.header(title,
+opts)` and `Ui.help_panel(title, sections, opts)` (data-driven: each buffer
+supplies `{section_title, {key,desc}...}`; keys are padded to `key_width` by
+display width so multibyte graph glyphs still align) — and a new
+`lua/neojj/lib/ui/span_emitter.lua` `SpanEmitter` class (`emit_field`, `id_field`,
+`finish`, fully `---@class`/`---@param`/`---@return` annotated). log/oplog build
+their commit/operation rows through `SpanEmitter`; log/oplog/status headers call
+`Ui.header`; all four help builders call `Ui.help_panel`.
+
+Deliberately left un-merged per the item's caveat: `describe/ui.lua`'s `"JJ: "`-
+comment help (renders in an editable buffer) stayed out of the shared panel, and
+`opshow/ui.lua`'s `append_id` was NOT folded into `id_field` — it builds spans
+from a value rather than positionally and uses a looser prefix-split guard, so
+merging it would change behaviour. Pure refactor: the `test_workflow_commit_help`
+screenshot test asserts the status help panel byte-for-byte and still passes
+unmodified; all 239 cases pass, `make format`/`typecheck` clean.
+
+---
+
 *Archived: 2026-07-13 (change rswptxky)*
 
 # [x] Share a `ViewBuffer` base for the stack-frame buffers (L)

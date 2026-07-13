@@ -85,31 +85,3 @@ Extract a single `empty_working_copy()` constructor (a fresh table each call, so
 callers can mutate their copy) — natural home is `status.lua` or `status_parser`
 since it owns that shape — and have both sites call it. Surfaced by `jscpd`;
 the earlier audit missed it.
-
-# [ ] Share the UI help-panel and span-emitter rendering (M)
-
-Two families of copy-pasted UI construction in `lua/neojj/buffers/*/ui.lua`:
-
-1. Help panels: `create_help` is a hand-built list of
-   `Ui.text("  <key>  - <desc>", { highlight = "NeoJJHelpText" })` rows under
-   `NeoJJSectionHeader` sections in `log/ui.lua` (~:305), `oplog/ui.lua`
-   (~:174), `status/ui.lua` (~:490) and `annotate/ui.lua` (~:192). The content
-   differs per view (correctly), but the row/section formatting is repeated.
-   Add `Ui.help_panel(title, sections)` taking a data table
-   (`{ {"Navigation", {{"d","Describe commit"}, ...}}, ... }`); each buffer
-   supplies data, the formatting lives once. `create_header` is similarly
-   near-identical across log/oplog/status — collapse to `Ui.header(title, opts)`
-   at the same time.
-2. Span emitter: `LogUI.create_commit_text_components` (`log/ui.lua` ~:212) and
-   `OplogUI.create_operation_text_components` (`oplog/ui.lua` ~:98) share the
-   same closure-based positional emitter (`pos` cursor, `emit_field(value, hl)`
-   that `:find`s the value, emits the gap + field, plus identical trailing /
-   fallback tails). Extract a `lib/ui/span_emitter.lua`; log's `emit_id_field`
-   and opshow's `append_id` (`opshow/ui.lua` ~:18) are two more variants of the
-   same prefix-bright/rest-dim id renderer that collapse into one `id_field`.
-
-Caveat: `describe/ui.lua`'s help uses a different `"JJ: "`-comment style (it
-renders inside an editable buffer) — leave it out of the shared panel. The
-opshow `append_id` variant builds spans from values rather than positionally,
-so unifying all three id renderers needs a little care; log+oplog alone is
-clean.

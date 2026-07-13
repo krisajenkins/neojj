@@ -190,17 +190,18 @@ end
 ---Create help text component
 ---@return table component Help text component
 function AnnotateUI.create_help()
-	return Ui.col({
-		Ui.text("NeoJJ Annotate Help", { highlight = "NeoJJTitle" }),
-		Ui.empty_line(),
-		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  ?         - Show/hide this help", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-c>     - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Enter>   - Open change at cursor", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Esc>     - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  y         - Copy change ID at cursor", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
+	return Ui.help_panel("NeoJJ Annotate Help", {
+		{
+			"Actions:",
+			{
+				{ "?", "Show/hide this help" },
+				{ "<C-c>", "Quit" },
+				{ "<Enter>", "Open change at cursor" },
+				{ "<Esc>", "Quit" },
+				{ "q", "Quit" },
+				{ "y", "Copy change ID at cursor" },
+			},
+		},
 	})
 end
 

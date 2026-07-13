@@ -53,10 +53,7 @@ end
 ---Create the header component
 ---@return table component Header component
 function StatusUI.create_header()
-	return Ui.col({
-		Ui.text("JJ Status", { highlight = "NeoJJTitle" }),
-		Ui.text("Press ? for help, q to quit", { highlight = "NeoJJHelpText" }),
-	})
+	return Ui.header("JJ Status", { trailing_blank = false })
 end
 
 ---Create the working copy section with full metadata
@@ -488,31 +485,36 @@ end
 ---Create help text component
 ---@return table component Help text component
 function StatusUI.create_help()
-	return Ui.col({
-		Ui.text("NeoJJ Status Help", { highlight = "NeoJJTitle" }),
-		Ui.empty_line(),
-		Ui.text("Navigation:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  j/k     - Move cursor up/down", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <S-Tab> - Toggle all file diffs", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Tab>   - Toggle file diff", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  ?       - Show/hide this help", { highlight = "NeoJJHelpText" }),
-		Ui.text("  c       - Commit change (describe @ + jj new)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-c>   - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-r>   - Refresh status", { highlight = "NeoJJHelpText" }),
-		Ui.text("  d       - Describe current commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Enter> - Open file at cursor", { highlight = "NeoJJHelpText" }),
-		Ui.text("  f       - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  l       - Open log view", { highlight = "NeoJJHelpText" }),
-		Ui.text("  n       - Create new change from current commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  o       - Open operation log view", { highlight = "NeoJJHelpText" }),
-		Ui.text("  p       - Pull from remote (jj git fetch)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  P       - Push to remote (jj git push)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  q       - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  r       - Refresh status", { highlight = "NeoJJHelpText" }),
-		Ui.text("  t       - Tug bookmark to @", { highlight = "NeoJJHelpText" }),
-	})
+	return Ui.help_panel("NeoJJ Status Help", {
+		{
+			"Navigation:",
+			{
+				{ "j/k", "Move cursor up/down" },
+				{ "<S-Tab>", "Toggle all file diffs" },
+				{ "<Tab>", "Toggle file diff" },
+			},
+		},
+		{
+			"Actions:",
+			{
+				{ "?", "Show/hide this help" },
+				{ "c", "Commit change (describe @ + jj new)" },
+				{ "<C-c>", "Quit" },
+				{ "<C-r>", "Refresh status" },
+				{ "d", "Describe current commit" },
+				{ "<Enter>", "Open file at cursor" },
+				{ "f", "Run jj fix (format @)" },
+				{ "l", "Open log view" },
+				{ "n", "Create new change from current commit" },
+				{ "o", "Open operation log view" },
+				{ "p", "Pull from remote (jj git fetch)" },
+				{ "P", "Push to remote (jj git push)" },
+				{ "q", "Quit" },
+				{ "r", "Refresh status" },
+				{ "t", "Tug bookmark to @" },
+			},
+		},
+	}, { key_width = 8, trailing_blank = false })
 end
 
 ---Create a minimal status UI for testing

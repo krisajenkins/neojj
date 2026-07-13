@@ -1,4 +1,5 @@
 local Ui = require("neojj.lib.ui")
+local SpanEmitter = require("neojj.lib.ui.span_emitter")
 
 ---@class OplogUI
 local OplogUI = {}
@@ -29,11 +30,7 @@ end
 ---Create the header component
 ---@return table component Header component
 function OplogUI.create_header()
-	return Ui.col({
-		Ui.text("JJ Operation Log", { highlight = "NeoJJTitle" }),
-		Ui.text("Press ? for help, q to quit", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-	})
+	return Ui.header("JJ Operation Log")
 end
 
 ---Create oplog components from parsed op-log data
@@ -96,43 +93,14 @@ end
 ---@param operation table Operation data with operation_id/user/time_start fields
 ---@return table[] components List of text components
 function OplogUI.create_operation_text_components(op_text, operation)
-	local components = {}
-	local pos = 1 -- 1-indexed cursor into op_text
-	local separator_hl = "NeoJJOplogOperation"
-
-	-- Emit the field `value` with `highlight`, preceded by any gap text (spaces
-	-- between fields) rendered with the neutral separator highlight.
-	local function emit_field(value, highlight)
-		if not value or value == "" then
-			return
-		end
-		local s, e = op_text:find(value, pos, true)
-		if not s then
-			return
-		end
-		if s > pos then
-			table.insert(components, Ui.text(op_text:sub(pos, s - 1), { highlight = separator_hl }))
-		end
-		table.insert(components, Ui.text(op_text:sub(s, e), { highlight = highlight }))
-		pos = e + 1
-	end
+	local emitter = SpanEmitter.new(op_text, "NeoJJOplogOperation")
 
 	local id_hl = operation.is_current and "NeoJJOplogCurrent" or "NeoJJOplogId"
-	emit_field(operation.operation_id, id_hl)
-	emit_field(operation.user, "NeoJJOplogUser")
-	emit_field(operation.time_start, "NeoJJOplogTime")
+	emitter:emit_field(operation.operation_id, id_hl)
+	emitter:emit_field(operation.user, "NeoJJOplogUser")
+	emitter:emit_field(operation.time_start, "NeoJJOplogTime")
 
-	-- Trailing text, if any.
-	if pos <= #op_text then
-		table.insert(components, Ui.text(op_text:sub(pos), { highlight = separator_hl }))
-	end
-
-	-- Fallback: if nothing matched (unexpected line shape), render as one span.
-	if #components == 0 then
-		table.insert(components, Ui.text(op_text, { highlight = separator_hl }))
-	end
-
-	return components
+	return emitter:finish()
 end
 
 ---Create a graph line component (non-interactive)
@@ -172,30 +140,34 @@ end
 ---Create help text component
 ---@return table component Help text component
 function OplogUI.create_help()
-	return Ui.col({
-		Ui.text("NeoJJ Operation Log Help", { highlight = "NeoJJTitle" }),
-		Ui.empty_line(),
-		Ui.text("Navigation:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  j/k       - Move cursor up/down", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  <C-r>     - Refresh operation log", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Enter>   - Show operation details (jj op show)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  l         - Open the log view", { highlight = "NeoJJHelpText" }),
-		Ui.text("  r         - Restore repo to operation at cursor (jj op restore)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  u         - Undo the last operation (jj undo)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  y         - Yank operation ID", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-		Ui.text("Close:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  ?         - Show/hide this help", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-c>     - Back (pop view stack) / quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Esc>     - Back (pop view stack) / quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  q         - Back (pop view stack) / quit", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-		Ui.text("Graph symbols:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  @         - Current operation", { highlight = "NeoJJHelpText" }),
-		Ui.text("  ○         - Past operation", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
+	return Ui.help_panel("NeoJJ Operation Log Help", {
+		{ "Navigation:", {
+			{ "j/k", "Move cursor up/down" },
+		} },
+		{
+			"Actions:",
+			{
+				{ "<C-r>", "Refresh operation log" },
+				{ "<Enter>", "Show operation details (jj op show)" },
+				{ "l", "Open the log view" },
+				{ "r", "Restore repo to operation at cursor (jj op restore)" },
+				{ "u", "Undo the last operation (jj undo)" },
+				{ "y", "Yank operation ID" },
+			},
+		},
+		{
+			"Close:",
+			{
+				{ "?", "Show/hide this help" },
+				{ "<C-c>", "Back (pop view stack) / quit" },
+				{ "<Esc>", "Back (pop view stack) / quit" },
+				{ "q", "Back (pop view stack) / quit" },
+			},
+		},
+		{ "Graph symbols:", {
+			{ "@", "Current operation" },
+			{ "○", "Past operation" },
+		} },
 	})
 end
 

@@ -141,6 +141,65 @@ function Ui.section(title, items, options)
 	return Ui.col(children, section_options)
 end
 
+---Create a view header: the title, the shared "Press ? for help" hint, and
+---(by default) a trailing blank line. Collapses the near-identical
+---`create_header` builders in the log, oplog and status views.
+---@param title string Header title (rendered with NeoJJTitle)
+---@param opts? { trailing_blank?: boolean } trailing_blank defaults to true
+---@return table component Header column component
+function Ui.header(title, opts)
+	opts = opts or {}
+	local children = {
+		Ui.text(title, { highlight = "NeoJJTitle" }),
+		Ui.text("Press ? for help, q to quit", { highlight = "NeoJJHelpText" }),
+	}
+	if opts.trailing_blank ~= false then
+		table.insert(children, Ui.empty_line())
+	end
+	return Ui.col(children)
+end
+
+---Create a help panel: a title, then one or more sections of
+---`"  <key>  - <desc>"` rows. Collapses the hand-built help builders the buffer
+---views share so the row/section formatting lives in one place.
+---
+---`sections` is a list of `{ section_title, rows }` pairs, where `rows` is a
+---list of `{ key, desc }` pairs. Each key is padded (by display width, so
+---multibyte glyphs like `○` align) to `opts.key_width` columns. A blank line
+---separates consecutive sections; a trailing blank line is added unless
+---`opts.trailing_blank` is false.
+---@param title string Panel title (rendered with NeoJJTitle)
+---@param sections table[] List of `{ string, table[] }` — section title + `{key, desc}` rows
+---@param opts? { key_width?: number, trailing_blank?: boolean } key_width defaults to 10
+---@return table component Help panel column component
+function Ui.help_panel(title, sections, opts)
+	opts = opts or {}
+	local key_width = opts.key_width or 10
+
+	local children = {
+		Ui.text(title, { highlight = "NeoJJTitle" }),
+		Ui.empty_line(),
+	}
+
+	for i, section in ipairs(sections) do
+		if i > 1 then
+			table.insert(children, Ui.empty_line())
+		end
+		table.insert(children, Ui.text(section[1], { highlight = "NeoJJSectionHeader" }))
+		for _, row in ipairs(section[2]) do
+			local key, desc = row[1], row[2]
+			local pad = string.rep(" ", math.max(0, key_width - vim.fn.strdisplaywidth(key)))
+			table.insert(children, Ui.text("  " .. key .. pad .. "- " .. desc, { highlight = "NeoJJHelpText" }))
+		end
+	end
+
+	if opts.trailing_blank ~= false then
+		table.insert(children, Ui.empty_line())
+	end
+
+	return Ui.col(children)
+end
+
 -- Tagged component constructors for convenience
 ---Create a tagged col constructor
 ---@param tag string Component tag

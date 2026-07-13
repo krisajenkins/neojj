@@ -1,4 +1,5 @@
 local Ui = require("neojj.lib.ui")
+local SpanEmitter = require("neojj.lib.ui.span_emitter")
 
 ---@class LogUI
 local LogUI = {}
@@ -29,11 +30,7 @@ end
 ---Create the header component
 ---@return table component Header component
 function LogUI.create_header()
-	return Ui.col({
-		Ui.text("JJ Log", { highlight = "NeoJJTitle" }),
-		Ui.text("Press ? for help, q to quit", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-	})
+	return Ui.header("JJ Log")
 end
 
 ---Create log components from parsed log data
@@ -210,83 +207,27 @@ end
 ---@param is_current_head boolean Whether this row is the working copy (@)
 ---@return table[] components List of text components
 function LogUI.create_commit_text_components(commit_text, revision, is_current_head)
-	local components = {}
-	local pos = 1 -- 1-indexed cursor into commit_text
-	local separator_hl = "NeoJJLogCommit"
-
-	-- Emit any gap text (spaces between fields) preceding position `s`, rendered
-	-- with the neutral separator highlight.
-	local function emit_gap(s)
-		if s > pos then
-			table.insert(components, Ui.text(commit_text:sub(pos, s - 1), { highlight = separator_hl }))
-		end
-	end
-
-	-- Emit the field `value` with `highlight`, preceded by any gap text.
-	local function emit_field(value, highlight)
-		if not value or value == "" then
-			return
-		end
-		local s, e = commit_text:find(value, pos, true)
-		if not s then
-			return
-		end
-		emit_gap(s)
-		table.insert(components, Ui.text(commit_text:sub(s, e), { highlight = highlight }))
-		pos = e + 1
-	end
-
-	-- Emit an id field split into its unique disambiguating prefix (bright) and
-	-- the remaining, non-unique characters (dimmed) — the way jj's own log does
-	-- it. `prefix` comes from jj (`id.shortest().prefix()`); when it's absent or
-	-- not a proper leading substring, fall back to highlighting the whole id.
-	local function emit_id_field(value, prefix, prefix_hl, rest_hl)
-		if not value or value == "" then
-			return
-		end
-		local s, e = commit_text:find(value, pos, true)
-		if not s then
-			return
-		end
-		emit_gap(s)
-		if prefix and prefix ~= "" and #prefix < #value and value:sub(1, #prefix) == prefix then
-			table.insert(components, Ui.text(commit_text:sub(s, s + #prefix - 1), { highlight = prefix_hl }))
-			table.insert(components, Ui.text(commit_text:sub(s + #prefix, e), { highlight = rest_hl }))
-		else
-			table.insert(components, Ui.text(commit_text:sub(s, e), { highlight = prefix_hl }))
-		end
-		pos = e + 1
-	end
+	local emitter = SpanEmitter.new(commit_text, "NeoJJLogCommit")
 
 	local change_id_hl = is_current_head and "NeoJJLogCurrentHead" or "NeoJJLogChangeId"
-	emit_id_field(revision.change_id, revision.change_id_prefix, change_id_hl, "NeoJJLogChangeIdRest")
-	emit_field(revision.author, "NeoJJLogAuthor")
-	emit_field(revision.timestamp, "NeoJJLogTimestamp")
+	emitter:id_field(revision.change_id, revision.change_id_prefix, change_id_hl, "NeoJJLogChangeIdRest")
+	emitter:emit_field(revision.author, "NeoJJLogAuthor")
+	emitter:emit_field(revision.timestamp, "NeoJJLogTimestamp")
 	for _, bookmark in ipairs(revision.bookmarks or {}) do
-		emit_field(bookmark, "NeoJJLogBookmark")
+		emitter:emit_field(bookmark, "NeoJJLogBookmark")
 	end
 	for _, tag in ipairs(revision.tags or {}) do
-		emit_field(tag, "NeoJJLogTag")
+		emitter:emit_field(tag, "NeoJJLogTag")
 	end
-	emit_id_field(revision.commit_id, revision.commit_id_prefix, "NeoJJLogCommitId", "NeoJJLogCommitIdRest")
+	emitter:id_field(revision.commit_id, revision.commit_id_prefix, "NeoJJLogCommitId", "NeoJJLogCommitIdRest")
 
 	-- Trailing status marker. jj keeps "(conflict)" on the metadata row (the
 	-- "(empty)" marker is rendered on the description line below instead).
 	if revision.conflict then
-		emit_field("(conflict)", "NeoJJConflict")
+		emitter:emit_field("(conflict)", "NeoJJConflict")
 	end
 
-	-- Any residual trailing text (unexpected shape) rendered neutrally.
-	if pos <= #commit_text then
-		table.insert(components, Ui.text(commit_text:sub(pos), { highlight = separator_hl }))
-	end
-
-	-- Fallback: if nothing matched (unexpected line shape), render as one span.
-	if #components == 0 then
-		table.insert(components, Ui.text(commit_text, { highlight = separator_hl }))
-	end
-
-	return components
+	return emitter:finish()
 end
 
 ---Create the empty state component
@@ -303,38 +244,45 @@ end
 ---Create help text component
 ---@return table component Help text component
 function LogUI.create_help()
-	return Ui.col({
-		Ui.text("NeoJJ Log Help", { highlight = "NeoJJTitle" }),
-		Ui.empty_line(),
-		Ui.text("Navigation:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  d         - Describe commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Enter>   - Show commit details", { highlight = "NeoJJHelpText" }),
-		Ui.text("  j/k       - Move cursor up/down", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <Tab>     - Toggle revision details", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-		Ui.text("Actions:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  ?         - Show/hide this help", { highlight = "NeoJJHelpText" }),
-		Ui.text("  b         - Bookmark management", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-c>     - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  <C-r>     - Refresh log", { highlight = "NeoJJHelpText" }),
-		Ui.text("  e         - Edit change at cursor (make it working copy)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  f         - Run jj fix (format @)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  n         - Create new change after cursor", { highlight = "NeoJJHelpText" }),
-		Ui.text("  o         - Open operation log view", { highlight = "NeoJJHelpText" }),
-		Ui.text("  p         - Pull from remote (jj git fetch)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  P         - Push to remote (jj git push)", { highlight = "NeoJJHelpText" }),
-		Ui.text("  q         - Quit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  r         - Refresh log", { highlight = "NeoJJHelpText" }),
-		Ui.text("  s         - Open status view", { highlight = "NeoJJHelpText" }),
-		Ui.text("  t         - Tug bookmark to @", { highlight = "NeoJJHelpText" }),
-		Ui.text("  y         - Yank change ID", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
-		Ui.text("Graph symbols:", { highlight = "NeoJJSectionHeader" }),
-		Ui.text("  @         - Working copy commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  ○         - Regular commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  ◆         - Immutable commit", { highlight = "NeoJJHelpText" }),
-		Ui.text("  │├└┤┬┴─   - Graph connections", { highlight = "NeoJJHelpText" }),
-		Ui.empty_line(),
+	return Ui.help_panel("NeoJJ Log Help", {
+		{
+			"Navigation:",
+			{
+				{ "d", "Describe commit" },
+				{ "<Enter>", "Show commit details" },
+				{ "j/k", "Move cursor up/down" },
+				{ "<Tab>", "Toggle revision details" },
+			},
+		},
+		{
+			"Actions:",
+			{
+				{ "?", "Show/hide this help" },
+				{ "b", "Bookmark management" },
+				{ "<C-c>", "Quit" },
+				{ "<C-r>", "Refresh log" },
+				{ "e", "Edit change at cursor (make it working copy)" },
+				{ "f", "Run jj fix (format @)" },
+				{ "n", "Create new change after cursor" },
+				{ "o", "Open operation log view" },
+				{ "p", "Pull from remote (jj git fetch)" },
+				{ "P", "Push to remote (jj git push)" },
+				{ "q", "Quit" },
+				{ "r", "Refresh log" },
+				{ "s", "Open status view" },
+				{ "t", "Tug bookmark to @" },
+				{ "y", "Yank change ID" },
+			},
+		},
+		{
+			"Graph symbols:",
+			{
+				{ "@", "Working copy commit" },
+				{ "○", "Regular commit" },
+				{ "◆", "Immutable commit" },
+				{ "│├└┤┬┴─", "Graph connections" },
+			},
+		},
 	})
 end
 
