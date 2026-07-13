@@ -33,10 +33,9 @@ local Highlights = require("neojj.highlights")
 
 local M = {}
 
--- Runtime configuration, seeded with defaults and overridden by setup(). The
--- log view reads log_limit here so a high cap flows through without callers
--- having to pass it every time.
-M.config = {
+-- Default configuration. Kept separate from M.config so setup() can deep-merge
+-- user options over a pristine copy without the defaults drifting.
+local defaults = {
 	log_limit = 100,
 	-- Diff rendering for the status view. inline = true expands the diff under
 	-- the file (the default); false opens a side-by-side float in native diff
@@ -46,6 +45,11 @@ M.config = {
 		fold = true,
 	},
 }
+
+-- Runtime configuration, seeded with defaults and overridden by setup(). The
+-- log view reads log_limit here so a high cap flows through without callers
+-- having to pass it every time.
+M.config = vim.deepcopy(defaults)
 
 ---Setup NeoJJ with the given options
 ---@param opts? NeoJJSetupOptions Configuration options
@@ -63,20 +67,14 @@ function M.setup(opts)
 		vim.validate("diff.fold", opts.diff.fold, "boolean", true)
 	end
 
+	-- Deep-merge user options over a fresh copy of the defaults. dict-tables
+	-- (like diff) merge recursively, so a user overriding only diff.inline keeps
+	-- the default diff.fold. log_level is a setup-time action, not stored config.
+	M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), opts)
+	M.config.log_level = nil
+
 	if opts.log_level then
 		logger.set_level(opts.log_level)
-	end
-
-	if opts.log_limit then
-		M.config.log_limit = opts.log_limit
-	end
-
-	if opts.diff and opts.diff.inline ~= nil then
-		M.config.diff.inline = opts.diff.inline
-	end
-
-	if opts.diff and opts.diff.fold ~= nil then
-		M.config.diff.fold = opts.diff.fold
 	end
 
 	-- Setup highlight groups
