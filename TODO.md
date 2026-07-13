@@ -16,6 +16,24 @@ require("neojj").setup({
 })
 ```
 
+> ⚠ Blocked (2026-07-13): The config-flag plumbing (a `diff = { inline = true }`
+> group, validation, defaulting to today's behaviour) is mechanical and ready to
+> build. What's undecided is the actual *side-by-side rendering*: today
+> `create_diff_components` (`buffers/status/ui.lua`) emits a single vertical
+> stream of unified-diff lines inside the status fold, and there is no
+> two-column primitive in the component/renderer system to build on. The
+> rendering direction is a UX call that shouldn't be invented.
+>
+> Decisions needed:
+>   (1) Where does side-by-side live — two text columns rendered *within* the
+>     same status-buffer fold (constrained to the window width, needing manual
+>     +/- hunk pairing and padding), or does `inline = false` instead *delegate*
+>     to a separate diff view (two vsplit windows / `jj diff` in a scratch
+>     buffer / an external difftool)?
+>   (2) If it's two columns in-buffer, how should lines wider than half the
+>     window be handled — truncate, wrap, or horizontal scroll — and how should
+>     context / added-only / deleted-only lines align?
+
 # [ ] New with multiple parents — merge (S/M)
 
 Extends the existing `n`. In the log buffer, a mark-then-`n` flow runs `jj new
