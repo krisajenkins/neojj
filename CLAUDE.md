@@ -135,7 +135,8 @@ The renderer tracks the position of interactive components to enable cursor-base
 - `j` / `k`: Navigate up/down (standard vim navigation also works)
 - `<cr>`: Open file at cursor (if on a file entry)
 - `<tab>`: Toggle the diff for the file at cursor (inline by default; opens a
-  side-by-side native-diff float pair when `config.diff.inline == false` — see
+  side-by-side native-diff float pair when `config.diff.inline == false`, with
+  unchanged regions collapsed unless `config.diff.fold == false` — see
   `lua/neojj/buffers/status/diff_float.lua`)
 - `<s-tab>`: Toggle all file diffs
 - `r` / `<c-r>`: Refresh status buffer

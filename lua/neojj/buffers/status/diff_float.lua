@@ -105,13 +105,18 @@ local function map_close_keys(buf)
 end
 
 -- Configure a window for native diff mode, mirroring what `:diffthis` sets.
-local function set_diff_win(win)
+-- When `fold` is true the diff's unchanged regions start collapsed (like
+-- vimdiff): foldlevel 0 closes every fold, and a foldcolumn shows the markers.
+-- When false, folds stay disabled so the whole file is visible.
+local function set_diff_win(win, fold)
 	vim.wo[win].diff = true
 	vim.wo[win].scrollbind = true
 	vim.wo[win].cursorbind = true
 	vim.wo[win].wrap = false
 	vim.wo[win].foldmethod = "diff"
-	vim.wo[win].foldcolumn = "2"
+	vim.wo[win].foldenable = fold
+	vim.wo[win].foldlevel = 0
+	vim.wo[win].foldcolumn = fold and "2" or "0"
 end
 
 -- Open the two adjacent floats and put them into diff mode.
@@ -158,8 +163,9 @@ local function open_pair(path, left_rev, right_rev, left_lines, right_lines)
 		title_pos = "center",
 	})
 
-	set_diff_win(state.left_win)
-	set_diff_win(state.right_win)
+	local fold = require("neojj").config.diff.fold ~= false
+	set_diff_win(state.left_win, fold)
+	set_diff_win(state.right_win, fold)
 
 	-- When either float closes (by any means), close its sibling too so we never
 	-- leave a lone half-diff floating. `once` keeps a fresh open from stacking up

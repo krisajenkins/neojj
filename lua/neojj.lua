@@ -9,6 +9,7 @@ local Highlights = require("neojj.highlights")
 
 ---@class NeoJJDiffOptions
 ---@field inline? boolean Expand file diffs inline (default true); false opens a side-by-side float
+---@field fold? boolean Collapse unchanged regions in the side-by-side float (default true)
 
 ---@class NeoJJSetupOptions
 ---@field log_level? number Log level for the logger
@@ -39,9 +40,10 @@ M.config = {
 	log_limit = 100,
 	-- Diff rendering for the status view. inline = true expands the diff under
 	-- the file (the default); false opens a side-by-side float in native diff
-	-- mode instead.
+	-- mode instead. fold collapses the float's unchanged regions (like vimdiff).
 	diff = {
 		inline = true,
+		fold = true,
 	},
 }
 
@@ -58,6 +60,7 @@ function M.setup(opts)
 	vim.validate("diff", opts.diff, "table", true)
 	if opts.diff then
 		vim.validate("diff.inline", opts.diff.inline, "boolean", true)
+		vim.validate("diff.fold", opts.diff.fold, "boolean", true)
 	end
 
 	if opts.log_level then
@@ -70,6 +73,10 @@ function M.setup(opts)
 
 	if opts.diff and opts.diff.inline ~= nil then
 		M.config.diff.inline = opts.diff.inline
+	end
+
+	if opts.diff and opts.diff.fold ~= nil then
+		M.config.diff.fold = opts.diff.fold
 	end
 
 	-- Setup highlight groups

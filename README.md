@@ -283,6 +283,8 @@ require("neojj").setup({
   diff = {
     inline = true,                  -- true (default): expand file diffs inline
                                     -- false: open a side-by-side diff float
+    fold = true,                    -- true (default): collapse unchanged
+                                    -- regions in the side-by-side float
   },
 })
 ```
@@ -300,9 +302,16 @@ rendered depends on `diff.inline`:
   time. Added files show an empty left side, deleted files an empty right side,
   and binary files report a short message instead of diffing.
 
+`diff.fold` controls whether the side-by-side float starts with its unchanged
+regions collapsed (`true`, the default, like `vimdiff`) or fully expanded
+(`false`). It has no effect in inline mode.
+
 ```lua
 require("neojj").setup({
-  diff = { inline = false },  -- prefer the side-by-side float
+  diff = {
+    inline = false,  -- prefer the side-by-side float
+    fold = false,    -- ...but show the whole file, unchanged regions and all
+  },
 })
 ```
 

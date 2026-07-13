@@ -475,7 +475,8 @@ SETUP OPTIONS                                          *neojj-setup-options*
       log_limit = 100,                  -- Default revisions shown in the log
       diff = {
         inline = true,                  -- Inline vs. side-by-side file diffs
-      },
+        fold = true,                    -- Collapse unchanged regions in the
+      },                                -- side-by-side float
     })
 <
 
@@ -504,6 +505,14 @@ diff.inline             How <Tab> renders a file's diff in the status view
                           files an empty right side, and binary files report a
                           short message instead of diffing.
                         Note: <S-Tab> (toggle all diffs) is inline-only.
+
+                                                            *neojj-diff-fold*
+diff.fold               Whether the side-by-side float starts with its
+                        unchanged regions collapsed (default: true).
+                        • true  - collapse unchanged regions, like vimdiff.
+                        • false - show the whole file, unchanged regions and
+                          all.
+                        No effect when diff.inline is true.
 
 CUSTOM KEYBINDINGS                                      *neojj-keybindings*
 
@@ -607,12 +616,14 @@ neojj.setup({opts})
                             • log_limit: Default revisions shown in the log
                             • diff.inline: Inline vs. side-by-side file diffs
                               (see |neojj-diff-inline|)
+                            • diff.fold: Collapse unchanged regions in the
+                              side-by-side float (see |neojj-diff-fold|)
 
                 Example: >lua
                     require("neojj").setup({
                       log_level = vim.log.levels.INFO,
                       log_limit = 100,
-                      diff = { inline = true },
+                      diff = { inline = true, fold = true },
                     })
 <
 
