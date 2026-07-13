@@ -5,7 +5,24 @@ it landed and the jj change id that carried it.
 
 ---
 
-*Archived: 2026-07-13 (change svkvrtvr)*
+*Archived: 2026-07-13 (change ukpqmsmk)*
+
+# [x] Side-by-side diff support in `jj status`
+
+Added the plugin's first grouped configuration flag, `diff = { inline = true }`,
+defaulting to the existing inline behaviour. When `inline = false`, `<tab>` on a
+file in the status buffer opens the file's two sides (the shown revision vs. its
+parent) in two adjacent floating windows running Neovim's native diff mode — the
+diff engine handles alignment, filler lines, long-line handling and syntax
+highlighting, so no two-column renderer was needed. The float pair is transient
+(not a view-stack frame), closes on `<tab>`/`q`/`<esc>`, and only one pair is
+open at a time.
+
+New `lua/neojj/buffers/status/diff_float.lua` fetches each side via `jj file
+show -r <rev> <path>`, handling added (empty left) / deleted (empty right) /
+binary (notify) files; `lua/neojj.lua` gained the `diff` option group with
+validation; `buffers/status/init.lua` routes `<tab>`/`<s-tab>` on the flag; and
+the option is documented in `README.md`, `doc/neojj.txt` and `CLAUDE.md`.
 
 # [x] Share the "empty working copy" default struct (S)
 

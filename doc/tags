@@ -25,6 +25,7 @@ neojj-describe-abort	neojj.txt	/*neojj-describe-abort*
 neojj-describe-actions	neojj.txt	/*neojj-describe-actions*
 neojj-describe-commands	neojj.txt	/*neojj-describe-commands*
 neojj-describe-mappings	neojj.txt	/*neojj-describe-mappings*
+neojj-diff-inline	neojj.txt	/*neojj-diff-inline*
 neojj-health	neojj.txt	/*neojj-health*
 neojj-highlight-groups	neojj.txt	/*neojj-highlight-groups*
 neojj-highlights	neojj.txt	/*neojj-highlights*

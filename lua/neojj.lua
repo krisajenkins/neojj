@@ -7,9 +7,13 @@ local OplogBuffer = require("neojj.buffers.oplog")
 local AnnotateBuffer = require("neojj.buffers.annotate")
 local Highlights = require("neojj.highlights")
 
+---@class NeoJJDiffOptions
+---@field inline? boolean Expand file diffs inline (default true); false opens a side-by-side float
+
 ---@class NeoJJSetupOptions
 ---@field log_level? number Log level for the logger
 ---@field log_limit? number Default number of revisions shown in the log view
+---@field diff? NeoJJDiffOptions Diff rendering options
 
 ---@class JjRepo
 ---@field dir string
@@ -33,6 +37,12 @@ local M = {}
 -- having to pass it every time.
 M.config = {
 	log_limit = 100,
+	-- Diff rendering for the status view. inline = true expands the diff under
+	-- the file (the default); false opens a side-by-side float in native diff
+	-- mode instead.
+	diff = {
+		inline = true,
+	},
 }
 
 ---Setup NeoJJ with the given options
@@ -45,6 +55,10 @@ function M.setup(opts)
 	vim.validate("opts", opts, "table")
 	vim.validate("log_level", opts.log_level, "number", true)
 	vim.validate("log_limit", opts.log_limit, "number", true)
+	vim.validate("diff", opts.diff, "table", true)
+	if opts.diff then
+		vim.validate("diff.inline", opts.diff.inline, "boolean", true)
+	end
 
 	if opts.log_level then
 		logger.set_level(opts.log_level)
@@ -52,6 +66,10 @@ function M.setup(opts)
 
 	if opts.log_limit then
 		M.config.log_limit = opts.log_limit
+	end
+
+	if opts.diff and opts.diff.inline ~= nil then
+		M.config.diff.inline = opts.diff.inline
 	end
 
 	-- Setup highlight groups

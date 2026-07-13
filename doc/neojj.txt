@@ -473,6 +473,9 @@ SETUP OPTIONS                                          *neojj-setup-options*
     require("neojj").setup({
       log_level = vim.log.levels.INFO,  -- Set log level
       log_limit = 100,                  -- Default revisions shown in the log
+      diff = {
+        inline = true,                  -- Inline vs. side-by-side file diffs
+      },
     })
 <
 
@@ -487,6 +490,20 @@ log_level               Set the logging level for NeoJJ. Available levels:
 log_limit               Default number of revisions shown in the log view
                         (default: 100). Override per invocation with the
                         count argument to |:JJ-log| (e.g. `:JJ log 50`).
+
+                                                            *neojj-diff-inline*
+diff.inline             How <Tab> renders a file's diff in the status view
+                        (default: true).
+                        • true  - expand a unified diff inline, under the file.
+                        • false - open a side-by-side diff in two adjacent
+                          floating windows using Neovim's native diff mode
+                          (parent revision left, shown revision right). Inside
+                          the floats, <Tab>, q or <Esc> close both windows and
+                          return to the status view; only one pair is open at a
+                          time. Added files show an empty left side, deleted
+                          files an empty right side, and binary files report a
+                          short message instead of diffing.
+                        Note: <S-Tab> (toggle all diffs) is inline-only.
 
 CUSTOM KEYBINDINGS                                      *neojj-keybindings*
 
@@ -588,11 +605,14 @@ neojj.setup({opts})
                     {opts}  (table|nil) Configuration options
                             • log_level: Log verbosity level
                             • log_limit: Default revisions shown in the log
+                            • diff.inline: Inline vs. side-by-side file diffs
+                              (see |neojj-diff-inline|)
 
                 Example: >lua
                     require("neojj").setup({
                       log_level = vim.log.levels.INFO,
                       log_limit = 100,
+                      diff = { inline = true },
                     })
 <
 

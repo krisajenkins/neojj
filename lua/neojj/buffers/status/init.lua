@@ -408,6 +408,14 @@ function StatusBuffer:toggle_file_diff()
 		return
 	end
 
+	-- Side-by-side mode: route <tab> to two adjacent floats in native diff mode
+	-- instead of expanding the diff inline. The float pair is transient (not a
+	-- view-stack frame), mirroring the inline toggle.
+	if require("neojj").config.diff.inline == false then
+		require("neojj.buffers.status.diff_float").open(self.repo, self.revision, item.path, item.status)
+		return
+	end
+
 	local file_path = item.path
 	-- expanded_files is keyed by "<section>:<path>" so a file that appears in both
 	-- the Modified and Conflicts sections toggles independently per section. The
@@ -464,6 +472,13 @@ end
 
 ---Toggle all file diffs
 function StatusBuffer:toggle_all_file_diffs()
+	-- Toggle-all only makes sense for the inline expansion; there is no
+	-- side-by-side equivalent (we only float one file pair at a time).
+	if require("neojj").config.diff.inline == false then
+		vim.notify("Toggle-all is only available in inline diff mode", vim.log.levels.INFO)
+		return
+	end
+
 	local any_expanded = next(self.expanded_files) ~= nil
 
 	if any_expanded then

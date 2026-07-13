@@ -279,8 +279,34 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 ```lua
 require("neojj").setup({
   log_level = vim.log.levels.INFO,  -- Set log level (DEBUG, INFO, WARN, ERROR)
+  log_limit = 100,                  -- Default revisions shown in the log view
+  diff = {
+    inline = true,                  -- true (default): expand file diffs inline
+                                    -- false: open a side-by-side diff float
+  },
 })
 ```
+
+### Diff Display
+
+`<Tab>` on a file in the status view toggles that file's diff. How the diff is
+rendered depends on `diff.inline`:
+
+- `inline = true` (default) expands a unified diff underneath the file, in place.
+- `inline = false` opens a **side-by-side** diff in two adjacent floating
+  windows using Neovim's native diff mode (parent revision on the left, the
+  shown revision on the right). Inside the floats, `<Tab>`, `q` or `<Esc>` close
+  both windows and return you to the status view. Only one pair is open at a
+  time. Added files show an empty left side, deleted files an empty right side,
+  and binary files report a short message instead of diffing.
+
+```lua
+require("neojj").setup({
+  diff = { inline = false },  -- prefer the side-by-side float
+})
+```
+
+Note: `<S-Tab>` (toggle all file diffs) only applies to inline mode.
 
 ### Custom Keybindings
 
