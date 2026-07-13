@@ -108,11 +108,33 @@ buffer re-implements a module-level `instances = {}`, a byte-identical
 instance and installs an `on_detach` cleanup; those want a shared
 `get_or_create(map, key, factory)` / `list_valid(map)` too.
 
+A `jscpd` run confirms this is the biggest remaining cluster and that it reaches
+further than the lifecycle methods: after the `action.run` extraction the
+per-buffer *wrapper* methods `fix()`/`tug()`/`_run_push()`/`push()` are still
+byte-identical between `StatusBuffer` and `LogBuffer`, and so are their
+`_setup_mappings` keymap rows (`f`→fix, `t`→tug, `P`→push, `p`→fetch). Those
+only collapse once the methods live on the shared base — so hoist the jj-action
+wrappers and their common keymap registrations onto `ViewBuffer` as well, not
+just the lifecycle plumbing.
+
 Riskier than the action.run work: it touches `view_stack.lua` and the buffer-
 construction / `on_detach` teardown path (which also drives watcher cleanup in
 oplog), so the factory callback must still own each buffer's `Buffer.create`
 config. Keep the transient describe/annotate buffers out of the frame-specific
 parts.
+
+# [ ] Share the "empty working copy" default struct (S)
+
+`status_parser.lua` (~:13-23) and `repository.lua` (~:14-24) both hand-build an
+identical default working-copy record: `{ change_id = nil, commit_id = nil,
+description = "", author = { name = "", email = "" }, parent_ids = {},
+modified_files = {}, conflicts = {}, is_empty = true, empty = false }`. Two
+copies of the same shape drift apart the moment a field is added to one.
+
+Extract a single `empty_working_copy()` constructor (a fresh table each call, so
+callers can mutate their copy) — natural home is `status.lua` or `status_parser`
+since it owns that shape — and have both sites call it. Surfaced by `jscpd`;
+the earlier audit missed it.
 
 # [ ] Share the UI help-panel and span-emitter rendering (M)
 
