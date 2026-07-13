@@ -5,6 +5,26 @@ it landed and the jj change id that carried it.
 
 ---
 
+*Archived: 2026-07-13 (change svkvrtvr)*
+
+# [x] Share the "empty working copy" default struct (S)
+
+`status_parser.lua` and `repository.lua` both hand-built a field-for-field
+identical default working-copy record (`change_id`/`commit_id`/`description`/
+`author`/`parent_ids`/`modified_files`/`conflicts`/`is_empty = true`/
+`empty = false`), so the two copies would drift apart the moment a field was
+added to one.
+
+Added `M.empty_working_copy()` to `lua/neojj/lib/jj/parsers/status_parser.lua` —
+the module that owns the `WorkingCopy` shape and has no requires, so no cycle is
+introduced. It returns a fresh table literal each call (callers mutate their
+copy) and is annotated `---@return WorkingCopy`. Both sites now call it:
+`parse_working_copy_info` uses it as its starting record, and `repository.lua`'s
+`empty_state()` requires status_parser and uses it for `working_copy`. Pure
+dedup; `make format`/`typecheck` clean and all 239 test cases pass.
+
+---
+
 *Archived: 2026-07-13 (change nyqqskqq)*
 
 # [x] Share the UI help-panel and span-emitter rendering (M)

@@ -1,6 +1,7 @@
 local async = require("plenary.async")
 local logger = require("neojj.logger")
 local util = require("neojj.lib.jj.util")
+local status_parser = require("neojj.lib.jj.parsers.status_parser")
 
 local JjRepo = {}
 JjRepo.__index = JjRepo
@@ -11,17 +12,7 @@ local function empty_state()
 	return {
 		root = "",
 		jj_dir = "",
-		working_copy = {
-			change_id = nil,
-			commit_id = nil,
-			description = "",
-			author = { name = "", email = "" },
-			parent_ids = {},
-			modified_files = {},
-			conflicts = {},
-			is_empty = true,
-			empty = false,
-		},
+		working_copy = status_parser.empty_working_copy(),
 		bookmarks = {
 			local_bookmarks = {},
 			remote_bookmarks = {},

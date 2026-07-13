@@ -73,15 +73,3 @@ trailing fields, `(empty)`-marker handling and a different display-line
 assembly, so unifying the loop bodies buys little for a lot of callback
 plumbing. Just extract the two leaf helpers.
 
-# [ ] Share the "empty working copy" default struct (S)
-
-`status_parser.lua` (~:13-23) and `repository.lua` (~:14-24) both hand-build an
-identical default working-copy record: `{ change_id = nil, commit_id = nil,
-description = "", author = { name = "", email = "" }, parent_ids = {},
-modified_files = {}, conflicts = {}, is_empty = true, empty = false }`. Two
-copies of the same shape drift apart the moment a field is added to one.
-
-Extract a single `empty_working_copy()` constructor (a fresh table each call, so
-callers can mutate their copy) — natural home is `status.lua` or `status_parser`
-since it owns that shape — and have both sites call it. Surfaced by `jscpd`;
-the earlier audit missed it.

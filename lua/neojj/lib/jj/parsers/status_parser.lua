@@ -5,12 +5,12 @@
 
 local M = {}
 
----Parse working copy information from jj status output
----@param lines string[] Output lines from jj status command
----@return WorkingCopy Parsed working copy information
-function M.parse_working_copy_info(lines)
+---Build a default working-copy record for an empty working copy.
+---Returns a fresh table each call, so callers may safely mutate their copy.
+---@return WorkingCopy working_copy Default working-copy information
+function M.empty_working_copy()
 	---@type WorkingCopy
-	local working_copy = {
+	return {
 		change_id = nil,
 		commit_id = nil,
 		description = "",
@@ -21,6 +21,13 @@ function M.parse_working_copy_info(lines)
 		is_empty = true,
 		empty = false,
 	}
+end
+
+---Parse working copy information from jj status output
+---@param lines string[] Output lines from jj status command
+---@return WorkingCopy Parsed working copy information
+function M.parse_working_copy_info(lines)
+	local working_copy = M.empty_working_copy()
 
 	-- jj emits an "unresolved conflicts" warning block on stdout, e.g.:
 	--   Warning: There are unresolved conflicts at these paths:
