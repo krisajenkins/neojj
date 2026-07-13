@@ -50,3 +50,94 @@ higher-value version also adds a recent-command ring to `cli.lua` — the last N
 jj invocations with argv + exit code + stderr — which is what actually pins
 down failures like the `jj bookmark move --revision` bug. Complements the
 existing static `:checkhealth neojj` (`health.lua`) with the runtime half.
+
+# [ ] Extract shared parser helpers `split_gutter` / `valid_prefix` (S)
+
+Two small helpers are still duplicated across the jj output parsers in
+`lua/neojj/lib/jj/parsers/`:
+
+- `split_gutter(line)` is byte-identical in `log_parser.lua` (~:52) and
+  `oplog_parser.lua` (~:34).
+- `valid_prefix(id, prefix)` exists as a named helper in `opshow_parser.lua`
+  (~:26) but is inlined twice in `log_parser.lua` (~:107-126, once for
+  change_id and once for commit_id).
+
+Lift both into a shared home — `separators.lua` already collects the parser's
+byte-level constants, so it's the natural place, or a new `parsers/record.lua`
+if you'd rather keep `separators.lua` data-only. Zero behaviour change; each
+parser sources the helper instead of its own copy.
+
+Explicitly out of scope: a higher-order "parse two-line records" loop driver.
+The `parse_*_output` loops look similar but `log_parser` carries extra optional
+trailing fields, `(empty)`-marker handling and a different display-line
+assembly, so unifying the loop bodies buys little for a lot of callback
+plumbing. Just extract the two leaf helpers.
+
+# [ ] Lift the repeated child-Neovim test scaffolding into a helper (S)
+
+Thirteen test files (`test_annotate`, `test_buffer`, `test_commands`,
+`test_cursor`, `test_describe`, `test_integration_workflows`, `test_log`,
+`test_main`, `test_oplog`, `test_opshow`, `test_opshow_parser`, `test_status`,
+`test_ui`) open with the same ~10-line block: `MiniTest.new_child_neovim()`
+plus a `pre_case` hook that `child.restart({ "-u", "scripts/minimal_init.lua" })`,
+sets `readonly = false`, adds plenary to `rtp`, and installs
+`expect = require('mini.test').expect`, with `post_once = child.stop`.
+
+Add `tests/helpers/child.lua` returning the child plus a `new_set` factory that
+installs the standard hooks, so each file drops to
+`local child, new_set = require('tests.helpers.child')()`. Pure test-side, very
+low risk. Watch the couple of files that add extra `pre_case` steps (e.g.
+`test_annotate.lua` restarts inside a nested set) — the helper must allow
+appending hooks, not just replacing them.
+
+# [ ] Share a `ViewBuffer` base for the stack-frame buffers (L)
+
+The view-stack / lifecycle plumbing is duplicated across all four stack-frame
+buffer classes (`status`, `log`, `oplog`, `opshow`): `go_back`, `show`,
+`show_split`, `show_tab`, `close`, `is_valid`, `get_handle` are byte-identical
+modulo the class name (~80-90 lines per class), and `_push_frame` is identical
+in status/log/oplog (opshow's omits the `watcher.ensure` line). The transient
+`describe`/`annotate` buffers carry near-copies of `show`/`close`/`is_valid`/
+`get_handle` too (no `_push_frame`, since they aren't frames).
+
+Extract a shared `ViewBuffer` base (or mixin) that owns the lifecycle + view-
+stack methods; each buffer class sets its own frame-kind / options and inherits
+the rest. Fold in the per-view singleton bookkeeping while you're there — every
+buffer re-implements a module-level `instances = {}`, a byte-identical
+`list_instances()`, and a `.new()` prologue that returns an existing valid
+instance and installs an `on_detach` cleanup; those want a shared
+`get_or_create(map, key, factory)` / `list_valid(map)` too.
+
+Riskier than the action.run work: it touches `view_stack.lua` and the buffer-
+construction / `on_detach` teardown path (which also drives watcher cleanup in
+oplog), so the factory callback must still own each buffer's `Buffer.create`
+config. Keep the transient describe/annotate buffers out of the frame-specific
+parts.
+
+# [ ] Share the UI help-panel and span-emitter rendering (M)
+
+Two families of copy-pasted UI construction in `lua/neojj/buffers/*/ui.lua`:
+
+1. Help panels: `create_help` is a hand-built list of
+   `Ui.text("  <key>  - <desc>", { highlight = "NeoJJHelpText" })` rows under
+   `NeoJJSectionHeader` sections in `log/ui.lua` (~:305), `oplog/ui.lua`
+   (~:174), `status/ui.lua` (~:490) and `annotate/ui.lua` (~:192). The content
+   differs per view (correctly), but the row/section formatting is repeated.
+   Add `Ui.help_panel(title, sections)` taking a data table
+   (`{ {"Navigation", {{"d","Describe commit"}, ...}}, ... }`); each buffer
+   supplies data, the formatting lives once. `create_header` is similarly
+   near-identical across log/oplog/status — collapse to `Ui.header(title, opts)`
+   at the same time.
+2. Span emitter: `LogUI.create_commit_text_components` (`log/ui.lua` ~:212) and
+   `OplogUI.create_operation_text_components` (`oplog/ui.lua` ~:98) share the
+   same closure-based positional emitter (`pos` cursor, `emit_field(value, hl)`
+   that `:find`s the value, emits the gap + field, plus identical trailing /
+   fallback tails). Extract a `lib/ui/span_emitter.lua`; log's `emit_id_field`
+   and opshow's `append_id` (`opshow/ui.lua` ~:18) are two more variants of the
+   same prefix-bright/rest-dim id renderer that collapse into one `id_field`.
+
+Caveat: `describe/ui.lua`'s help uses a different `"JJ: "`-comment style (it
+renders inside an editable buffer) — leave it out of the shared panel. The
+opshow `append_id` variant builds spans from values rather than positionally,
+so unifying all three id renderers needs a little care; log+oplog alone is
+clean.
