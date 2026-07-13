@@ -289,6 +289,25 @@ require("neojj").setup({
 })
 ```
 
+`setup()` is optional — NeoJJ registers `:JJ` and its highlights on load, so the
+plugin works with no configuration at all. Call `setup()` only to override a
+default.
+
+#### Type-checked config (optional)
+
+NeoJJ exposes a `NeoJJSetupOptions` type. If you use `lua-language-server`,
+annotate your options table to get completion and catch typo'd keys in your
+editor before they silently do nothing:
+
+```lua
+---@type NeoJJSetupOptions
+local opts = {
+  log_limit = 200,
+  diff = { inline = false },
+}
+require("neojj").setup(opts)
+```
+
 ### Diff Display
 
 `<Tab>` on a file in the status view toggles that file's diff. How the diff is

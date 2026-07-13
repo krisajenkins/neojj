@@ -11,8 +11,14 @@ local Highlights = require("neojj.highlights")
 ---@field inline? boolean Expand file diffs inline (default true); false opens a side-by-side float
 ---@field fold? boolean Collapse unchanged regions in the side-by-side float (default true)
 
+--- Options accepted by |neojj.setup()|. Every field is optional; unset fields
+--- keep their defaults. Annotate your own config with this type to get
+--- completion and typo-checking from lua-language-server:
+---     ---@type NeoJJSetupOptions
+---     local opts = { log_limit = 200 }
+---     require("neojj").setup(opts)
 ---@class NeoJJSetupOptions
----@field log_level? number Log level for the logger
+---@field log_level? number Log level, e.g. `vim.log.levels.INFO` (the default)
 ---@field log_limit? number Default number of revisions shown in the log view
 ---@field diff? NeoJJDiffOptions Diff rendering options
 

@@ -465,7 +465,9 @@ q                       Close annotate buffer
 ==============================================================================
 10. CONFIGURATION                                         *neojj-configuration*
 
-NeoJJ can be configured by passing options to the setup function.
+NeoJJ can be configured by passing options to the setup function. Calling
+setup() is optional: NeoJJ registers |:JJ| and its highlights on load, so the
+plugin works with no configuration. Call setup() only to override a default.
 
 SETUP OPTIONS                                          *neojj-setup-options*
 
@@ -478,6 +480,15 @@ SETUP OPTIONS                                          *neojj-setup-options*
         fold = true,                    -- Collapse unchanged regions in the
       },                                -- side-by-side float
     })
+<
+
+                                                        *neojj-setup-type*
+NeoJJ exposes a `NeoJJSetupOptions` type. If you use lua-language-server,
+annotate your options table to get completion and have typo'd keys flagged in
+your editor before they silently do nothing: >lua
+    ---@type NeoJJSetupOptions
+    local opts = { log_limit = 200, diff = { inline = false } }
+    require("neojj").setup(opts)
 <
 
                                                             *neojj-log-level*

@@ -53,6 +53,7 @@ neojj-oplog-refresh	neojj.txt	/*neojj-oplog-refresh*
 neojj-project-links	neojj.txt	/*neojj-project-links*
 neojj-requirements	neojj.txt	/*neojj-requirements*
 neojj-setup-options	neojj.txt	/*neojj-setup-options*
+neojj-setup-type	neojj.txt	/*neojj-setup-type*
 neojj-status	neojj.txt	/*neojj-status*
 neojj-status-actions	neojj.txt	/*neojj-status-actions*
 neojj-status-close	neojj.txt	/*neojj-status-close*
