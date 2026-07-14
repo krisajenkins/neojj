@@ -27,6 +27,8 @@
             neovim
             git
             jujutsu
+            vhs
+            ncurses # tic, for the demo's semicolon-truecolor terminfo
           ];
 
           shellHook = ''
