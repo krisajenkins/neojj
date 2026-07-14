@@ -214,7 +214,7 @@ function M.open(repo, revision, path, status)
 
 		vim.schedule(function()
 			if left_binary or right_binary then
-				vim.notify("NeoJJ: binary file — cannot show side-by-side diff", vim.log.levels.WARN)
+				vim.notify("NeoJJ: binary file — cannot show diff", vim.log.levels.WARN)
 				return
 			end
 			open_pair(path, left_rev, right_rev, left_lines, right_lines)
