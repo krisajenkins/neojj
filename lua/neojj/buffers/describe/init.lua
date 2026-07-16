@@ -9,28 +9,58 @@ local logger = require("neojj.logger")
 ---@field on_submit? function Callback when description is submitted
 ---@field on_abort? function Callback when description is aborted
 ---@field submitting? boolean Re-entry guard while a submit job is in flight
+---@field static_components? fun(): table[] Pre-filled components (skips async load)
+---@field perform_write? fun(message: string): table Custom submit action (defaults to `jj describe`)
+---@field success_message? string Notification shown on a successful submit
 local DescribeBuffer = {}
 DescribeBuffer.__index = DescribeBuffer
 
----Create a new describe buffer for editing JJ commit descriptions
+---Overrides that turn the describe buffer into a general write-to-submit
+---commit-message editor (used for jj's squash combine-descriptions flow).
+---@class DescribeBufferOpts
+---@field components? fun(): table[] Static components to pre-fill (skips async load)
+---@field perform_write? fun(message: string): table Custom submit action
+---@field name? string Buffer name
+---@field success_message? string Notification shown on a successful submit
+
+---Create a new describe buffer for editing JJ commit descriptions.
+---
+---By default this loads the revision's current description and, on submit,
+---writes it back with `jj describe`. Passing `opts` turns it into a general
+---"write-to-submit" commit-message editor, reused for jj's squash
+---combine-descriptions flow (see ViewBuffer:squash):
+---  * `opts.components` — static UI components to pre-fill (skips the async
+---    description load). Used verbatim, including any `JJ:` guidance lines
+---    (which `get_description_from_buffer` strips on submit, matching jj's own
+---    editor convention).
+---  * `opts.perform_write` — run inside the submit async context instead of
+---    `jj describe --stdin`; returns a result table `{ success, stderr }`. Lets
+---    the caller run e.g. `jj squash -m`.
+---  * `opts.name` — buffer name (defaults to `JJ Describe: <revision>`).
+---  * `opts.success_message` — notification shown on a successful submit.
 ---@param repo table Repository instance
 ---@param revision? string Revision to describe (defaults to @)
 ---@param on_submit? function Callback when description is submitted
 ---@param on_abort? function Callback when description is aborted
+---@param opts? DescribeBufferOpts Optional message-editor overrides
 ---@return DescribeBuffer describe_buffer Describe buffer instance
-function DescribeBuffer.new(repo, revision, on_submit, on_abort)
+function DescribeBuffer.new(repo, revision, on_submit, on_abort, opts)
 	revision = revision or "@"
+	opts = opts or {}
 
 	local instance = setmetatable({
 		repo = repo,
 		revision = revision,
 		on_submit = on_submit,
 		on_abort = on_abort,
+		static_components = opts.components,
+		perform_write = opts.perform_write,
+		success_message = opts.success_message or "Description updated",
 	}, DescribeBuffer)
 
 	-- Create buffer with unified factory method
 	local buffer = Buffer.create({
-		name = "JJ Describe: " .. revision,
+		name = opts.name or ("JJ Describe: " .. revision),
 		filetype = "neojj-describe",
 		kind = "split", -- Default to split view
 		modifiable = true,
@@ -43,19 +73,28 @@ function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 		mappings = {}, -- Will be added via _setup_mappings
 		autocmds = {}, -- Will be added via _setup_autocmds
 		initialize = function()
-			-- Load content when buffer is initialized
-			instance:load_current_description()
+			-- Static content is rendered by the render callback below; only the
+			-- description-loading variant needs its async fetch kicked off here.
+			if not instance.static_components then
+				instance:load_current_description()
+			end
 		end,
 		render = function()
-			-- Return UI components if description is loaded
-			if instance.description_loaded then
+			if instance.static_components then
+				return instance.static_components()
+			elseif instance.description_loaded then
 				return instance:create_ui_components()
 			else
 				return nil
 			end
 		end,
 		after = function()
-			-- Additional setup after buffer is displayed
+			-- Pre-filled content counts as "modified" after the initial render;
+			-- clear it so a bare :q aborts cleanly (rather than prompting) and the
+			-- render-skip-if-modified guard behaves.
+			if instance.static_components and instance.buffer and instance.buffer:is_valid() then
+				vim.api.nvim_set_option_value("modified", false, { buf = instance.buffer.handle })
+			end
 		end,
 		on_detach = function()
 			-- Cleanup when buffer is closed
@@ -64,7 +103,9 @@ function DescribeBuffer.new(repo, revision, on_submit, on_abort)
 	})
 
 	instance.buffer = buffer
-	instance.description_loaded = false
+	-- Static content is ready immediately; the async variant flips this once its
+	-- description has loaded.
+	instance.description_loaded = opts.components ~= nil
 	instance.current_description = ""
 	instance.submitting = false
 
@@ -204,36 +245,23 @@ function DescribeBuffer:submit()
 	-- Get the description text, filtering out help comments
 	local description = self:get_description_from_buffer()
 
-	-- Execute jj describe command
+	-- Execute the write (jj describe by default, or a caller-supplied action)
 	local async = require("plenary.async")
 
 	async.run(function()
-		-- We need to pass the description via stdin using plenary Job directly
-		local Job = require("plenary.job")
-		local job = Job:new({
-			command = "jj",
-			args = { "--color", "never", "describe", self.revision, "--stdin" },
-			cwd = self.repo.dir,
-			writer = description,
-		})
-
-		local ok, stdout = pcall(function()
-			return job:sync()
-		end)
-
-		local result = {
-			success = ok and job.code == 0,
-			exit_code = job.code or -1,
-			stdout = ok and table.concat(stdout or {}, "\n") or "",
-			stderr = ok and table.concat(job:stderr_result() or {}, "\n") or tostring(stdout),
-		}
+		local result
+		if self.perform_write then
+			result = self.perform_write(description)
+		else
+			result = self:_default_write(description)
+		end
 
 		if result.success then
 			logger.info("Description updated successfully")
 			vim.schedule(function()
 				-- Clear the guard so a later, legitimate submit can proceed.
 				self.submitting = false
-				vim.notify("Description updated", vim.log.levels.INFO)
+				vim.notify(self.success_message, vim.log.levels.INFO)
 				-- Close the describe buffer BEFORE invoking on_submit. Tearing down
 				-- the describe window first lets callers refresh and re-focus their
 				-- originating view synchronously, rather than deferring past
@@ -262,8 +290,44 @@ function DescribeBuffer:submit()
 	end)
 end
 
+---Default submit action: write the description back with `jj describe --stdin`.
+---Runs inside submit()'s async context; returns a result table. Overridden per
+---instance via `opts.perform_write` (e.g. the squash flow runs `jj squash -m`).
+---@param description string The description text to write
+---@return table result `{ success, exit_code, stdout, stderr }`
+function DescribeBuffer:_default_write(description)
+	-- Pass the description via stdin using plenary Job directly.
+	local Job = require("plenary.job")
+	local job = Job:new({
+		command = "jj",
+		args = { "--color", "never", "describe", self.revision, "--stdin" },
+		cwd = self.repo.dir,
+		writer = description,
+	})
+
+	local ok, stdout = pcall(function()
+		return job:sync()
+	end)
+
+	return {
+		success = ok and job.code == 0,
+		exit_code = job.code or -1,
+		stdout = ok and table.concat(stdout or {}, "\n") or "",
+		stderr = ok and table.concat(job:stderr_result() or {}, "\n") or tostring(stdout),
+	}
+end
+
 ---Abort the description editing
 function DescribeBuffer:abort()
+	-- A write-quit (`:wq`/`:x`) fires BufWriteCmd (submit) and then QuitPre
+	-- (abort) in sequence, so a *successful* submit would otherwise be followed
+	-- by a spurious abort — logging "Aborting…" and running on_abort even though
+	-- the write went through. If a submit is in flight, that submit owns the
+	-- close/callback; don't abort over the top of it.
+	if self.submitting then
+		return
+	end
+
 	logger.info("Aborting description for revision: " .. self.revision)
 
 	self.buffer:close()

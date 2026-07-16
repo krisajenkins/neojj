@@ -35,7 +35,7 @@ Feel free to use it. What it does, it does well. It doesn't cover every `jj` fea
 - **Annotate/Blame** - See which change last touched each line of a file
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
 - **Commit Details** - View detailed commit information and diffs
-- **Working-copy Actions** - `jj commit`, `jj fix`, `jj tug`, `jj edit`, and `jj new` from the buffers
+- **Working-copy Actions** - `jj commit`, `jj fix`, `jj tug`, `jj edit`, `jj new`, and `jj squash` from the buffers
 - **Git Sync** - Push (`jj git push`) and pull (`jj git fetch`) from the status and log buffers
 - **Auto-refresh** - Open views refresh automatically when the repo changes externally (e.g. a `jj` command run in another terminal)
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
@@ -206,6 +206,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `d`             | Describe current commit       |
 | `c`             | Commit change (describe `@` + `jj new`) |
 | `n`             | Create new change             |
+| `S`             | Squash `@` into parent        |
 | `f`             | Run jj fix (format `@`)       |
 | `t`             | Tug closest bookmark to `@`   |
 | `P`             | Push to remote (`jj git push`) |
@@ -225,6 +226,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `d`           | Describe commit         |
 | `n`           | Create new change       |
 | `e`           | Edit change (make working copy) |
+| `S`           | Squash change at cursor (into parent, or pick a mutable commit to `--into`) |
 | `f`           | Run jj fix (format `@`) |
 | `t`           | Tug bookmark to `@`     |
 | `b`           | Bookmark management (create/move/delete/rename/track/untrack) |

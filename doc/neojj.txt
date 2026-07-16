@@ -290,6 +290,9 @@ d                       Describe current commit (edit description)
 c                       Commit change: describe @ then jj new, landing on a
                         fresh empty working copy
 n                       Create new change from current commit
+S                       Squash @ into its parent (confirms first). If both @ and
+                        its parent are described, a native editor opens to
+                        combine the two messages (jj's combine-descriptions flow)
 f                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
 P                       Push to remote (jj git push): prompts for all tracked
@@ -337,6 +340,11 @@ r                       Refresh log buffer
 d                       Describe commit at cursor (edit description)
 n                       Create new change after commit at cursor
 e                       Edit change at cursor (make it the working copy)
+S                       Squash change at cursor: opens a menu to squash it into
+                        its parent, or into an --into target picked from a fuzzy
+                        picker over all mutable commits (commit id + summary).
+                        When source and destination are both described, a native
+                        editor opens to combine the two messages
 f                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
 b                       Bookmark management: opens a menu to create, move,

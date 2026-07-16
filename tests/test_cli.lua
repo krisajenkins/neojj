@@ -153,6 +153,44 @@ T["git_fetch builder emits the git fetch subcommand"] = function()
 	restore()
 end
 
+T["squash builder emits the bare squash subcommand"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.squash():call()
+
+	expect_args(captured.opts.args, { "--color", "never", "squash" })
+
+	restore()
+end
+
+T["squash builder carries a --from option"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.squash():option("from", "abc123"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "squash", "--from", "abc123" })
+
+	restore()
+end
+
+T["squash builder carries --from and --into options"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.squash():option("from", "abc123"):option("into", "def456"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"squash",
+		"--from",
+		"abc123",
+		"--into",
+		"def456",
+	})
+
+	restore()
+end
+
 T["bookmark_create builder targets a revision"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 

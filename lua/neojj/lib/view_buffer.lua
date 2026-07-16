@@ -290,4 +290,186 @@ function ViewBuffer:fetch()
 	})
 end
 
+--- Squash one revision into another, reproducing jj's combine-descriptions
+--- editor natively when needed. `opts.from`/`opts.into` are revsets:
+---   * from=nil, into=nil   → bare `jj squash` (working copy `@` into its parent)
+---   * from=<rev>           → squash `<rev>` into its parent
+---   * from=<rev>, into=<t>  → squash `<rev>` into `<t>`
+---
+--- When the source and destination BOTH carry a (differing) description, jj
+--- would open $EDITOR to merge them — which hangs under our non-interactive
+--- call path. We instead open a native message buffer pre-filled with jj's
+--- template (see neojj.lib.jj.squash) and run `jj squash --message <edited>`.
+--- Otherwise (at most one description, or the two match) a plain squash is
+--- non-interactive and runs directly. Refreshes the view on success.
+---@param opts { from?: string, into?: string }
+function ViewBuffer:_run_squash(opts)
+	opts = opts or {}
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+	local json_parser = require("neojj.lib.jj.parsers.json_parser")
+	local squash = require("neojj.lib.jj.squash")
+
+	local from, into = opts.from, opts.into
+	local eff_from = from or "@"
+	local eff_into = into or (eff_from .. "-")
+	local label = from and from:sub(1, 8) or "@"
+
+	-- Build the squash command. `--from`/`--into` are added only when explicitly
+	-- given, so the bare status-view case stays `jj squash` (jj: `@` into `@-`).
+	-- A non-nil `message` adds `--message`, which also stops jj opening its
+	-- editor.
+	local function build_builder(message)
+		local builder = cli.squash()
+		if from then
+			builder:option("from", from)
+		end
+		if into then
+			builder:option("into", into)
+		end
+		if message ~= nil then
+			builder:option("message", message)
+		end
+		return builder:cwd(self.repo.dir)
+	end
+
+	local function run_plain(message)
+		action.run(self, {
+			builder = build_builder(message),
+			success = "Squashed " .. label,
+			failure = "Failed to squash",
+		})
+	end
+
+	async.run(function()
+		-- Fetch source + destination metadata. The destination revset can resolve
+		-- to several commits (a merge's parents), so parse them all.
+		local function fetch_metas(revset)
+			local result = cli.log()
+				:option("revisions", revset)
+				:option("template", 'json(self) ++ "\\n"')
+				:flag("no-graph")
+				:cwd(self.repo.dir)
+				:call_async()
+			if not result.success then
+				return nil, result.stderr
+			end
+			return json_parser.parse_json_lines(result.stdout or "")
+		end
+
+		local source_metas, src_err = fetch_metas(eff_from)
+		local source = source_metas and source_metas[1]
+		if not source then
+			vim.schedule(function()
+				vim.notify("Failed to read squash source: " .. (src_err or "unknown"), vim.log.levels.ERROR)
+			end)
+			return
+		end
+		-- jj's `description` keyword yields the text with its trailing newline;
+		-- strip it so a whitespace-only description reads as empty and the combine
+		-- template doesn't gain a stray blank line between the two messages.
+		local function clean(desc)
+			return (tostring(desc or ""):gsub("%s+$", ""))
+		end
+
+		local source_desc = clean(source.description)
+
+		local dest_metas = fetch_metas(eff_into) or {}
+		local dest_desc = ""
+		local dest_change_id = dest_metas[1] and dest_metas[1].change_id or eff_into
+		for _, d in ipairs(dest_metas) do
+			if clean(d.description) ~= "" then
+				dest_desc = clean(d.description)
+				dest_change_id = d.change_id or dest_change_id
+				break
+			end
+		end
+
+		-- jj opens its combine editor only when source AND destination both carry
+		-- a description. If at most one does, a plain squash is safe. If both are
+		-- identical, jj reuses that text without an editor — we pass it via
+		-- --message to stay non-interactive.
+		if source_desc == "" or dest_desc == "" then
+			vim.schedule(function()
+				run_plain(nil)
+			end)
+			return
+		end
+		if source_desc == dest_desc then
+			vim.schedule(function()
+				run_plain(dest_desc)
+			end)
+			return
+		end
+
+		-- Both described and differing → reproduce jj's editor natively. Gather
+		-- the combined change list (union of the two commits' file summaries) for
+		-- the informational JJ: block.
+		local function summary_files(revset)
+			local result =
+				cli.raw():arg("diff"):option("revisions", revset):flag("summary"):cwd(self.repo.dir):call_async()
+			local out = {}
+			if result.success then
+				for _, line in ipairs(vim.split(result.stdout or "", "\n")) do
+					if vim.trim(line) ~= "" then
+						table.insert(out, line)
+					end
+				end
+			end
+			return out
+		end
+		local function path_of(summary)
+			return summary:match("^%S+%s+(.*)$") or summary
+		end
+		local seen, files = {}, {}
+		for _, revset in ipairs({ eff_into, eff_from }) do
+			for _, line in ipairs(summary_files(revset)) do
+				local path = path_of(line)
+				if not seen[path] then
+					seen[path] = true
+					table.insert(files, line)
+				end
+			end
+		end
+		table.sort(files, function(a, b)
+			return path_of(a) < path_of(b)
+		end)
+
+		vim.schedule(function()
+			local components = squash.build_combine_components({
+				dest_description = dest_desc,
+				source_description = source_desc,
+				dest_change_id = dest_change_id,
+				files = files,
+			})
+
+			local function on_submit()
+				if self.buffer and self.buffer:is_valid() then
+					self:refresh()
+					self.buffer:open()
+				end
+			end
+			local function on_abort()
+				if self.buffer and self.buffer:is_valid() then
+					self.buffer:open()
+				end
+			end
+
+			local DescribeBuffer = require("neojj.buffers.describe")
+			local editor = DescribeBuffer.new(self.repo, eff_into, on_submit, on_abort, {
+				name = "JJ Squash: " .. label .. " → " .. dest_change_id,
+				components = function()
+					return components
+				end,
+				success_message = "Squashed " .. label,
+				perform_write = function(message)
+					local result = build_builder(message):call_async()
+					return { success = result.success, stderr = result.stderr }
+				end,
+			})
+			editor:show()
+		end)
+	end)
+end
+
 return ViewBuffer

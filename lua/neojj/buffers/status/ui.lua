@@ -511,6 +511,7 @@ function StatusUI.create_help()
 				{ "P", "Push to remote (jj git push)" },
 				{ "q", "Quit" },
 				{ "r", "Refresh status" },
+				{ "S", "Squash @ into parent" },
 				{ "t", "Tug bookmark to @" },
 			},
 		},

@@ -478,4 +478,33 @@ T.test_abort_fires_callback_without_cli = function()
 	]])
 end
 
+-- A write-quit (:wq / :x) fires BufWriteCmd (submit) then QuitPre (abort). While
+-- the submit is in flight, abort must be a no-op so a successful write is not
+-- followed by a spurious "Aborting…" + on_abort.
+T.test_abort_is_noop_while_submitting = function()
+	child.lua([[
+		expect = require('mini.test').expect
+
+		package.loaded['plenary.async'] = { run = function() end }
+
+		local mock_repo = { dir = '/fake/repo', is_jj_repo = function() return true end }
+		local DescribeBuffer = require('neojj.buffers.describe')
+
+		local aborted = 0
+		local db = DescribeBuffer.new(mock_repo, '@', nil, function() aborted = aborted + 1 end)
+
+		-- A submit is in flight: abort must not fire the callback or close.
+		db.submitting = true
+		db:abort()
+		expect.equality(aborted, 0)
+
+		-- Once no submit is in flight, abort behaves normally.
+		db.submitting = false
+		db:abort()
+		expect.equality(aborted, 1)
+
+		package.loaded['plenary.async'] = nil
+	]])
+end
+
 return T

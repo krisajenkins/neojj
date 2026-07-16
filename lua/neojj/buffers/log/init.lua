@@ -252,6 +252,11 @@ function LogBuffer:_setup_mappings()
 	-- Shared jj-action keys: f=fix, t=tug, P=push, p=fetch.
 	self:_map_jj_actions()
 
+	-- Squash the change at cursor into its parent (or an explicit --into target)
+	self.buffer:map("n", "S", function()
+		self:squash()
+	end, { desc = "Squash change at cursor" })
+
 	-- Bookmark management menu (create/move/delete/rename/track/untrack)
 	self.buffer:map("n", "b", function()
 		self:bookmark_menu()
@@ -526,6 +531,129 @@ function LogBuffer:edit_change()
 end
 
 -- fix / tug are inherited from ViewBuffer (shared with the status view).
+
+---Squash the change under the cursor into another change (`jj squash --from`).
+---Offers a menu: squash into the change's parent (jj's default) or into an
+---explicit `--into` target chosen from a picker over all mutable commits. Both
+---route through `ViewBuffer:_run_squash`, which reproduces jj's
+---combine-descriptions editor natively when both sides carry a description.
+---Safe to invoke from the `vim.ui.*` callbacks (which run outside any async
+---context). Refreshes on success.
+function LogBuffer:squash()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return
+	end
+	local change_id = item.change_id
+
+	local choices = {
+		"Squash into parent",
+		"Squash into a change...",
+	}
+
+	vim.ui.select(choices, { prompt = "jj squash:" }, function(_, idx)
+		if not idx then
+			return
+		end
+		if idx == 1 then
+			self:_run_squash({ from = change_id })
+		elseif idx == 2 then
+			self:_squash_into_pick(item)
+		end
+	end)
+end
+
+---Pick an `--into` target for `jj squash --from <source>` from a fuzzy picker
+---over all mutable commits (the source change excluded — you can't squash a
+---change into itself). Each entry shows its short commit id and description
+---summary line. `vim.ui.select` upgrades to a fuzzy picker under any configured
+---backend (telescope/snacks/fzf-lua/dressing) and degrades to a plain menu
+---otherwise. Fired from the squash `vim.ui.select` callback, so it fetches the
+---list on its own `async.run` (see `_fetch_mutable_commits`).
+---@param item table Revision under the cursor (the squash source)
+function LogBuffer:_squash_into_pick(item)
+	local source_change_id = item.change_id
+	local short = source_change_id:sub(1, 8)
+
+	self:_fetch_mutable_commits(source_change_id, function(commits)
+		if #commits == 0 then
+			vim.notify("No other mutable commits to squash into", vim.log.levels.WARN)
+			return
+		end
+		vim.ui.select(commits, {
+			prompt = "Squash " .. short .. " into:",
+			format_item = function(commit)
+				return commit.commit_id .. "  " .. commit.summary
+			end,
+		}, function(commit)
+			if not commit then
+				return
+			end
+			self:_run_squash({ from = source_change_id, into = commit.commit_id })
+		end)
+	end)
+end
+
+---Fetch all mutable commits (excluding `exclude_change_id`) and hand them to
+---`callback` on the main loop as a list of `{ commit_id, change_id, summary }`
+---tables. Wraps the async `jj log` call so `vim.ui.*` callbacks can request the
+---list without being inside an async context themselves. Mirrors
+---`_fetch_bookmark_names`.
+---@param exclude_change_id string Short change id to omit (the squash source)
+---@param callback fun(commits: { commit_id: string, change_id: string, summary: string }[])
+function LogBuffer:_fetch_mutable_commits(exclude_change_id, callback)
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	-- Tab-separated fields, one commit per line: short commit id, short change
+	-- id, description summary. Commit/change ids and a first-line summary never
+	-- contain tabs, so the parser can split on "\t" unambiguously.
+	local template = table.concat({
+		"commit_id.shortest(8)",
+		'"\\t"',
+		"change_id.shortest(8)",
+		'"\\t"',
+		'if(description.first_line() == "", "(no description set)", description.first_line())',
+		'"\\n"',
+	}, " ++ ")
+
+	async.run(function()
+		local result = cli.log()
+			:option("revisions", "mutable()")
+			:flag("no-graph")
+			:option("template", template)
+			:cwd(self.repo.dir)
+			:call_async()
+
+		vim.schedule(function()
+			if not result.success then
+				vim.notify(
+					"Failed to list mutable commits: " .. (result.stderr or "Unknown error"),
+					vim.log.levels.ERROR
+				)
+				callback({})
+				return
+			end
+
+			-- `jj log` lists newest-first (matching the log view, top = newest). Most
+			-- vim.ui.select backends (telescope/snacks/fzf-lua) anchor the prompt at
+			-- the bottom and render the first entry there, which would put the newest
+			-- commit at the bottom. Build the list oldest-first (reversed) so those
+			-- pickers show newest at the top, matching the log view.
+			local commits = {}
+			for _, line in ipairs(vim.split(result.stdout or "", "\n")) do
+				if vim.trim(line) ~= "" then
+					local commit_id, change_id, summary = line:match("^([^\t]*)\t([^\t]*)\t(.*)$")
+					if commit_id and change_id ~= exclude_change_id then
+						table.insert(commits, 1, { commit_id = commit_id, change_id = change_id, summary = summary })
+					end
+				end
+			end
+			callback(commits)
+		end)
+	end)
+end
 
 ---Run a prepared `jj bookmark …` builder asynchronously, notifying and
 ---refreshing on success and surfacing stderr on failure. Modeled on

@@ -163,6 +163,11 @@ function StatusBuffer:_setup_mappings()
 		self:create_new_change()
 	end, { desc = "Create new change from current commit" })
 
+	-- Squash @ into its parent (confirms first)
+	self.buffer:map("n", "S", function()
+		self:squash()
+	end, { desc = "Squash @ into parent" })
+
 	-- Shared jj-action keys: f=fix, t=tug, P=push, p=fetch.
 	self:_map_jj_actions()
 
@@ -708,6 +713,21 @@ function StatusBuffer:open_oplog_buffer()
 
 	-- Show and refresh the oplog buffer
 	oplog_buffer:show()
+end
+
+---Squash the working copy `@` into its parent (`jj squash`). Confirms first,
+---since squashing moves all of `@`'s changes into the parent and can leave `@`
+---empty. This is the staging-area replacement: the single most common jj
+---operation. Always targets the working copy, ignoring any pinned revision.
+function StatusBuffer:squash()
+	vim.ui.select({ "Yes", "No" }, { prompt = "Squash @ into parent?" }, function(choice)
+		if choice ~= "Yes" then
+			return
+		end
+		-- Bare squash: `@` into its parent. If both carry a description, _run_squash
+		-- opens jj's combine editor natively (see ViewBuffer:_run_squash).
+		self:_run_squash({})
+	end)
 end
 
 ---Create a new change from the current commit
