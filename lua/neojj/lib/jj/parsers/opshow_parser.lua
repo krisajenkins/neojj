@@ -15,20 +15,9 @@
 -- of element kinds that the UI knows how to colour.
 
 local Separators = require("neojj.lib.jj.separators")
+local Record = require("neojj.lib.jj.parsers.record")
 
 local M = {}
-
----Return `prefix` when it is a genuine leading substring of `id` (jj's unique
----disambiguating prefix), else nil so the UI highlights the whole id.
----@param id string
----@param prefix string?
----@return string?
-local function valid_prefix(id, prefix)
-	if prefix and prefix ~= "" and #prefix < #id and id:sub(1, #prefix) == prefix then
-		return prefix
-	end
-	return nil
-end
 
 ---Parse the field body of a templated changed-commit record (everything after
 ---the leading "\x1e").
@@ -40,11 +29,11 @@ local function parse_commit_record(body)
 	local commit_id = f[4] or ""
 	return {
 		change_id = change_id,
-		change_id_prefix = valid_prefix(change_id, f[2]),
+		change_id_prefix = Record.valid_prefix(change_id, f[2]),
 		-- "/N" suffix for hidden/divergent commits (jj's change offset), or "".
 		change_offset = f[3] or "",
 		commit_id = commit_id,
-		commit_id_prefix = valid_prefix(commit_id, f[5]),
+		commit_id_prefix = Record.valid_prefix(commit_id, f[5]),
 		empty = (f[6] or "") == "empty",
 		hidden = (f[7] or "") == "hidden",
 		conflict = (f[8] or "") == "conflict",

@@ -42,21 +42,9 @@
 ---preserved as gutter for rendering.
 
 local Separators = require("neojj.lib.jj.separators")
+local Record = require("neojj.lib.jj.parsers.record")
 
 local M = {}
-
----Split a raw log line into its graph gutter and templated payload.
----@param line string A single line of jj log output
----@return string gutter The graph characters drawn to the left of the payload
----@return string|nil payload The templated payload, or nil if the line is graph-only
-local function split_gutter(line)
-	local gutter, payload = line:match("^(.-)" .. Separators.RECORD .. "(.*)$")
-	if gutter == nil then
-		-- No record separator: this is a pure graph/connector line.
-		return line, nil
-	end
-	return gutter, payload
-end
 
 ---Parse jj log output produced by the NeoJJ log template.
 ---@param output string Raw output from jj log command
@@ -81,7 +69,7 @@ function M.parse_log_output(output)
 			goto continue
 		end
 
-		local gutter, payload = split_gutter(line)
+		local gutter, payload = Record.split_gutter(line)
 
 		if payload == nil then
 			-- Graph-only connector line (e.g. "├─╮"): no payload to parse.
@@ -104,26 +92,8 @@ function M.parse_log_output(output)
 			-- shorter than it), so the UI can safely split the id into
 			-- bright-prefix + dim-rest; otherwise leave it nil for whole-id
 			-- highlighting.
-			local change_id_prefix = fields[7]
-			if
-				not (
-					change_id_prefix
-					and change_id_prefix ~= ""
-					and change_id:sub(1, #change_id_prefix) == change_id_prefix
-				)
-			then
-				change_id_prefix = nil
-			end
-			local commit_id_prefix = fields[8]
-			if
-				not (
-					commit_id_prefix
-					and commit_id_prefix ~= ""
-					and commit_id:sub(1, #commit_id_prefix) == commit_id_prefix
-				)
-			then
-				commit_id_prefix = nil
-			end
+			local change_id_prefix = Record.valid_prefix(change_id, fields[7])
+			local commit_id_prefix = Record.valid_prefix(commit_id, fields[8])
 			-- Optional final field: jj's own emptiness flag. Absent in fixtures
 			-- captured before it existed, which then parse as not-empty.
 			local empty = (fields[9] or "") == "empty"

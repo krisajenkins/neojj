@@ -24,21 +24,9 @@
 ---as gutter for rendering.
 
 local Separators = require("neojj.lib.jj.separators")
+local Record = require("neojj.lib.jj.parsers.record")
 
 local M = {}
-
----Split a raw op-log line into its graph gutter and templated payload.
----@param line string A single line of jj op log output
----@return string gutter The graph characters drawn to the left of the payload
----@return string|nil payload The templated payload, or nil if the line is graph-only
-local function split_gutter(line)
-	local gutter, payload = line:match("^(.-)" .. Separators.RECORD .. "(.*)$")
-	if gutter == nil then
-		-- No record separator: this is a pure graph/connector line.
-		return line, nil
-	end
-	return gutter, payload
-end
 
 ---Parse jj op log output produced by the NeoJJ oplog template.
 ---@param output string Raw output from jj op log command
@@ -63,7 +51,7 @@ function M.parse_oplog_output(output)
 			goto continue
 		end
 
-		local gutter, payload = split_gutter(line)
+		local gutter, payload = Record.split_gutter(line)
 
 		if payload == nil then
 			-- Graph-only connector line: no payload to parse.
