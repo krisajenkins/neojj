@@ -276,6 +276,133 @@ T.test_log_metadata_field_highlights = function()
 	]])
 end
 
+---An expanded log entry must carry the graph gutter (the vertical connectors) on
+---every description/stats line, not plain-space indentation. The gutter is a
+---pass-through derived from the commit's own node-header gutter — NOT copied from
+---the line jj draws immediately below, which under a side branch is a
+---branch-closing connector like "├─╯" that must not repeat down the block. So a
+---node under "│ ○  " expands with a "│ │  " gutter even though jj's own next line
+---is "├─╯  ".
+---@return nil
+T.test_expanded_details_carry_pass_through_gutter = function()
+	child.lua([[
+		local LogUI = require('neojj.buffers.log.ui')
+
+		-- A side-branch node whose header sits under a "│ ○  " gutter. jj draws the
+		-- branch-closing connector "├─╯  " on the line immediately below it (this
+		-- is the regression: that connector must NOT be reused for the expanded
+		-- block; the pass-through "│ │  " must be).
+		local revision = {
+			change_id = "sqmvkywl",
+			author = "user@example.com",
+			timestamp = "2025-07-14 21:06:06",
+			commit_id = "f35b8f36",
+			bookmarks = {}, conflict = false,
+			graph = "│ ○  ",
+			line_number = 1,
+		}
+		local log_state = {
+			raw_lines = {
+				"│ ○  sqmvkywl user@example.com 2025-07-14 21:06:06 f35b8f36",
+				"├─╯  A side-branch change.",
+			},
+			graph_data = {
+				[1] = { graph = "│ ○  ", revision = revision },
+				[2] = { graph = "├─╯  ", revision = nil },
+			},
+		}
+
+		-- A log buffer whose only expanded revision is the one above, with a
+		-- multi-line description and a stats summary line.
+		local log_buffer = {
+			expanded_revisions = {
+				[revision.change_id] = {
+					description = { "A side-branch change.", "More detail." },
+					stats = { "1 file changed, 2 insertions(+)" },
+				},
+			},
+		}
+
+		local components = LogUI.create_log_components(log_state, log_buffer)
+
+		-- Walk the tree collecting every detail Row: a Row whose first child is a
+		-- NeoJJLogGraph gutter span and second child is the detail text. Also
+		-- collect the gutter-only separator Row (a single NeoJJLogGraph span) that
+		-- runs between the description and stats blocks.
+		local detail_rows = {}
+		local separator_gutters = {}
+		local function walk(node)
+			if type(node) ~= "table" then return end
+			if node.get_tag and node:get_tag() == "Row" then
+				local kids = node:get_children()
+				-- A detail row is exactly [gutter span, text span]; the commit header
+				-- row has many more children, so #kids == 2 excludes it.
+				if #kids == 2
+					and kids[1] and kids[1].get_highlight and kids[1]:get_highlight() == "NeoJJLogGraph"
+					and kids[2] and kids[2].get_tag and kids[2]:get_tag() == "Text"
+					and kids[2]:get_highlight() ~= "NeoJJLogGraph" then
+					table.insert(detail_rows, { gutter = kids[1]:get_value(), text = kids[2]:get_value(),
+						text_hl = kids[2]:get_highlight() })
+				elseif #kids == 1
+					and kids[1] and kids[1].get_highlight and kids[1]:get_highlight() == "NeoJJLogGraph" then
+					table.insert(separator_gutters, kids[1]:get_value())
+				end
+			end
+			for _, child in ipairs(node.get_children and node:get_children() or {}) do
+				walk(child)
+			end
+		end
+		-- components[1] is the commit's own tree (header + expanded block);
+		-- components[2] is the separately-rendered jj continuation line ("├─╯  "),
+		-- which is intentionally kept and excluded here.
+		walk(components[1])
+
+		-- Two description lines + one stats summary line = three detail rows, each
+		-- prefixed with the pass-through "│ │  " gutter (NOT the "├─╯  " below).
+		expect.equality(#detail_rows, 3)
+		expect.equality(detail_rows[1].gutter, "│ │  ")
+		expect.equality(detail_rows[1].text, "A side-branch change.")
+		expect.equality(detail_rows[1].text_hl, "NeoJJLogDescription")
+		expect.equality(detail_rows[2].gutter, "│ │  ")
+		expect.equality(detail_rows[2].text, "More detail.")
+		expect.equality(detail_rows[3].gutter, "│ │  ")
+		expect.equality(detail_rows[3].text, "1 file changed, 2 insertions(+)")
+		expect.equality(detail_rows[3].text_hl, "NeoJJLogStatsSummary")
+
+		-- The blank separator between description and stats also carries the
+		-- gutter, so the vertical connector runs unbroken through it.
+		expect.equality(#separator_gutters, 1)
+		expect.equality(separator_gutters[1], "│ │  ")
+	]])
+end
+
+---The pass-through gutter turns a node-header gutter's single node glyph into a
+---vertical bar, per UTF-8 character, so multi-byte glyphs neither leak through
+---nor over-indent. A linear "○  " node expands under a clean "│  " gutter.
+---@return nil
+T.test_pass_through_gutter_replaces_node_glyph = function()
+	child.lua([[
+		local LogUI = require('neojj.buffers.log.ui')
+
+		-- Every node glyph collapses to a vertical bar; lanes and spacing are kept.
+		expect.equality(LogUI.pass_through_gutter("○  "), "│  ")
+		expect.equality(LogUI.pass_through_gutter("@  "), "│  ")
+		expect.equality(LogUI.pass_through_gutter("◆  "), "│  ")
+		expect.equality(LogUI.pass_through_gutter("│ ○  "), "│ │  ")
+		expect.equality(LogUI.pass_through_gutter(""), "")
+
+		-- The derived gutter keeps the node gutter's display width (a multi-byte
+		-- glyph must not over-indent: "○  " is 3 display columns, not 5 bytes).
+		local details = { description = { "Only line." }, stats = {} }
+		local comps = LogUI.create_expanded_details(details, "○  ")
+		expect.equality(#comps, 1)
+		local kids = comps[1]:get_children()
+		expect.equality(kids[1]:get_highlight(), "NeoJJLogGraph")
+		expect.equality(kids[1]:get_value(), "│  ")
+		expect.equality(vim.fn.strdisplaywidth("│  "), 3)
+	]])
+end
+
 ---The log view should open with the cursor on the working-copy (@) change, not
 ---on the header line above it.
 ---@return nil

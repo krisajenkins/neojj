@@ -51,7 +51,7 @@ function LogUI.create_log_components(log_state, log_buffer)
 			local revision = graph_info and graph_info.revision
 
 			if revision then
-				-- This is a commit header line
+				-- This is a commit header line.
 				table.insert(components, LogUI.create_commit_line(line, revision, log_buffer))
 			else
 				-- This is a description line or graph continuation
@@ -114,23 +114,68 @@ function LogUI.create_commit_line(line, revision, log_buffer)
 	return header_row
 end
 
+---Derive the pass-through gutter for a commit's expanded rows from its own
+---node-header gutter. A node-header gutter only contains vertical lanes (`│`),
+---spaces, and this commit's single node glyph, so every non-space, non-`│`
+---character (the node glyph) is a continuing lane and becomes `│`. Walked per
+---UTF-8 character because the graph glyphs are multi-byte.
+---@param graph_prefix string The commit's node-header gutter
+---@return string gutter The pass-through gutter (vertical lanes + spaces)
+function LogUI.pass_through_gutter(graph_prefix)
+	local chars = vim.fn.split(graph_prefix or "", "\\zs")
+	for idx, ch in ipairs(chars) do
+		if ch ~= " " and ch ~= "│" then
+			chars[idx] = "│"
+		end
+	end
+	return table.concat(chars)
+end
+
 ---Create expanded details components (description + stats)
+---
+---Each detail line is prefixed with the graph gutter (highlighted as
+---NeoJJLogGraph, like the real continuation line rendered by create_graph_line)
+---so the expanded block keeps the vertical graph connector and reads as part of
+---the graph.
+---
+---The gutter is a *pass-through* derived from the commit's own node-header gutter
+---(`graph_prefix`), not copied from the line jj draws immediately below. That
+---neighbouring line is often a branch-closing connector such as `├─╯` which is
+---only correct once, at the point the branch merges — repeating it down every
+---expanded line looks broken. A node-header gutter, by contrast, only ever
+---contains vertical lanes (`│`), spaces, and this commit's single node glyph
+---(`@`, `○`, `◆`, `×`, …), so replacing that node glyph with `│` yields the
+---correct through-lanes for the inserted rows: e.g. `│ ○  ` (a side branch)
+---becomes `│ │  `, and `○  ` becomes `│  `. The gutter can be multi-column and
+---multi-byte, so it is walked per character (UTF-8 aware) and emitted verbatim.
 ---@param details table Details with description and stats arrays
----@param graph_prefix string Graph prefix for indentation
+---@param graph_prefix string The commit's own node-header gutter
 ---@return table[] components Expanded detail components
 function LogUI.create_expanded_details(details, graph_prefix)
 	local components = {}
-	-- Create an indent that continues the graph visually
-	local indent = string.rep(" ", #graph_prefix)
+	local gutter = LogUI.pass_through_gutter(graph_prefix)
+
+	---Emit one detail line as a gutter span (graph) + text span (given highlight).
+	local function add_line(line, highlight)
+		table.insert(
+			components,
+			Ui.row({
+				Ui.text(gutter, { highlight = "NeoJJLogGraph" }),
+				Ui.text(line, { highlight = highlight }),
+			})
+		)
+	end
 
 	-- Add description lines
 	for _, line in ipairs(details.description or {}) do
-		table.insert(components, Ui.text(indent .. line, { highlight = "NeoJJLogDescription" }))
+		add_line(line, "NeoJJLogDescription")
 	end
 
-	-- Add separator if we have both description and stats
+	-- Add separator if we have both description and stats. It carries the gutter
+	-- too (as a lone graph span) so the vertical connector runs unbroken through
+	-- the blank line rather than leaving a gap in the graph.
 	if #(details.description or {}) > 0 and #(details.stats or {}) > 0 then
-		table.insert(components, Ui.empty_line())
+		table.insert(components, Ui.row({ Ui.text(gutter, { highlight = "NeoJJLogGraph" }) }))
 	end
 
 	-- Add stats lines with highlighting
@@ -140,7 +185,7 @@ function LogUI.create_expanded_details(details, graph_prefix)
 		if line:match("^%d+ files? changed") then
 			highlight = "NeoJJLogStatsSummary"
 		end
-		table.insert(components, Ui.text(indent .. line, { highlight = highlight }))
+		add_line(line, highlight)
 	end
 
 	return components
