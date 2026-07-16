@@ -140,7 +140,7 @@ T.test_jj_command_completion = function()
 		-- Get subcommand completion options
 		local subcommands = vim.fn.getcompletion('JJ ', 'cmdline')
 		expect.equality(type(subcommands), 'table')
-		expect.equality(#subcommands, 7)  -- status, describe, log, oplog, new, annotate, split
+		expect.equality(#subcommands, 8)  -- status, describe, log, oplog, new, annotate, split, arrange
 
 		-- Get split completion options for status subcommand
 		local splits = vim.fn.getcompletion('JJ status ', 'cmdline')
@@ -202,6 +202,36 @@ T.test_jj_status_command_arguments = function()
 		expect.equality(calls[6].dir, nil)
 		expect.equality(calls[6].revision, 'xyz789')
 		expect.equality(calls[6].split, nil)
+	]])
+end
+
+---Test that :JJ arrange forwards its positional revsets.
+---@return nil
+T.test_jj_arrange_command_arguments = function()
+	child.lua([[
+		M.setup()
+
+		-- Mock jj_arrange to capture the revsets it is handed.
+		local calls = {}
+		M.jj_arrange = function(dir, revisions)
+			table.insert(calls, { dir = dir, revisions = revisions })
+		end
+
+		-- No revsets: an empty list is forwarded.
+		vim.cmd('JJ arrange')
+		expect.equality(#calls, 1)
+		expect.equality(calls[1].dir, nil)
+		expect.equality(calls[1].revisions, {})
+
+		-- A single revset.
+		vim.cmd("JJ arrange mutable()")
+		expect.equality(#calls, 2)
+		expect.equality(calls[2].revisions, { 'mutable()' })
+
+		-- Multiple positional revsets are all forwarded.
+		vim.cmd('JJ arrange abc123 def456')
+		expect.equality(#calls, 3)
+		expect.equality(calls[3].revisions, { 'abc123', 'def456' })
 	]])
 end
 

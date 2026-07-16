@@ -167,6 +167,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ new [revision]              " Create new empty change
 :JJ annotate [filepath]         " Annotate/blame a file (defaults to current file)
 :JJ split [revision]            " Interactively split a commit
+:JJ arrange [revsets...]        " Interactively arrange the commit graph
 ```
 
 **Split types**: `horizontal`, `vertical`, `tab`
@@ -192,6 +193,8 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ annotate lua/neojj.lua    " Annotate a specific file
 :JJ split                     " Split current commit interactively
 :JJ split @-                  " Split parent commit
+:JJ arrange                   " Arrange the default revsets interactively
+:JJ arrange 'mutable()'       " Arrange a specific set of revisions
 ```
 
 ### Status Buffer Keybindings
@@ -229,6 +232,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 | `e`           | Edit change (make working copy) |
 | `S`           | Squash change at cursor (into parent, or pick a mutable commit to `--into`) |
 | `R`           | Rebase change at cursor onto a destination (pick `-s`/`-r`/`-b`, then a commit) |
+| `a`           | Arrange the commit graph (jj's native arrange TUI) |
 | `f`           | Run jj fix (format `@`) |
 | `t`           | Tug bookmark to `@`     |
 | `b`           | Bookmark management (create/move/delete/rename/track/untrack) |

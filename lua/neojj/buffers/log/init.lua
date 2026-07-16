@@ -262,6 +262,11 @@ function LogBuffer:_setup_mappings()
 		self:rebase()
 	end, { desc = "Rebase change at cursor" })
 
+	-- Interactively arrange the commit graph (jj's native arrange TUI)
+	self.buffer:map("n", "a", function()
+		self:arrange()
+	end, { desc = "Arrange the commit graph" })
+
 	-- Bookmark management menu (create/move/delete/rename/track/untrack)
 	self.buffer:map("n", "b", function()
 		self:bookmark_menu()
@@ -610,6 +615,14 @@ function LogBuffer:rebase()
 		return
 	end
 	self:_rebase(item.change_id, item.change_id:sub(1, 8))
+end
+
+---Interactively arrange the commit graph. Delegates to `neojj.jj_arrange`, which
+---launches jj's native arrange TUI in a terminal. Arrange operates on the graph
+---as a whole (the default `revsets.arrange` set) rather than a single change, so
+---this ignores the cursor -- unlike squash/rebase.
+function LogBuffer:arrange()
+	require("neojj").jj_arrange(self.repo.dir, {})
 end
 
 ---Fetch all mutable commits (excluding `exclude_change_id`) and hand them to

@@ -258,6 +258,7 @@ function LogUI.create_help()
 			"Actions:",
 			{
 				{ "?", "Show/hide this help" },
+				{ "a", "Arrange the commit graph" },
 				{ "b", "Bookmark management" },
 				{ "<C-c>", "Quit" },
 				{ "<C-r>", "Refresh log" },

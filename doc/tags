@@ -1,5 +1,6 @@
 :JJ	neojj.txt	/*:JJ*
 :JJ-annotate	neojj.txt	/*:JJ-annotate*
+:JJ-arrange	neojj.txt	/*:JJ-arrange*
 :JJ-describe	neojj.txt	/*:JJ-describe*
 :JJ-log	neojj.txt	/*:JJ-log*
 :JJ-new	neojj.txt	/*:JJ-new*
@@ -64,6 +65,7 @@ neojj-status-refresh	neojj.txt	/*neojj-status-refresh*
 neojj-view-stack	neojj.txt	/*neojj-view-stack*
 neojj.get_repo()	neojj.txt	/*neojj.get_repo()*
 neojj.jj_annotate()	neojj.txt	/*neojj.jj_annotate()*
+neojj.jj_arrange()	neojj.txt	/*neojj.jj_arrange()*
 neojj.jj_describe()	neojj.txt	/*neojj.jj_describe()*
 neojj.jj_log()	neojj.txt	/*neojj.jj_log()*
 neojj.jj_new()	neojj.txt	/*neojj.jj_new()*

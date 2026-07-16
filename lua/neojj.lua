@@ -169,9 +169,12 @@ function M.create_commands()
 		elseif subcommand == "split" then
 			local revision = rest_args[1]
 			M.jj_split(nil, revision)
+		elseif subcommand == "arrange" then
+			-- `jj arrange` takes zero or more positional revsets, so forward them all.
+			M.jj_arrange(nil, rest_args)
 		else
 			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
-			vim.notify("Available: status, describe, log, oplog, new, annotate, split", vim.log.levels.INFO)
+			vim.notify("Available: status, describe, log, oplog, new, annotate, split, arrange", vim.log.levels.INFO)
 		end
 	end, {
 		-- "*" (not "+") so a bare `:JJ` is valid and routes to jj_back().
@@ -182,7 +185,7 @@ function M.create_commands()
 
 			-- If we're completing the first argument (subcommand)
 			if num_args <= 2 then
-				local subcommands = { "status", "describe", "log", "oplog", "new", "annotate", "split" }
+				local subcommands = { "status", "describe", "log", "oplog", "new", "annotate", "split", "arrange" }
 				return vim.tbl_filter(function(cmd)
 					return vim.startswith(cmd, arglead)
 				end, subcommands)
@@ -231,7 +234,7 @@ function M.create_commands()
 
 			return {}
 		end,
-		desc = "JJ commands (no arg: return to view stack; status, describe, log, oplog, new, annotate, split)",
+		desc = "JJ commands (no arg: return to view stack; status, describe, log, oplog, new, annotate, split, arrange)",
 	})
 end
 
@@ -518,6 +521,32 @@ function M.jj_split(dir, revision)
 	-- the window's local directory with :lcd (which was never restored). The
 	-- argv form also avoids shell-quoting the revset. enew gives jobstart a fresh
 	-- buffer to convert into the terminal, mirroring the old :terminal behaviour.
+	vim.cmd("enew")
+	vim.fn.jobstart(args, { cwd = repo:get_root() or repo.dir, term = true })
+	vim.cmd("startinsert")
+end
+
+---Open a terminal to interactively arrange the commit graph
+---@param dir? string Directory path (defaults to current working directory)
+---@param revisions? string[] Revsets to arrange (defaults to the `revsets.arrange` setting)
+function M.jj_arrange(dir, revisions)
+	local repo = M.get_repo(dir)
+	if not repo:is_jj_repo() then
+		vim.notify("Not a jj repository", vim.log.levels.ERROR)
+		return
+	end
+
+	-- `jj arrange` takes its revsets positionally, so append any the user gave.
+	local args = { "jj", "arrange" }
+	for _, revision in ipairs(revisions or {}) do
+		if revision and revision ~= "" then
+			table.insert(args, revision)
+		end
+	end
+
+	-- Launch the terminal rooted at the repo root via cwd, mirroring M.jj_split:
+	-- enew gives jobstart a fresh buffer to convert into the terminal, and the
+	-- argv form avoids shell-quoting the revsets.
 	vim.cmd("enew")
 	vim.fn.jobstart(args, { cwd = repo:get_root() or repo.dir, term = true })
 	vim.cmd("startinsert")

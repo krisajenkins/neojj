@@ -111,6 +111,7 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 • new
                 • annotate
                 • split
+                • arrange
 
                                                                    *:JJ-status*
 :JJ status [change_id] [split]
@@ -228,6 +229,22 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                     :JJ split           " Split current commit
                     :JJ split @-        " Split parent commit
                     :JJ split abc123    " Split specific revision
+<
+
+                                                                  *:JJ-arrange*
+:JJ arrange [revsets...]
+                Interactively arrange the commit graph.
+
+                Opens a terminal with jj's native interactive arrange editor,
+                letting you reorder and restructure the selected revisions.
+
+                Arguments:
+                • `revsets` - Revisions to arrange (default: the
+                  `revsets.arrange` setting)
+
+                Examples: >
+                    :JJ arrange              " Arrange the default revsets
+                    :JJ arrange 'mutable()'  " Arrange specific revisions
 <
 
 VIEW STACK                                                  *neojj-view-stack*
@@ -354,6 +371,9 @@ R                       Rebase change at cursor onto a destination: prompts for
                         revision only -r, or the whole branch -b; default -s),
                         then picks a destination from a fuzzy picker over the
                         repo's commits
+a                       Arrange the commit graph: launches jj's native
+                        interactive arrange TUI in a terminal (operates on the
+                        default revsets.arrange set, not the change at cursor)
 f                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
 b                       Bookmark management: opens a menu to create, move,
@@ -716,6 +736,17 @@ neojj.jj_split({dir}, {revision})                          *neojj.jj_split()*
                 Parameters: ~
                     {dir}      (string|nil) Directory path (default: cwd)
                     {revision} (string|nil) Revision to split (default: "@")
+
+neojj.jj_arrange({dir}, {revisions})                     *neojj.jj_arrange()*
+                Open a terminal to interactively arrange the commit graph.
+
+                Uses jj's native interactive arrange editor to reorder and
+                restructure the selected revisions.
+
+                Parameters: ~
+                    {dir}       (string|nil) Directory path (default: cwd)
+                    {revisions} (string[]|nil) Revsets to arrange (default:
+                                the `revsets.arrange` setting)
 
 REPOSITORY FUNCTIONS                                    *neojj-api-repository*
 
