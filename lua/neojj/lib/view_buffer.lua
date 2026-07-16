@@ -315,17 +315,18 @@ function ViewBuffer:_run_squash(opts)
 	local eff_into = into or (eff_from .. "-")
 	local label = from and from:sub(1, 8) or "@"
 
-	-- Build the squash command. `--from`/`--into` are added only when explicitly
-	-- given, so the bare status-view case stays `jj squash` (jj: `@` into `@-`).
-	-- A non-nil `message` adds `--message`, which also stops jj opening its
-	-- editor.
+	-- Build the squash command. The bare status-view case (no `from`) stays
+	-- `jj squash`, which jj resolves to `@` into `@-`. Once `from` is given we
+	-- must ALSO pass `--into`: jj defaults `--into` to `@` (the working copy),
+	-- not the source's parent, so `jj squash --from <rev>` alone would squash
+	-- into `@` rather than into `<rev>-`. `eff_into` is `into` when given, else
+	-- `<from>-`. A non-nil `message` adds `--message`, which also stops jj
+	-- opening its editor.
 	local function build_builder(message)
 		local builder = cli.squash()
 		if from then
 			builder:option("from", from)
-		end
-		if into then
-			builder:option("into", into)
+			builder:option("into", eff_into)
 		end
 		if message ~= nil then
 			builder:option("message", message)

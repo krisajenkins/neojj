@@ -337,9 +337,10 @@ function M.git_fetch()
 end
 
 -- Squash changes into another change. Bare (`jj squash`) squashes `@` into its
--- parent; `:option("from", rev)` squashes `rev` into its parent by default, and
--- adding `:option("into", target)` squashes into an explicit target.
--- Bare `jj squash`. Callers that squash two revisions which BOTH carry a
+-- parent. Note jj defaults BOTH `--from` and `--into` to `@`, so
+-- `:option("from", rev)` alone squashes `rev` into `@` (NOT `rev`'s parent) --
+-- to target the parent, callers must also pass `:option("into", rev .. "-")`.
+-- Callers that squash two revisions which BOTH carry a
 -- description must pass `--message` (the combined text, edited natively — see
 -- ViewBuffer:squash) so jj does not fall back to opening $EDITOR, which would
 -- hang under our non-interactive `call_async` (no TTY, no editor).
