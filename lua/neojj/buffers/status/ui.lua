@@ -512,6 +512,7 @@ function StatusUI.create_help()
 				{ "q", "Quit" },
 				{ "r", "Refresh status" },
 				{ "S", "Squash @ into parent" },
+				{ "R", "Rebase @ onto a change" },
 				{ "t", "Tug bookmark to @" },
 			},
 		},

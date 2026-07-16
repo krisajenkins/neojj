@@ -271,6 +271,7 @@ function LogUI.create_help()
 				{ "r", "Refresh log" },
 				{ "s", "Open status view" },
 				{ "S", "Squash change at cursor" },
+				{ "R", "Rebase change at cursor" },
 				{ "t", "Tug bookmark to @" },
 				{ "y", "Yank change ID" },
 			},

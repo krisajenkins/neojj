@@ -168,6 +168,11 @@ function StatusBuffer:_setup_mappings()
 		self:squash()
 	end, { desc = "Squash @ into parent" })
 
+	-- Rebase @ onto a chosen destination
+	self.buffer:map("n", "R", function()
+		self:rebase()
+	end, { desc = "Rebase @ onto a change" })
+
 	-- Shared jj-action keys: f=fix, t=tug, P=push, p=fetch.
 	self:_map_jj_actions()
 
@@ -728,6 +733,13 @@ function StatusBuffer:squash()
 		-- opens jj's combine editor natively (see ViewBuffer:_run_squash).
 		self:_run_squash({})
 	end)
+end
+
+---Rebase the working copy `@` onto a destination. Delegates to the shared
+---`ViewBuffer:_rebase`, which prompts for the source mode (-s/-r/-b) and a
+---destination picked from a fuzzy picker. Always rebases `@`.
+function StatusBuffer:rebase()
+	self:_rebase("@", "@")
 end
 
 ---Create a new change from the current commit

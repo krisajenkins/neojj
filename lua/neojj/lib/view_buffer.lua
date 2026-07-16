@@ -472,4 +472,131 @@ function ViewBuffer:_run_squash(opts)
 	end)
 end
 
+--- Rebase commits onto a destination (`jj rebase`). `opts.mode_key` selects which
+--- set of commits moves: "source" (-s, the source plus its descendants),
+--- "revisions" (-r, that revision only) or "branch" (-b, the whole branch).
+--- `opts.source` is the revision to move and `opts.dest` where it lands.
+---
+--- Rebase never opens an editor, so unlike squash there is no combine flow: a
+--- post-rebase conflict still exits 0, so the normal success+refresh path is
+--- correct and conflicts need no special-casing.
+---@param opts { mode_key: string, source: string, dest: string, label: string }
+function ViewBuffer:_run_rebase(opts)
+	local builder =
+		require("neojj.lib.jj.cli").rebase():option(opts.mode_key, opts.source):option("destination", opts.dest)
+
+	action.run(self, {
+		builder = builder,
+		pending = "Rebasing...",
+		success = "Rebased " .. opts.label .. " onto " .. opts.dest,
+		failure = "Failed to rebase",
+	})
+end
+
+--- Fetch the commits a rebase could target and hand them to `callback` on the
+--- main loop as a list of `{ commit_id, change_id, summary }` tables. Wraps the
+--- async `jj log` call so `vim.ui.*` callbacks can request the list without being
+--- inside an async context. Adapted from `LogBuffer:_fetch_mutable_commits`, but
+--- deliberately NOT restricted to `mutable()`: rebase destinations are often
+--- immutable (e.g. `main`), so we run jj's default log revset with no
+--- `--revisions` option. `exclude_change_id` omits the rebase source.
+---@param exclude_change_id string? Short change id to omit (the rebase source)
+---@param callback fun(commits: { commit_id: string, change_id: string, summary: string }[])
+function ViewBuffer:_fetch_rebase_targets(exclude_change_id, callback)
+	local cli = require("neojj.lib.jj.cli")
+	local async = require("plenary.async")
+
+	-- Tab-separated fields, one commit per line: short commit id, short change
+	-- id, description summary. Commit/change ids and a first-line summary never
+	-- contain tabs, so the parser can split on "\t" unambiguously.
+	local template = table.concat({
+		"commit_id.shortest(8)",
+		'"\\t"',
+		"change_id.shortest(8)",
+		'"\\t"',
+		'if(description.first_line() == "", "(no description set)", description.first_line())',
+		'"\\n"',
+	}, " ++ ")
+
+	async.run(function()
+		local result = cli.log():flag("no-graph"):option("template", template):cwd(self.repo.dir):call_async()
+
+		vim.schedule(function()
+			if not result.success then
+				vim.notify(
+					"Failed to list rebase targets: " .. (result.stderr or "Unknown error"),
+					vim.log.levels.ERROR
+				)
+				callback({})
+				return
+			end
+
+			-- `jj log` lists newest-first (matching the log view, top = newest). Most
+			-- vim.ui.select backends (telescope/snacks/fzf-lua) anchor the prompt at
+			-- the bottom and render the first entry there, which would put the newest
+			-- commit at the bottom. Build the list oldest-first (reversed) so those
+			-- pickers show newest at the top, matching the log view.
+			local commits = {}
+			for _, line in ipairs(vim.split(result.stdout or "", "\n")) do
+				if vim.trim(line) ~= "" then
+					local commit_id, change_id, summary = line:match("^([^\t]*)\t([^\t]*)\t(.*)$")
+					if commit_id and change_id ~= exclude_change_id then
+						table.insert(commits, 1, { commit_id = commit_id, change_id = change_id, summary = summary })
+					end
+				end
+			end
+			callback(commits)
+		end)
+	end)
+end
+
+--- Rebase `source` onto a destination chosen interactively. First prompts for
+--- which set of commits to move (-s/-r/-b, defaulting to -s), then picks a
+--- destination from a fuzzy picker over the repo's commits. The `source`/`label`
+--- pair is supplied per-view: the status view rebases the working copy (`@`), the
+--- log view the change under the cursor. Safe to invoke from `vim.ui.*` callbacks
+--- (which run outside any async context). Refreshes on success.
+---@param source string Revision to rebase (the source)
+---@param label string Short label for the source, used in prompts/messages
+function ViewBuffer:_rebase(source, label)
+	local mode_choices = {
+		{ text = "Source + descendants (-s)", mode_key = "source" },
+		{ text = "This revision only (-r)", mode_key = "revisions" },
+		{ text = "Whole branch (-b)", mode_key = "branch" },
+	}
+
+	vim.ui.select(mode_choices, {
+		prompt = "jj rebase " .. label .. ":",
+		format_item = function(choice)
+			return choice.text
+		end,
+	}, function(mode)
+		if not mode then
+			return
+		end
+
+		self:_fetch_rebase_targets(source, function(commits)
+			if #commits == 0 then
+				vim.notify("No other commits to rebase onto", vim.log.levels.WARN)
+				return
+			end
+			vim.ui.select(commits, {
+				prompt = "Rebase " .. label .. " onto:",
+				format_item = function(commit)
+					return commit.commit_id .. "  " .. commit.summary
+				end,
+			}, function(commit)
+				if commit then
+					self:_run_rebase({
+						mode_key = mode.mode_key,
+						source = source,
+						dest = commit.commit_id,
+						label = label,
+					})
+				end
+			end)
+		end)
+	end)
+end
+
 return ViewBuffer

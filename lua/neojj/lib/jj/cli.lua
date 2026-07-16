@@ -347,6 +347,15 @@ function M.squash()
 	return new_builder("jj"):arg("squash")
 end
 
+-- Rebase commits onto another change. Callers pick which set to move with the
+-- source mode option: `:option("source", rev)` moves `rev` and its descendants
+-- (-s), `:option("revisions", rev)` moves just `rev` (-r), and
+-- `:option("branch", rev)` moves the whole branch (-b). `:option("destination",
+-- target)` (-d) chooses where they land.
+function M.rebase()
+	return new_builder("jj"):arg("rebase")
+end
+
 function M.tug()
 	return new_builder("jj")
 		:arg("bookmark")

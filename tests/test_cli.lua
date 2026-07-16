@@ -191,6 +191,70 @@ T["squash builder carries --from and --into options"] = function()
 	restore()
 end
 
+T["rebase builder emits the bare rebase subcommand"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.rebase():call()
+
+	expect_args(captured.opts.args, { "--color", "never", "rebase" })
+
+	restore()
+end
+
+T["rebase builder carries --source and --destination options"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.rebase():option("source", "abc123"):option("destination", "def456"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"rebase",
+		"--source",
+		"abc123",
+		"--destination",
+		"def456",
+	})
+
+	restore()
+end
+
+T["rebase builder carries --revisions and --destination options"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.rebase():option("revisions", "abc123"):option("destination", "def456"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"rebase",
+		"--revisions",
+		"abc123",
+		"--destination",
+		"def456",
+	})
+
+	restore()
+end
+
+T["rebase builder carries --branch and --destination options"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.rebase():option("branch", "abc123"):option("destination", "def456"):call()
+
+	expect_args(captured.opts.args, {
+		"--color",
+		"never",
+		"rebase",
+		"--branch",
+		"abc123",
+		"--destination",
+		"def456",
+	})
+
+	restore()
+end
+
 T["bookmark_create builder targets a revision"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 

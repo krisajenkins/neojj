@@ -257,6 +257,11 @@ function LogBuffer:_setup_mappings()
 		self:squash()
 	end, { desc = "Squash change at cursor" })
 
+	-- Rebase the change at cursor onto a chosen destination
+	self.buffer:map("n", "R", function()
+		self:rebase()
+	end, { desc = "Rebase change at cursor" })
+
 	-- Bookmark management menu (create/move/delete/rename/track/untrack)
 	self.buffer:map("n", "b", function()
 		self:bookmark_menu()
@@ -593,6 +598,18 @@ function LogBuffer:_squash_into_pick(item)
 			self:_run_squash({ from = source_change_id, into = commit.commit_id })
 		end)
 	end)
+end
+
+---Rebase the change under the cursor onto a destination. Delegates to the shared
+---`ViewBuffer:_rebase`, which prompts for the source mode (-s/-r/-b) and a
+---destination picked from a fuzzy picker. The source is the change at cursor.
+function LogBuffer:rebase()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return
+	end
+	self:_rebase(item.change_id, item.change_id:sub(1, 8))
 end
 
 ---Fetch all mutable commits (excluding `exclude_change_id`) and hand them to
