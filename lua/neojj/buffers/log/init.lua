@@ -733,8 +733,12 @@ function LogBuffer:_fetch_bookmark_names(callback)
 	local cli = require("neojj.lib.jj.cli")
 	local async = require("plenary.async")
 
+	-- `jj bookmark list` emits one entry per ref: the local bookmark *plus* each
+	-- remote-tracking ref (`main@origin`, …). Rendering bare `name` would list a
+	-- tracked bookmark once per remote, so guard on `remote` to keep locals only.
 	async.run(function()
-		local result = cli.bookmark_list():option("template", 'name ++ "\\n"'):cwd(self.repo.dir):call_async()
+		local result =
+			cli.bookmark_list():option("template", 'if(remote, "", name ++ "\\n")'):cwd(self.repo.dir):call_async()
 
 		vim.schedule(function()
 			if not result.success then
