@@ -71,6 +71,32 @@ T["instance() caches by directory"] = function()
 	vim.fn.delete(dir_b, "rf")
 end
 
+T["instance() resolves a subdirectory to one shared root instance"] = function()
+	local JjRepo = require("neojj.lib.jj.repository")
+
+	-- A repo root with a nested subdirectory. `.jj` at the root makes find_jj_dir
+	-- resolve any descendant path back to `root`.
+	local root = make_temp_dir()
+	vim.fn.mkdir(root .. "/.jj", "p")
+	local subdir = root .. "/client/src"
+	vim.fn.mkdir(subdir, "p")
+
+	-- Looking the repo up by a deep subdirectory and by the root itself must
+	-- yield the *same* cached instance, keyed by the root — so every buffer under
+	-- the repo shares one JjRepo (and one watcher), regardless of which file's
+	-- directory the :JJ command came from.
+	local from_sub = JjRepo.instance(subdir)
+	local from_root = JjRepo.instance(root)
+	expect.equality(from_sub, from_root)
+
+	-- The instance is rooted at the repo root, not the subdirectory it was first
+	-- requested from, so jj commands run from the root.
+	expect.equality(from_sub.dir, root)
+	expect.equality(from_sub:get_root(), root)
+
+	vim.fn.delete(root, "rf")
+end
+
 T["detect_repository leaves state empty for a non-repo"] = function()
 	local JjRepo = require("neojj.lib.jj.repository")
 

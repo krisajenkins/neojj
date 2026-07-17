@@ -109,6 +109,13 @@ function M.create_commands()
 			return
 		end
 
+		-- Resolve which repository the command targets from the *current buffer*
+		-- (the file the user is looking at), not Neovim's working directory, so a
+		-- single Neovim session editing files from several jj projects sends each
+		-- `:JJ` command to the repo owning the current buffer. Falls back to the
+		-- working directory for non-file buffers (see M.current_buffer_dir).
+		local dir = M.current_buffer_dir()
+
 		if subcommand == "status" then
 			local arg1 = rest_args[1]
 			local arg2 = rest_args[2]
@@ -128,11 +135,11 @@ function M.create_commands()
 				split = arg2
 			end
 
-			M.jj_status(nil, change_id, split)
+			M.jj_status(dir, change_id, split)
 		elseif subcommand == "describe" then
 			local revision = rest_args[1] or "@"
 			local split = rest_args[2]
-			M.jj_describe(nil, revision, split)
+			M.jj_describe(dir, revision, split)
 		elseif subcommand == "log" then
 			-- Accept an optional split type and an optional positional revision
 			-- count, in either order: `:JJ log`, `:JJ log 50`,
@@ -147,7 +154,7 @@ function M.create_commands()
 			else
 				limit = tonumber(arg1)
 			end
-			M.jj_log(nil, split, limit)
+			M.jj_log(dir, split, limit)
 		elseif subcommand == "oplog" then
 			-- `:JJ oplog [split]` opens the operation log; `:JJ oplog <op_id> [split]`
 			-- jumps straight to that operation's op-show view. Disambiguate the first
@@ -156,22 +163,22 @@ function M.create_commands()
 			local arg1 = rest_args[1]
 			local oplog_split_types = { "horizontal", "vertical", "tab" }
 			if arg1 and not vim.tbl_contains(oplog_split_types, arg1) then
-				M.jj_opshow(nil, arg1, rest_args[2])
+				M.jj_opshow(dir, arg1, rest_args[2])
 			else
-				M.jj_oplog(nil, arg1)
+				M.jj_oplog(dir, arg1)
 			end
 		elseif subcommand == "new" then
 			local revision = rest_args[1]
-			M.jj_new(nil, revision)
+			M.jj_new(dir, revision)
 		elseif subcommand == "annotate" then
 			local filepath = rest_args[1]
-			M.jj_annotate(nil, filepath)
+			M.jj_annotate(dir, filepath)
 		elseif subcommand == "split" then
 			local revision = rest_args[1]
-			M.jj_split(nil, revision)
+			M.jj_split(dir, revision)
 		elseif subcommand == "arrange" then
 			-- `jj arrange` takes zero or more positional revsets, so forward them all.
-			M.jj_arrange(nil, rest_args)
+			M.jj_arrange(dir, rest_args)
 		else
 			vim.notify("Unknown JJ subcommand: " .. (subcommand or ""), vim.log.levels.ERROR)
 			vim.notify("Available: status, describe, log, oplog, new, annotate, split, arrange", vim.log.levels.INFO)
@@ -247,11 +254,56 @@ function M.jj_back()
 	require("neojj.lib.view_stack").raise()
 end
 
----Get a JJ repository instance for the given directory
----@param dir? string Directory path (defaults to current working directory)
+---Directory used to resolve which repository a `:JJ` command targets, derived
+---from the *current buffer*. When the buffer is a normal file buffer, this is
+---the directory containing its file — so editing `../other-project/README.md`
+---and running `:JJ status` acts on `other-project`'s repo, even though Neovim
+---was started elsewhere. This is what lets one Neovim session drive several jj
+---projects at once (see JjRepo.instance, which resolves this to the repo root).
+---
+---Special buffers (NeoJJ views, terminals, help, quickfix, unnamed buffers)
+---have a non-empty `buftype` or no path, so there is no file to key off; those
+---fall back to Neovim's working directory, matching the previous behaviour.
+---@return string dir Directory to resolve the repository from
+function M.current_buffer_dir()
+	local bufnr = vim.api.nvim_get_current_buf()
+
+	-- A NeoJJ view tags itself with the repository root it belongs to (see
+	-- Buffer.create). Prefer that tag so a `:JJ` command run while sitting in a
+	-- view — e.g. pressing nothing and typing `:JJ log` in a status view, which
+	-- is a `nofile` buffer — targets that view's repo rather than the working
+	-- directory. This is what makes drilling between views stay on one project.
+	local tagged = vim.b[bufnr].neojj_repo_dir
+	if type(tagged) == "string" and tagged ~= "" then
+		return tagged
+	end
+
+	if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) == "" then
+		local name = vim.api.nvim_buf_get_name(bufnr)
+		if name ~= "" then
+			local dir = vim.fn.fnamemodify(name, ":p:h")
+			if vim.fn.isdirectory(dir) == 1 then
+				return dir
+			end
+		end
+	end
+
+	return vim.fn.getcwd()
+end
+
+---Get a JJ repository instance for the given directory.
+---
+---When `dir` is nil the repository is resolved from the current buffer (see
+---`M.current_buffer_dir`), NOT Neovim's working directory. This is the single
+---resolution point, so it holds for every entry: the `:JJ` command dispatcher
+---(which passes an explicit dir), a direct `require("neojj").jj_log()` call
+---bound to a key, or any future caller. Without this, a leader mapping wired
+---straight to `neojj.jj_log` would pass `dir = nil` and silently act on the
+---working-directory repo instead of the buffer's.
+---@param dir? string Directory path (defaults to the current buffer's repo)
 ---@return JjRepo repo Repository instance
 function M.get_repo(dir)
-	return jj.instance(dir)
+	return jj.instance(dir or M.current_buffer_dir())
 end
 
 ---Open the JJ status buffer UI

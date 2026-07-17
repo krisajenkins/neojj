@@ -39,12 +39,22 @@ function JjRepo.new(dir)
 end
 
 function JjRepo.instance(dir)
-	local cwd = dir or vim.fn.getcwd()
+	local start = dir or vim.fn.getcwd()
 
-	local repo = instances[cwd]
+	-- Key the cache by the repository *root*, not the directory we were handed.
+	-- The dir usually comes from the current buffer's file (see
+	-- neojj.current_buffer_dir), so different files/subdirectories of the same
+	-- repo would otherwise each spawn their own JjRepo instance (and watcher,
+	-- and buffers). Resolving to the root first collapses them onto one shared
+	-- instance. When no repository is found we fall back to keying by `start`,
+	-- preserving the old behaviour for non-repo paths.
+	local root = util.find_jj_dir(start)
+	local key = root or start
+
+	local repo = instances[key]
 	if not repo then
-		repo = JjRepo.new(cwd)
-		instances[cwd] = repo
+		repo = JjRepo.new(key)
+		instances[key] = repo
 	elseif not repo:is_jj_repo() then
 		-- The cached instance was created before a jj repository existed at this
 		-- path (e.g. `jj git init` ran after the first :JJ call). Re-detect so a

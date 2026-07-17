@@ -426,6 +426,15 @@ function Buffer.create(config)
 	buffer.foldmarkers = config.foldmarkers
 	buffer.cwd = config.cwd
 
+	-- Tag the buffer with the repository root it belongs to. Every NeoJJ view
+	-- passes `cwd = repo.dir` (the repo root), so this lets a `:JJ` command run
+	-- while sitting *inside* a view (status/log/oplog/...) target that view's
+	-- repo, instead of falling back to Neovim's working directory — a view is a
+	-- `nofile` buffer with no file path of its own. See neojj.current_buffer_dir.
+	if config.cwd and config.cwd ~= "" then
+		vim.b[buffer.handle].neojj_repo_dir = config.cwd
+	end
+
 	-- Apply window-specific options
 	if config.disable_line_numbers then
 		buffer.window_opts.number = false

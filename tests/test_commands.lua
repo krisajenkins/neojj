@@ -155,6 +155,11 @@ T.test_jj_status_command_arguments = function()
 	child.lua([[
 		M.setup()
 
+		-- The dispatcher resolves the target repo from the current buffer. In this
+		-- scratch (unnamed) buffer that falls back to the working directory, so the
+		-- dir handed to jj_status is current_buffer_dir(), not nil.
+		local expected_dir = M.current_buffer_dir()
+
 		-- Mock the jj_status function to track calls
 		local calls = {}
 		M.jj_status = function(dir, revision, split)
@@ -164,42 +169,42 @@ T.test_jj_status_command_arguments = function()
 		-- Test without arguments
 		vim.cmd('JJ status')
 		expect.equality(#calls, 1)
-		expect.equality(calls[1].dir, nil)
+		expect.equality(calls[1].dir, expected_dir)
 		expect.equality(calls[1].revision, nil)
 		expect.equality(calls[1].split, nil)
 
 		-- Test with horizontal split
 		vim.cmd('JJ status horizontal')
 		expect.equality(#calls, 2)
-		expect.equality(calls[2].dir, nil)
+		expect.equality(calls[2].dir, expected_dir)
 		expect.equality(calls[2].revision, nil)
 		expect.equality(calls[2].split, 'horizontal')
 
 		-- Test with vertical split
 		vim.cmd('JJ status vertical')
 		expect.equality(#calls, 3)
-		expect.equality(calls[3].dir, nil)
+		expect.equality(calls[3].dir, expected_dir)
 		expect.equality(calls[3].revision, nil)
 		expect.equality(calls[3].split, 'vertical')
 
 		-- Test with tab
 		vim.cmd('JJ status tab')
 		expect.equality(#calls, 4)
-		expect.equality(calls[4].dir, nil)
+		expect.equality(calls[4].dir, expected_dir)
 		expect.equality(calls[4].revision, nil)
 		expect.equality(calls[4].split, 'tab')
 
 		-- Test with change_id and split
 		vim.cmd('JJ status abc123 horizontal')
 		expect.equality(#calls, 5)
-		expect.equality(calls[5].dir, nil)
+		expect.equality(calls[5].dir, expected_dir)
 		expect.equality(calls[5].revision, 'abc123')
 		expect.equality(calls[5].split, 'horizontal')
 
 		-- Test with change_id only
 		vim.cmd('JJ status xyz789')
 		expect.equality(#calls, 6)
-		expect.equality(calls[6].dir, nil)
+		expect.equality(calls[6].dir, expected_dir)
 		expect.equality(calls[6].revision, 'xyz789')
 		expect.equality(calls[6].split, nil)
 	]])
@@ -211,6 +216,9 @@ T.test_jj_arrange_command_arguments = function()
 	child.lua([[
 		M.setup()
 
+		-- Buffer-derived target dir (working directory here — scratch buffer).
+		local expected_dir = M.current_buffer_dir()
+
 		-- Mock jj_arrange to capture the revsets it is handed.
 		local calls = {}
 		M.jj_arrange = function(dir, revisions)
@@ -220,7 +228,7 @@ T.test_jj_arrange_command_arguments = function()
 		-- No revsets: an empty list is forwarded.
 		vim.cmd('JJ arrange')
 		expect.equality(#calls, 1)
-		expect.equality(calls[1].dir, nil)
+		expect.equality(calls[1].dir, expected_dir)
 		expect.equality(calls[1].revisions, {})
 
 		-- A single revset.
@@ -232,6 +240,104 @@ T.test_jj_arrange_command_arguments = function()
 		vim.cmd('JJ arrange abc123 def456')
 		expect.equality(#calls, 3)
 		expect.equality(calls[3].revisions, { 'abc123', 'def456' })
+	]])
+end
+
+---A normal file buffer resolves to the directory containing its file, so `:JJ`
+---acts on the repo owning the file you are editing — the core of multi-repo
+---support. The file need not be inside a jj repo for this helper; it only
+---returns the directory (JjRepo.instance then walks up to the root).
+---@return nil
+T.test_current_buffer_dir_uses_file_directory = function()
+	child.lua([[
+		-- A real directory + file on disk so the isdirectory() guard passes.
+		local dir = vim.fn.tempname()
+		vim.fn.mkdir(dir, 'p')
+		local file = dir .. '/README.md'
+		vim.fn.writefile({ 'hello' }, file)
+
+		vim.cmd('edit ' .. vim.fn.fnameescape(file))
+		-- Compare against the directory of the buffer's *own* resolved name: on
+		-- macOS `:edit` canonicalises /tmp -> /private/tmp, so deriving the
+		-- expectation from the loaded buffer name avoids a spurious symlink
+		-- mismatch while still asserting the contract (file buffer -> its dir).
+		local expected = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ':p:h')
+		expect.equality(M.current_buffer_dir(), expected)
+		expect.no_equality(expected, vim.fn.getcwd())
+
+		vim.cmd('bwipeout!')
+		vim.fn.delete(dir, 'rf')
+	]])
+end
+
+---Special buffers (here an unnamed scratch buffer) have no usable file path, so
+---the helper falls back to Neovim's working directory rather than guessing.
+---@return nil
+T.test_current_buffer_dir_falls_back_to_cwd = function()
+	child.lua([[
+		vim.cmd('enew')
+		expect.equality(vim.api.nvim_buf_get_name(0), '')
+		expect.equality(M.current_buffer_dir(), vim.fn.getcwd())
+
+		vim.cmd('bwipeout!')
+	]])
+end
+
+---A NeoJJ view tags itself with its repo root (`b:neojj_repo_dir`); a `:JJ`
+---command run while sitting in that view — a `nofile` buffer — must target the
+---tagged repo, NOT the working directory. This is the in-view case: open a
+---status view for one project, then `:JJ log` must stay on that project.
+---@return nil
+T.test_current_buffer_dir_prefers_view_tag = function()
+	child.lua([[
+		vim.cmd('enew')
+		vim.bo.buftype = 'nofile'
+		vim.b.neojj_repo_dir = '/somewhere/project-two'
+
+		-- The tag wins over the working-directory fallback that a bare nofile
+		-- buffer would otherwise get.
+		expect.equality(M.current_buffer_dir(), '/somewhere/project-two')
+		expect.no_equality(M.current_buffer_dir(), vim.fn.getcwd())
+
+		vim.cmd('bwipeout!')
+	]])
+end
+
+---A leader mapping wired straight to `neojj.jj_log` (etc.) calls it with no
+---arguments, so `dir` is nil. get_repo(nil) must still resolve the CURRENT
+---BUFFER's repo, not Neovim's working directory — otherwise the mapping acts on
+---the wrong project while the equivalent `:JJ log` command works.
+---@return nil
+T.test_get_repo_nil_resolves_from_current_buffer = function()
+	child.lua([[
+		local original_cwd = vim.fn.getcwd()
+
+		-- A directory with a file inside it (no `.jj`, so this stays a plain-dir
+		-- resolution check and never spins up the jj status module).
+		local dir = vim.fn.tempname()
+		vim.fn.mkdir(dir, 'p')
+		local file = dir .. '/README.md'
+		vim.fn.writefile({ 'x' }, file)
+
+		-- Work from a DIFFERENT directory so getcwd() is not the file's dir.
+		local elsewhere = vim.fn.tempname()
+		vim.fn.mkdir(elsewhere, 'p')
+		vim.cmd('cd ' .. elsewhere)
+
+		vim.cmd('edit ' .. vim.fn.fnameescape(file))
+
+		-- get_repo(nil): the path a leader mapping -> neojj.jj_log() takes. The
+		-- resolved repo's dir must be the CURRENT BUFFER's directory, not the
+		-- working directory.
+		local repo = M.get_repo(nil)
+		local file_dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ':p:h')
+		expect.equality(repo.dir, file_dir)
+		expect.no_equality(repo.dir, vim.fn.getcwd())
+
+		vim.cmd('bwipeout!')
+		vim.cmd('cd ' .. original_cwd)
+		vim.fn.delete(dir, 'rf')
+		vim.fn.delete(elsewhere, 'rf')
 	]])
 end
 

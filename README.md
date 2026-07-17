@@ -197,6 +197,23 @@ NeoJJ provides a unified `:JJ` command with subcommands:
 :JJ arrange 'mutable()'       " Arrange a specific set of revisions
 ```
 
+#### Which repository a command targets
+
+`:JJ` commands act on the jj repository that owns the **current buffer**, not
+the directory Neovim was started in. So you can drive several jj projects from
+one Neovim session and each `:JJ` command targets the right repo:
+
+- **From a file buffer** — the repo owning that file. Edit
+  `../other-project/README.md`, run `:JJ status`, and you get `other-project`'s
+  status.
+- **From a NeoJJ view** (status, log, oplog, …) — that view's repo. Drilling
+  between views with `:JJ log`, `:JJ oplog`, etc. stays on the same project, so
+  opening a status view for one project and then running `:JJ log` gives *that*
+  project's log, not the working directory's.
+
+Only buffers with no repo of their own (terminals, `[No Name]`) fall back to
+Neovim's working directory.
+
 ### Status Buffer Keybindings
 
 | Key             | Action                        |

@@ -52,6 +52,7 @@ neojj-oplog-mappings	neojj.txt	/*neojj-oplog-mappings*
 neojj-oplog-navigation	neojj.txt	/*neojj-oplog-navigation*
 neojj-oplog-refresh	neojj.txt	/*neojj-oplog-refresh*
 neojj-project-links	neojj.txt	/*neojj-project-links*
+neojj-repo-resolution	neojj.txt	/*neojj-repo-resolution*
 neojj-requirements	neojj.txt	/*neojj-requirements*
 neojj-setup-options	neojj.txt	/*neojj-setup-options*
 neojj-setup-type	neojj.txt	/*neojj-setup-type*

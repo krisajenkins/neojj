@@ -32,6 +32,11 @@ T.test_jj_describe_command_arguments = function()
 	child.lua([[
 		M.setup()
 
+		-- The dispatcher resolves the target repo from the current buffer; in this
+		-- scratch buffer that is the working directory, so dir is
+		-- current_buffer_dir(), not nil.
+		local expected_dir = M.current_buffer_dir()
+
 		-- Mock the jj_describe function to track calls
 		local calls = {}
 		M.jj_describe = function(dir, revision, split)
@@ -41,14 +46,14 @@ T.test_jj_describe_command_arguments = function()
 		-- Test without arguments (should default to @ revision)
 		vim.cmd('JJ describe')
 		expect.equality(#calls, 1)
-		expect.equality(calls[1].dir, nil)
+		expect.equality(calls[1].dir, expected_dir)
 		expect.equality(calls[1].revision, '@')
 		expect.equality(calls[1].split, nil)
 
 		-- Test with specific revision
 		vim.cmd('JJ describe abc123')
 		expect.equality(#calls, 2)
-		expect.equality(calls[2].dir, nil)
+		expect.equality(calls[2].dir, expected_dir)
 		expect.equality(calls[2].revision, 'abc123')
 		expect.equality(calls[2].split, nil)
 	]])

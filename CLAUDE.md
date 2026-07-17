@@ -77,6 +77,25 @@ The `doc/tags` file is tracked in git and should be updated when documentation c
    - `status.lua`: Parses jj status output into structured data
    - Uses async execution with plenary for non-blocking operations
 
+   **Repository resolution is per-buffer.** A `:JJ` command targets the repo
+   owning the *current buffer*, not Neovim's working directory, so one session
+   can drive several jj projects. `M.get_repo(dir)` is the single resolution
+   point: a nil `dir` resolves via `M.current_buffer_dir()`, so **every** entry
+   is buffer-aware — the `:JJ` dispatcher (which passes an explicit dir), a
+   leader mapping wired straight to `neojj.jj_log` (which calls it with no args,
+   so `dir` is nil), or any future caller. `current_buffer_dir()` resolves in
+   priority order:
+   1. `b:neojj_repo_dir` — a buffer-local tag every NeoJJ view sets to its repo
+      root (in `Buffer.create`, from the `cwd = repo.dir` each view passes).
+      This is why a `:JJ` command run *inside* a view (which is a `nofile`
+      buffer with no path) stays on that view's repo instead of falling back.
+   2. The directory of a normal file buffer's file.
+   3. `getcwd()` for anything else (terminals, `[No Name]`).
+
+   `JjRepo.instance()` then keys its instance cache by the repository **root**
+   (resolved with `util.find_jj_dir`), so all buffers/subdirectories of one repo
+   share a single `JjRepo` (and watcher).
+
 4. **Status Buffer** (`lua/neojj/buffers/status/`)
    - `ui.lua`: Creates the component tree for displaying jj status
    - `init.lua`: Manages the status buffer lifecycle and updates

@@ -113,6 +113,22 @@ NeoJJ provides a unified `:JJ` command with subcommands:
                 • split
                 • arrange
 
+                                                        *neojj-repo-resolution*
+                A `:JJ` subcommand targets the jj repository that owns the
+                CURRENT BUFFER, not the directory Neovim was started in. This
+                lets one Neovim session manage several jj projects at once:
+
+                • From a file buffer, the command acts on the repo owning that
+                  file — open a file from any project and `:JJ status` (or log,
+                  describe, …) targets that project.
+                • From a NeoJJ view (status, log, oplog, …), the command acts on
+                  that view's repo, so drilling between views with `:JJ log`,
+                  `:JJ oplog`, etc. stays on the same project rather than
+                  slipping to the working directory.
+
+                Only buffers with no repo of their own (terminals, `[No Name]`)
+                fall back to Neovim's working directory.
+
                                                                    *:JJ-status*
 :JJ status [change_id] [split]
                 Open the status buffer showing working copy changes or a

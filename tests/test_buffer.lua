@@ -75,6 +75,22 @@ T.test_status_buffers_namespaced_per_repo = function()
 	]])
 end
 
+---A view buffer is tagged with the repository root it belongs to, so a `:JJ`
+---command run while sitting inside the view (a nofile buffer with no file path)
+---resolves to that view's repo. See neojj.current_buffer_dir / Buffer.create.
+---@return nil
+T.test_view_buffer_tagged_with_repo_dir = function()
+	child.lua([[
+		local StatusBuffer = require('neojj.buffers.status')
+		local repo = { dir = "/tmp/neojj-tagged-repo", get_root = function() return "/tmp/neojj-tagged-repo" end }
+
+		local sb = StatusBuffer.new(repo)
+		local handle = sb:get_handle()
+
+		expect.equality(vim.b[handle].neojj_repo_dir, "/tmp/neojj-tagged-repo")
+	]])
+end
+
 ---Log views for two different repos must likewise coexist rather than share one
 ---module-global instance (and one buffer).
 ---@return nil
