@@ -330,9 +330,11 @@ R                       Rebase @ onto a destination: prompts for which commits t
                         move (source + descendants -s, this revision only -r, or
                         the whole branch -b; default -s), then picks a destination
                         from a fuzzy picker over the repo's commits
-x                       Abandon @ (the working copy change), or the pinned
-                        revision when the status view is showing one. Confirms
-                        first (y/n, default no); undoable via jj undo
+x                       Discard changes via jj restore: on a file under the
+                        cursor, discards just that file; anywhere else, restores
+                        all changes in the view's revision (@, or the pinned
+                        revision). Confirms first (y/n, default no); undoable
+                        via jj undo
 f                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
 P                       Push to remote (jj git push): prompts for all tracked

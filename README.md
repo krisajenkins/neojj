@@ -228,7 +228,7 @@ Neovim's working directory.
 | `n`             | Create new change             |
 | `S`             | Squash `@` into parent        |
 | `R`             | Rebase `@` onto a change (pick `-s`/`-r`/`-b`, then a destination) |
-| `x`             | Abandon `@` (working copy change; confirms first) |
+| `x`             | Discard the file at cursor, or restore all changes (`jj restore`; confirms first) |
 | `f`             | Run jj fix (format `@`)       |
 | `t`             | Tug closest bookmark to `@`   |
 | `P`             | Push to remote (`jj git push`) |

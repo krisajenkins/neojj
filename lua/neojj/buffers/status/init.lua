@@ -173,10 +173,10 @@ function StatusBuffer:_setup_mappings()
 		self:rebase()
 	end, { desc = "Rebase @ onto a change" })
 
-	-- Abandon the working copy change @ (confirms first)
+	-- Discard the file under the cursor, or restore all changes (confirms first)
 	self.buffer:map("n", "x", function()
-		self:abandon()
-	end, { desc = "Abandon @ (working copy change)" })
+		self:restore()
+	end, { desc = "Discard file changes / restore all (jj restore)" })
 
 	-- Shared jj-action keys: f=fix, t=tug, P=push, p=fetch.
 	self:_map_jj_actions()
@@ -747,13 +747,32 @@ function StatusBuffer:rebase()
 	self:_rebase("@", "@")
 end
 
----Abandon this view's change (`jj abandon`). Targets the pinned revision, or the
----working copy `@` when none is pinned. A file under the cursor does not change
----the target -- there is no file-level abandon. Confirms first via the shared
----`ViewBuffer:_abandon`, which prompts y/n and refreshes on success.
-function StatusBuffer:abandon()
+---Discard working-copy changes via `jj restore`. On a file item under the
+---cursor, restores just that path; otherwise restores everything in the view's
+---revision. Confirms first (undoable via `jj undo`). Targets the pinned
+---revision, or `@` when none is pinned.
+function StatusBuffer:restore()
 	local rev = self.revision or "@"
-	self:_abandon(rev, rev)
+	local item = self.buffer:get_item_at_cursor()
+	if item and item.path then
+		if vim.fn.confirm("Discard changes to " .. item.path .. "?", "&Yes\n&No", 2) ~= 1 then
+			return
+		end
+		action.run(self, {
+			builder = require("neojj.lib.jj.cli").restore():option("changes-in", rev):arg(item.path),
+			success = "Discarded changes to " .. item.path,
+			failure = "Failed to discard " .. item.path,
+		})
+	else
+		if vim.fn.confirm("Discard ALL changes in " .. rev .. "?", "&Yes\n&No", 2) ~= 1 then
+			return
+		end
+		action.run(self, {
+			builder = require("neojj.lib.jj.cli").restore():option("changes-in", rev),
+			success = "Discarded all changes in " .. rev,
+			failure = "Failed to discard changes",
+		})
+	end
 end
 
 ---Create a new change from the current commit

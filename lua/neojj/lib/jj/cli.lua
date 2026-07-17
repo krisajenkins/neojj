@@ -335,6 +335,14 @@ function M.abandon()
 	return new_builder("jj"):arg("abandon")
 end
 
+-- Restore paths to a source state (`jj restore`). Callers scope the target
+-- revision with `:option("changes-in", rev)` and, for a single file, append the
+-- path via `:arg(path)`; bare `jj restore --changes-in @` discards all changes
+-- in the working copy. Restoring is undoable via `jj undo`.
+function M.restore()
+	return new_builder("jj"):arg("restore")
+end
+
 function M.git_push()
 	return new_builder("jj"):arg("git"):arg("push")
 end

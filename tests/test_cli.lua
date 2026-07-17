@@ -265,6 +265,26 @@ T["abandon builder carries the revision argument"] = function()
 	restore()
 end
 
+T["restore builder scopes changes to a revision"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.restore():option("changes-in", "@"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "restore", "--changes-in", "@" })
+
+	restore()
+end
+
+T["restore builder targets a single path"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.restore():option("changes-in", "@"):arg("src/file.lua"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "restore", "--changes-in", "@", "src/file.lua" })
+
+	restore()
+end
+
 T["bookmark_create builder targets a revision"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 
