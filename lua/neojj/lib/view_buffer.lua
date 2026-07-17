@@ -244,6 +244,72 @@ function ViewBuffer:_run_push(opts)
 	})
 end
 
+--- Run a prepared `jj bookmark list` builder, split its stdout into trimmed,
+--- non-empty lines and hand them to `callback` on the main loop. Wraps the async
+--- jj call so `vim.ui.*` callbacks can request a name list without being inside
+--- an async context themselves. `label` names the list in the failure notice.
+---@param builder table A cli.bookmark_list() builder (template already set)
+---@param label string Plural noun for the failure notification
+---@param callback fun(names: string[])
+function ViewBuffer:_fetch_bookmark_lines(builder, label, callback)
+	local async = require("plenary.async")
+
+	async.run(function()
+		local result = builder:cwd(self.repo.dir):call_async()
+
+		vim.schedule(function()
+			if not result.success then
+				vim.notify(
+					"Failed to list " .. label .. ": " .. (result.stderr or "Unknown error"),
+					vim.log.levels.ERROR
+				)
+				callback({})
+				return
+			end
+
+			local names = {}
+			for _, line in ipairs(vim.split(result.stdout or "", "\n")) do
+				local name = vim.trim(line)
+				if name ~= "" then
+					table.insert(names, name)
+				end
+			end
+			callback(names)
+		end)
+	end)
+end
+
+--- Fetch the local bookmark names (one per line) and hand them to `callback`.
+--- `jj bookmark list` emits one entry per ref: the local bookmark *plus* each
+--- remote-tracking ref (`main@origin`, …). Rendering bare `name` would list a
+--- tracked bookmark once per remote, so guard on `remote` to keep locals only.
+---@param callback fun(names: string[])
+function ViewBuffer:_fetch_bookmark_names(callback)
+	local cli = require("neojj.lib.jj.cli")
+	self:_fetch_bookmark_lines(
+		cli.bookmark_list():option("template", 'if(remote, "", name ++ "\\n")'),
+		"bookmarks",
+		callback
+	)
+end
+
+--- Fetch the fully-qualified remote-tracking refs (`name@remote`), filtered by
+--- tracked state, and hand them to `callback`. Used to build the track/untrack
+--- pickers. The internal `@git` remote (jj's colocated-git backend) is excluded:
+--- it cannot be tracked or untracked.
+---@param tracked boolean true → only tracked refs; false → only untracked refs
+---@param callback fun(refs: string[])
+function ViewBuffer:_fetch_remote_refs(tracked, callback)
+	local cli = require("neojj.lib.jj.cli")
+	local cond = tracked and "tracked" or "!tracked"
+	local template = 'if(remote && remote != "git" && ' .. cond .. ', name ++ "@" ++ remote ++ "\\n", "")'
+	self:_fetch_bookmark_lines(
+		cli.bookmark_list():flag("all-remotes"):option("template", template),
+		tracked and "tracked remote bookmarks" or "untracked remote bookmarks",
+		callback
+	)
+end
+
 --- Push to the remote. Prompts for what to push: all tracked bookmarks, a
 --- specific bookmark by name, or a bookmark for "this change" (`--change`). The
 --- third choice's label (`self.push_change_label`) and its change target
@@ -264,11 +330,17 @@ function ViewBuffer:push()
 		if idx == 1 then
 			self:_run_push({})
 		elseif idx == 2 then
-			vim.ui.input({ prompt = "Bookmark name: " }, function(name)
-				if not name or name == "" then
+			self:_fetch_bookmark_names(function(names)
+				if #names == 0 then
+					vim.notify("No bookmarks to push", vim.log.levels.WARN)
 					return
 				end
-				self:_run_push({ bookmark = name })
+				vim.ui.select(names, { prompt = "Push which bookmark?" }, function(name)
+					if not name then
+						return
+					end
+					self:_run_push({ bookmark = name })
+				end)
 			end)
 		elseif idx == 3 then
 			local change = self:_push_change_target()

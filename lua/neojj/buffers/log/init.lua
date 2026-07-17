@@ -725,39 +725,9 @@ function LogBuffer:_run_bookmark(builder, success_msg)
 	end)
 end
 
----Fetch the list of local bookmark names (one per line) and hand them to
----`callback` on the main loop. Wraps the async jj call so `vim.ui.*` callbacks
----can request a name list without being inside an async context themselves.
----@param callback fun(names: string[])
-function LogBuffer:_fetch_bookmark_names(callback)
-	local cli = require("neojj.lib.jj.cli")
-	local async = require("plenary.async")
-
-	-- `jj bookmark list` emits one entry per ref: the local bookmark *plus* each
-	-- remote-tracking ref (`main@origin`, …). Rendering bare `name` would list a
-	-- tracked bookmark once per remote, so guard on `remote` to keep locals only.
-	async.run(function()
-		local result =
-			cli.bookmark_list():option("template", 'if(remote, "", name ++ "\\n")'):cwd(self.repo.dir):call_async()
-
-		vim.schedule(function()
-			if not result.success then
-				vim.notify("Failed to list bookmarks: " .. (result.stderr or "Unknown error"), vim.log.levels.ERROR)
-				callback({})
-				return
-			end
-
-			local names = {}
-			for _, line in ipairs(vim.split(result.stdout or "", "\n")) do
-				local name = vim.trim(line)
-				if name ~= "" then
-					table.insert(names, name)
-				end
-			end
-			callback(names)
-		end)
-	end)
-end
+-- _fetch_bookmark_names (local bookmarks) and _fetch_remote_refs (tracked /
+-- untracked `name@remote` refs) are inherited from ViewBuffer; the bookmark
+-- pickers below build on them.
 
 ---Open the bookmark-management menu for the change under the cursor. Wraps
 ---`jj bookmark create/move/delete/rename/track/untrack` behind a `vim.ui.select`
@@ -893,28 +863,41 @@ function LogBuffer:_bookmark_rename()
 	end)
 end
 
----Track a remote bookmark (`jj bookmark track name@remote`). Prompts for the
----fully-qualified `name@remote` ref, since that pairing is what jj expects.
+---Track a remote bookmark (`jj bookmark track name@remote`). Picks from the
+---untracked `name@remote` refs, since that pairing is what jj expects.
 function LogBuffer:_bookmark_track()
 	local cli = require("neojj.lib.jj.cli")
 
-	vim.ui.input({ prompt = "Track remote bookmark (name@remote): " }, function(ref)
-		if not ref or ref == "" then
+	self:_fetch_remote_refs(false, function(refs)
+		if #refs == 0 then
+			vim.notify("No untracked remote bookmarks", vim.log.levels.WARN)
 			return
 		end
-		self:_run_bookmark(cli.bookmark_track():arg(ref):cwd(self.repo.dir), "Tracking " .. ref)
+		vim.ui.select(refs, { prompt = "Track which remote bookmark?" }, function(ref)
+			if not ref then
+				return
+			end
+			self:_run_bookmark(cli.bookmark_track():arg(ref):cwd(self.repo.dir), "Tracking " .. ref)
+		end)
 	end)
 end
 
----Untrack a remote bookmark (`jj bookmark untrack name@remote`).
+---Untrack a remote bookmark (`jj bookmark untrack name@remote`). Picks from the
+---tracked `name@remote` refs.
 function LogBuffer:_bookmark_untrack()
 	local cli = require("neojj.lib.jj.cli")
 
-	vim.ui.input({ prompt = "Untrack remote bookmark (name@remote): " }, function(ref)
-		if not ref or ref == "" then
+	self:_fetch_remote_refs(true, function(refs)
+		if #refs == 0 then
+			vim.notify("No tracked remote bookmarks", vim.log.levels.WARN)
 			return
 		end
-		self:_run_bookmark(cli.bookmark_untrack():arg(ref):cwd(self.repo.dir), "Untracked " .. ref)
+		vim.ui.select(refs, { prompt = "Untrack which remote bookmark?" }, function(ref)
+			if not ref then
+				return
+			end
+			self:_run_bookmark(cli.bookmark_untrack():arg(ref):cwd(self.repo.dir), "Untracked " .. ref)
+		end)
 	end)
 end
 
