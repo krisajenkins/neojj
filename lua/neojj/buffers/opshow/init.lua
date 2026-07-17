@@ -131,7 +131,10 @@ function OpShowBuffer:_setup_mappings()
 	-- Pop one frame off the view stack, revealing the view drilled down from.
 	self:_map_back_keys()
 
+	-- Logged here, at the manual entry point, so watcher-driven auto-refreshes
+	-- stay quiet.
 	self.buffer:map("n", "<c-r>", function()
+		logger.info("Refreshing op-show buffer for operation " .. self.op_id)
 		self:refresh()
 	end, { desc = "Refresh operation view" })
 
@@ -147,10 +150,10 @@ function OpShowBuffer:open_log()
 	LogBuffer.new(self.repo):show()
 end
 
----Refresh the op-show buffer
+---Refresh the op-show buffer. Fired both manually (`<c-r>`) and automatically
+---(the filesystem watcher), so it stays silent — the manual key handler logs
+---"Refreshing …" so routine auto-refreshes don't flood the log.
 function OpShowBuffer:refresh()
-	logger.info("Refreshing op-show buffer for operation " .. self.op_id)
-
 	if not self.repo:is_jj_repo() then
 		self.buffer:render_error("Not a JJ repository")
 		return

@@ -120,15 +120,15 @@ function StatusBuffer:_setup_mappings()
 	-- (e.g. the log). Only when this view is the last frame does it close.
 	self:_map_back_keys()
 
-	-- Refresh mapping
-	self.buffer:map("n", "r", function()
+	-- Refresh mappings (`r` and Ctrl-R, like NeoGit). Logged here, at the manual
+	-- entry point, so watcher-driven auto-refreshes (which call refresh()
+	-- directly) stay quiet.
+	local function manual_refresh()
+		logger.info("Refreshing status buffer" .. (self.revision and (" for revision: " .. self.revision) or ""))
 		self:refresh()
-	end, { desc = "Refresh status" })
-
-	-- Ctrl-R also refreshes (like NeoGit)
-	self.buffer:map("n", "<c-r>", function()
-		self:refresh()
-	end, { desc = "Refresh status" })
+	end
+	self.buffer:map("n", "r", manual_refresh, { desc = "Refresh status" })
+	self.buffer:map("n", "<c-r>", manual_refresh, { desc = "Refresh status" })
 
 	-- Help mapping
 	self.buffer:map("n", "?", function()
@@ -326,10 +326,10 @@ function StatusBuffer:parse_show_output(output)
 	return working_copy
 end
 
----Refresh the status buffer
+---Refresh the status buffer. Fired both manually (the `r`/`<c-r>` keys) and
+---automatically (the filesystem watcher), so it stays silent — the manual key
+---handlers log "Refreshing …" so routine auto-refreshes don't flood the log.
 function StatusBuffer:refresh()
-	logger.info("Refreshing status buffer" .. (self.revision and (" for revision: " .. self.revision) or ""))
-
 	if not self.repo:is_jj_repo() then
 		self.buffer:render_error("Not a JJ repository")
 		return

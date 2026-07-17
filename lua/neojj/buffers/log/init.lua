@@ -205,15 +205,14 @@ function LogBuffer:_setup_mappings()
 	-- Only when this view is the last frame does it close.
 	self:_map_back_keys()
 
-	-- Refresh mapping
-	self.buffer:map("n", "r", function()
+	-- Refresh mappings (`r` and Ctrl-R). Logged here, at the manual entry point,
+	-- so watcher-driven auto-refreshes (which call refresh() directly) stay quiet.
+	local function manual_refresh()
+		logger.info("Refreshing log buffer")
 		self:refresh()
-	end, { desc = "Refresh log" })
-
-	-- Ctrl-R also refreshes
-	self.buffer:map("n", "<c-r>", function()
-		self:refresh()
-	end, { desc = "Refresh log" })
+	end
+	self.buffer:map("n", "r", manual_refresh, { desc = "Refresh log" })
+	self.buffer:map("n", "<c-r>", manual_refresh, { desc = "Refresh log" })
 
 	-- Help mapping
 	self.buffer:map("n", "?", function()
@@ -288,10 +287,10 @@ function LogBuffer:_setup_mappings()
 	end, { desc = "Toggle revision details" })
 end
 
----Refresh the log buffer
+---Refresh the log buffer. Fired both manually (the `r`/`<c-r>` keys) and
+---automatically (the filesystem watcher), so it stays silent — the manual key
+---handlers log "Refreshing …" so routine auto-refreshes don't flood the log.
 function LogBuffer:refresh()
-	logger.info("Refreshing log buffer")
-
 	if not self.repo:is_jj_repo() then
 		self.buffer:render_error("Not a JJ repository")
 		return

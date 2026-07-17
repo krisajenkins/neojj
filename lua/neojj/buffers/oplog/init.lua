@@ -145,8 +145,10 @@ function OplogBuffer:_setup_mappings()
 		self:undo()
 	end, { desc = "Undo the last operation (jj undo)" })
 
-	-- Ctrl-R refreshes (r is restore in this buffer).
+	-- Ctrl-R refreshes (r is restore in this buffer). Logged here, at the manual
+	-- entry point, so watcher-driven auto-refreshes stay quiet.
 	self.buffer:map("n", "<c-r>", function()
+		logger.info("Refreshing oplog buffer")
 		self:refresh()
 	end, { desc = "Refresh operation log" })
 
@@ -172,10 +174,10 @@ function OplogBuffer:open_log()
 	LogBuffer.new(self.repo):show()
 end
 
----Refresh the oplog buffer
+---Refresh the oplog buffer. Fired both manually (`<c-r>`) and automatically (the
+---filesystem watcher), so it stays silent — the manual key handler logs
+---"Refreshing …" so routine auto-refreshes don't flood the log.
 function OplogBuffer:refresh()
-	logger.info("Refreshing oplog buffer")
-
 	if not self.repo:is_jj_repo() then
 		self.buffer:render_error("Not a JJ repository")
 		return

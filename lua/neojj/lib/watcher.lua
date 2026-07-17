@@ -91,6 +91,7 @@ local function dispatch(root)
 		if type(mod.list_instances) == "function" then
 			for _, inst in ipairs(mod.list_instances()) do
 				if inst:is_valid() and inst.repo and inst.repo:get_root() == root then
+					-- Auto-refresh: refresh() logs nothing, so fs churn stays quiet.
 					inst:refresh()
 				end
 			end
