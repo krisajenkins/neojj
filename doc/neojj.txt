@@ -314,6 +314,9 @@ R                       Rebase @ onto a destination: prompts for which commits t
                         move (source + descendants -s, this revision only -r, or
                         the whole branch -b; default -s), then picks a destination
                         from a fuzzy picker over the repo's commits
+x                       Abandon @ (the working copy change), or the pinned
+                        revision when the status view is showing one. Confirms
+                        first (y/n, default no); undoable via jj undo
 f                       Run jj fix on the working copy (formats @)
 t                       Tug: advance the closest bookmark up to @
 P                       Push to remote (jj git push): prompts for all tracked
@@ -371,6 +374,8 @@ R                       Rebase change at cursor onto a destination: prompts for
                         revision only -r, or the whole branch -b; default -s),
                         then picks a destination from a fuzzy picker over the
                         repo's commits
+x                       Abandon the change at cursor. Confirms first (y/n,
+                        default no); undoable via jj undo
 a                       Arrange the commit graph: launches jj's native
                         interactive arrange TUI in a terminal (operates on the
                         default revsets.arrange set, not the change at cursor)

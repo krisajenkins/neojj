@@ -146,6 +146,7 @@ The renderer tracks the position of interactive components to enable cursor-base
 - `n`: Create a new change from the current commit
 - `S`: Squash the working copy `@` into its parent (confirms first)
 - `R`: Rebase the working copy `@` onto a chosen destination (select `-r`/`-s`/`-b`, default `-s`)
+- `x`: Abandon `@` (the working copy change, or the pinned revision when one is shown; confirms first)
 - `f`: Run jj fix (format working copy `@`)
 - `t`: Tug (advance the closest bookmark up to `@`)
 - `P`: Push to remote (`jj git push`)

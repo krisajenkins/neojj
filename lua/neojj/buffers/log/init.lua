@@ -262,6 +262,11 @@ function LogBuffer:_setup_mappings()
 		self:rebase()
 	end, { desc = "Rebase change at cursor" })
 
+	-- Abandon the change at cursor (confirms first)
+	self.buffer:map("n", "x", function()
+		self:abandon()
+	end, { desc = "Abandon change at cursor" })
+
 	-- Interactively arrange the commit graph (jj's native arrange TUI)
 	self.buffer:map("n", "a", function()
 		self:arrange()
@@ -615,6 +620,17 @@ function LogBuffer:rebase()
 		return
 	end
 	self:_rebase(item.change_id, item.change_id:sub(1, 8))
+end
+
+---Abandon the change under the cursor (`jj abandon <rev>`). Confirms first via
+---the shared `ViewBuffer:_abandon`, which prompts y/n and refreshes on success.
+function LogBuffer:abandon()
+	local item = self.buffer:get_item_at_cursor()
+	if not item or not item.change_id then
+		vim.notify("No commit at cursor", vim.log.levels.WARN)
+		return
+	end
+	self:_abandon(item.change_id, item.change_id:sub(1, 8))
 end
 
 ---Interactively arrange the commit graph. Delegates to `neojj.jj_arrange`, which

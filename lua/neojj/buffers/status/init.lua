@@ -173,6 +173,11 @@ function StatusBuffer:_setup_mappings()
 		self:rebase()
 	end, { desc = "Rebase @ onto a change" })
 
+	-- Abandon the working copy change @ (confirms first)
+	self.buffer:map("n", "x", function()
+		self:abandon()
+	end, { desc = "Abandon @ (working copy change)" })
+
 	-- Shared jj-action keys: f=fix, t=tug, P=push, p=fetch.
 	self:_map_jj_actions()
 
@@ -740,6 +745,15 @@ end
 ---destination picked from a fuzzy picker. Always rebases `@`.
 function StatusBuffer:rebase()
 	self:_rebase("@", "@")
+end
+
+---Abandon this view's change (`jj abandon`). Targets the pinned revision, or the
+---working copy `@` when none is pinned. A file under the cursor does not change
+---the target -- there is no file-level abandon. Confirms first via the shared
+---`ViewBuffer:_abandon`, which prompts y/n and refreshes on success.
+function StatusBuffer:abandon()
+	local rev = self.revision or "@"
+	self:_abandon(rev, rev)
 end
 
 ---Create a new change from the current commit

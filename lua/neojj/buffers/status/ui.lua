@@ -514,6 +514,7 @@ function StatusUI.create_help()
 				{ "S", "Squash @ into parent" },
 				{ "R", "Rebase @ onto a change" },
 				{ "t", "Tug bookmark to @" },
+				{ "x", "Abandon @ (working copy change)" },
 			},
 		},
 	}, { key_width = 8, trailing_blank = false })

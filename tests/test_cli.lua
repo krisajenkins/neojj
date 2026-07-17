@@ -255,6 +255,16 @@ T["rebase builder carries --branch and --destination options"] = function()
 	restore()
 end
 
+T["abandon builder carries the revision argument"] = function()
+	local Cli, captured, restore = load_cli_with_job_spy()
+
+	Cli.abandon():arg("abc123"):call()
+
+	expect_args(captured.opts.args, { "--color", "never", "abandon", "abc123" })
+
+	restore()
+end
+
 T["bookmark_create builder targets a revision"] = function()
 	local Cli, captured, restore = load_cli_with_job_spy()
 

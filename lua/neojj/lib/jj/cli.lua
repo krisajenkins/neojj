@@ -328,6 +328,13 @@ function M.fix()
 	return new_builder("jj"):arg("fix")
 end
 
+-- Abandon a revision (`jj abandon`). Callers append the target revision via
+-- `:arg(change_id)` (as create_new_change/edit_change do). Abandoning drops the
+-- change but is undoable via `jj undo` (the oplog view's undo action).
+function M.abandon()
+	return new_builder("jj"):arg("abandon")
+end
+
 function M.git_push()
 	return new_builder("jj"):arg("git"):arg("push")
 end

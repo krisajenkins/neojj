@@ -290,6 +290,28 @@ function ViewBuffer:fetch()
 	})
 end
 
+--- Abandon a revision (`jj abandon <rev>`). Prompts for y/n confirmation
+--- (defaulting to No) since it drops the change, then runs the abandon and
+--- refreshes the view. Destructive but undoable via `jj undo` (the oplog view's
+--- undo action), which keeps the abandon keys trustworthy. The `rev`/`label`
+--- pair is supplied per-view: the status view abandons its pinned revision
+--- (defaulting to `@`), the log view the change under the cursor.
+---@param rev string Revision to abandon
+---@param label string Short label for the revision, used in prompts/messages
+function ViewBuffer:_abandon(rev, label)
+	local prompt = "Abandon " .. label .. "?"
+	local choice = vim.fn.confirm(prompt, "&Yes\n&No", 2)
+	if choice ~= 1 then
+		return
+	end
+
+	action.run(self, {
+		builder = require("neojj.lib.jj.cli").abandon():arg(rev),
+		success = "Abandoned " .. label,
+		failure = "Failed to abandon " .. label,
+	})
+end
+
 --- Squash one revision into another, reproducing jj's combine-descriptions
 --- editor natively when needed. `opts.from`/`opts.into` are revsets:
 ---   * from=nil, into=nil   → bare `jj squash` (working copy `@` into its parent)

@@ -319,6 +319,7 @@ function LogUI.create_help()
 				{ "S", "Squash change at cursor" },
 				{ "R", "Rebase change at cursor" },
 				{ "t", "Tug bookmark to @" },
+				{ "x", "Abandon change at cursor" },
 				{ "y", "Yank change ID" },
 			},
 		},
