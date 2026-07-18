@@ -35,7 +35,7 @@ Feel free to use it. What it does, it does well. It doesn't cover every `jj` fea
 - **Annotate/Blame** - See which change last touched each line of a file
 - **Describe Commits** - Edit commit descriptions with a dedicated buffer
 - **Commit Details** - View detailed commit information and diffs
-- **Working-copy Actions** - `jj commit`, `jj fix`, `jj tug`, `jj edit`, `jj new`, and `jj squash` from the buffers
+- **Working-copy Actions** - `jj commit`, `jj fix`, `jj tug`, `jj edit`, `jj new`, `jj squash`, `jj rebase`, `jj restore`, `jj abandon`, and `jj arrange` from the buffers
 - **Git Sync** - Push (`jj git push`) and pull (`jj git fetch`) from the status and log buffers
 - **Auto-refresh** - Open views refresh automatically when the repo changes externally (e.g. a `jj` command run in another terminal)
 - **Vim-style Keybindings** - Navigate and interact using familiar Vim motions
@@ -575,8 +575,8 @@ installed.
 - [x] Syntax highlighting
 - [x] Operation log with undo/restore
 - [x] Bookmark management
+- [x] Rebase/squash operations
 - [ ] Commit picker for advanced operations
-- [ ] Rebase/squash operations
 - [ ] Conflict resolution UI
 - [ ] Integration with telescope.nvim
 - [ ] Custom templates for commit descriptions
